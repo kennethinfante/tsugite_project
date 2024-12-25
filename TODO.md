@@ -2,11 +2,14 @@
 
 List of things to do
 
-* Arrange files
-* Rename folders
+* Arrange files - ok
+* Rename folders - ok
 * Initial refactoring
-    - clarify UI variable names
+    - rename file names to lower snake case
+    - add the gifs and images to own folders
     - refactor the use of ui file
+    - refactor functions that are outside of classes
+    - clarify UI variable names
     
 * Add tests
 * Add documentation
