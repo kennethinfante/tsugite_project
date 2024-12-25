@@ -3,7 +3,7 @@ import pyrr
 from numpy import linalg
 import copy
 import math
-from Misc import FixedSide
+from misc import FixedSide
 
 def angle_between_with_direction(v0, v1):
     v0 = v0 / np.linalg.norm(v0)

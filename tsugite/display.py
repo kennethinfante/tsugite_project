@@ -1,10 +1,10 @@
 from OpenGL.GL import *
-from Buffer import ElementProperties
-from ViewSettings import ViewSettings
+from buffer import ElementProperties
+from view_settings import ViewSettings
 import numpy as np
 import pyrr
 
-class Show:
+class Display:
     def __init__(self,parent,type):
         self.parent = parent
         self.type = type

@@ -16,10 +16,10 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
-from Types import Types
-from Geometries import Geometries
-from ViewSettings import ViewSettings
-from Show import Show
+from joint_types import Types
+from geometries import Geometries
+from view_settings import ViewSettings
+from display import Display
 
 
 def get_untitled_filename(name,ext,sep):

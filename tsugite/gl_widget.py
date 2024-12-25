@@ -10,8 +10,8 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from math import tan, pi
 #My files
-from Types import Types
-from Show import Show
+from joint_types import Types
+from display import Display
 
 def initializeGL(self):
     self.qglClearColor(QColor(255, 255, 255))
@@ -33,7 +33,7 @@ def initializeGL(self):
     elif self.parent.findChild(QRadioButton, "radioNC").isChecked(): ext = "nc"
     elif self.parent.findChild(QRadioButton, "radioSBP").isChecked(): ext = "sbp"
     self.type = Types(self,fs=[[[2,0]],[[2,1]]],sax=sax,dim=dim,ang=ang, td=[dx,dy,dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
-    self.show = Show(self,self.type)
+    self.show = Display(self, self.type)
 
 def resizeGL(self, w, h):
         def perspective(fovY, aspect, zNear, zFar):

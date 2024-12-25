@@ -1,7 +1,7 @@
 import numpy as np
 import copy
-from Fabrication import RegionVertex
-from Misc import FixedSide
+from fabrication import RegionVertex
+from misc import FixedSide
 
 def get_ordered_outline(verts):
     ord_verts = []

@@ -6,12 +6,12 @@ import math
 import copy
 import os
 import random
-from Buffer import Buffer
-from Evaluation import Evaluation
-from Fabrication import *
-from Geometries import Geometries
-from Geometries import get_index
-from Misc import FixedSides
+from buffer import Buffer
+from evaluation import Evaluation
+from fabrication import *
+from geometries import Geometries
+from geometries import get_index
+from misc import FixedSides
 
 def normalize(v):
     norm = linalg.norm(v)

@@ -84,7 +84,7 @@
       <item>
        <widget class="QCheckBox" name="checkFEED">
         <property name="text">
-         <string>Show Feedback (F)</string>
+         <string>Display Feedback (F)</string>
         </property>
         <property name="shortcut">
          <string>F</string>
@@ -97,7 +97,7 @@
       <item>
        <widget class="QCheckBox" name="checkSUG">
         <property name="text">
-         <string>Show suggestions (S)</string>
+         <string>Display suggestions (S)</string>
         </property>
         <property name="shortcut">
          <string>S</string>
@@ -113,7 +113,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>Show area of friction/contact (A)</string>
+         <string>Display area of friction/contact (A)</string>
         </property>
         <property name="shortcut">
          <string>A</string>
@@ -687,7 +687,7 @@
       <item>
        <widget class="QPushButton" name="buttonPATH">
         <property name="text">
-         <string>Show milling path (M)</string>
+         <string>Display milling path (M)</string>
         </property>
         <property name="shortcut">
          <string>M</string>
@@ -767,7 +767,7 @@
     </property>
     <widget class="QMenu" name="menuShow_hide_timbers">
      <property name="title">
-      <string>Show timbers</string>
+      <string>Display timbers</string>
      </property>
      <addaction name="actionA"/>
      <addaction name="actionB"/>
@@ -868,7 +868,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show hidden lines</string>
+    <string>Display hidden lines</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+H</string>
@@ -1008,7 +1008,7 @@
   </action>
   <action name="actionALL">
    <property name="text">
-    <string>Show all</string>
+    <string>Display all</string>
    </property>
   </action>
  </widget>

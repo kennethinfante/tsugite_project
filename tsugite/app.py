@@ -16,11 +16,11 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from math import tan, pi
-from Types import Types
-from Geometries import Geometries
-from ViewSettings import ViewSettings
-from Show import Show
-from _mainWindow import get_untitled_filename
+from joint_types import Types
+from geometries import Geometries
+from view_settings import ViewSettings
+from display import Display
+from main_window import get_untitled_filename
 
 class GLWidget(QGLWidget):
     def __init__(self, parent=None):
@@ -53,7 +53,7 @@ class GLWidget(QGLWidget):
     #     self.y = 0    
 
 
-    from _GLWidget import initializeGL
+    from gl_widget import initializeGL
     # from _GLWidget import resizeGL
     def resizeGL(self, w, h):
         def perspective(fovY, aspect, zNear, zFar):
@@ -285,41 +285,41 @@ class mainWindow(QMainWindow):
         timer.start()
 
 
-    from _mainWindow import setupUi
-    from _mainWindow import open_close_joint
-    from _mainWindow import set_feedback_view
-    from _mainWindow import change_sliding_axis
-    from _mainWindow import change_number_of_timbers
-    from _mainWindow import change_resolution
-    from _mainWindow import set_angle_of_intersection
-    from _mainWindow import set_timber_X
-    from _mainWindow import set_timber_Y
-    from _mainWindow import set_timber_Z
-    from _mainWindow import set_all_timber_same
-    from _mainWindow import randomize_geometry
-    from _mainWindow import clear_geometry
-    from _mainWindow import set_milling_bit_diameter
-    from _mainWindow import set_fab_tolerance
-    from _mainWindow import set_fab_speed
-    from _mainWindow import set_fab_spindlespeed
-    from _mainWindow import set_milling_path_axis_alginement
-    from _mainWindow import set_incremental
-    from _mainWindow import set_interpolation
-    from _mainWindow import set_millingpath_view
-    from _mainWindow import export_gcode
-    from _mainWindow import set_gcode_as_standard
-    from _mainWindow import set_nccode_as_standard
-    from _mainWindow import set_sbp_as_standard
-    from _mainWindow import new_file
-    from _mainWindow import open_file
-    from _mainWindow import save_file
-    from _mainWindow import save_file_as
-    from _mainWindow import show_hide_hidden_lines
-    from _mainWindow import show_hide_timbers
-    from _mainWindow import show_all_timbers
-    from _mainWindow import set_standard_rotation
-    from _mainWindow import set_closest_plane_rotation
-    from _mainWindow import set_ui_values
+    from main_window import setupUi
+    from main_window import open_close_joint
+    from main_window import set_feedback_view
+    from main_window import change_sliding_axis
+    from main_window import change_number_of_timbers
+    from main_window import change_resolution
+    from main_window import set_angle_of_intersection
+    from main_window import set_timber_X
+    from main_window import set_timber_Y
+    from main_window import set_timber_Z
+    from main_window import set_all_timber_same
+    from main_window import randomize_geometry
+    from main_window import clear_geometry
+    from main_window import set_milling_bit_diameter
+    from main_window import set_fab_tolerance
+    from main_window import set_fab_speed
+    from main_window import set_fab_spindlespeed
+    from main_window import set_milling_path_axis_alginement
+    from main_window import set_incremental
+    from main_window import set_interpolation
+    from main_window import set_millingpath_view
+    from main_window import export_gcode
+    from main_window import set_gcode_as_standard
+    from main_window import set_nccode_as_standard
+    from main_window import set_sbp_as_standard
+    from main_window import new_file
+    from main_window import open_file
+    from main_window import save_file
+    from main_window import save_file_as
+    from main_window import show_hide_hidden_lines
+    from main_window import show_hide_timbers
+    from main_window import show_all_timbers
+    from main_window import set_standard_rotation
+    from main_window import set_closest_plane_rotation
+    from main_window import set_ui_values
 
     def keyPressEvent(self, e):
         if e.key()==Qt.Key_Shift:

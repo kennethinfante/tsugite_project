@@ -1,12 +1,12 @@
 from OpenGL.GL import *
 import numpy as np
 import random
-from Selection import Selection
-from Evaluation import Evaluation
-from Buffer import ElementProperties
+from selection import Selection
+from evaluation import Evaluation
+from buffer import ElementProperties
 import copy
 import os
-from Misc import FixedSide
+from misc import FixedSide
 
 # Supporting functions
 def get_random_height_fields(dim,noc):
