@@ -268,7 +268,7 @@ class mainWindow(QMainWindow):
         self.title = "Tsugite"
         self.filename = get_untitled_filename("Untitled","tsu","_")
         self.setWindowTitle(self.filename.split(os.sep)[-1]+" - "+self.title)
-        self.setWindowIcon(QIcon("tsugite_icon.png"))
+        self.setWindowIcon(QIcon("images/tsugite_icon.png"))
 
         self.glWidget = GLWidget(self)
 
@@ -342,7 +342,7 @@ class mainWindow(QMainWindow):
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
 QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
 app = QApplication(sys.argv)
-movie = QMovie("tsugite_loading_3d.gif")
+movie = QMovie("images/tsugite_loading_3d.gif")
 
 splash = MovieSplashScreen(movie)
 
