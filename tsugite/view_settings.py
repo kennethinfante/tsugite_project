@@ -1,6 +1,3 @@
-from OpenGL.GL import *
-import OpenGL.GL.shaders
-import random
 import math
 import time
 

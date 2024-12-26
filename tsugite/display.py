@@ -3,6 +3,7 @@ import pyrr
 from ctypes import c_void_p as buffer_offset
 
 import OpenGL.GL as GL  # imports start with GL
+import OpenGL.GL.shaders as GLSH
 from OpenGL.GLU import gluPerspective
 
 from buffer import ElementProperties
@@ -62,8 +63,8 @@ class Display:
         }
         """
         # Compiling the shaders
-        self.shader_col = GL.shaders.compileProgram(GL.shaders.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
-                                                  GL.shaders.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
+        self.shader_col = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
+                                                  GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
     def create_texture_shaders(self):
         vertex_shader = """
@@ -99,8 +100,8 @@ class Display:
         
 
         # Compiling the shaders
-        self.shader_tex = GL.shaders.compileProgram(GL.shaders.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
-                                                  GL.shaders.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
+        self.shader_tex = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
+                                                  GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
     def init_shader(self,shader):
         GL.glUseProgram(shader)
