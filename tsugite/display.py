@@ -1,8 +1,12 @@
-from OpenGL.GL import *
-from buffer import ElementProperties
-from view_settings import ViewSettings
 import numpy as np
 import pyrr
+from ctypes import c_void_p as buffer_offset
+
+import OpenGL.GL as GL  # imports start with GL
+from OpenGL.GLU import gluPerspective
+
+from buffer import ElementProperties
+from view_settings import ViewSettings
 
 class Display:
     def __init__(self,parent,type):
@@ -27,7 +31,7 @@ class Display:
 
     def create_color_shaders(self):
         vertex_shader = """
-          #version 150
+        #version 150
         #extension GL_ARB_explicit_attrib_location : require
         #extension GL_ARB_explicit_uniform_location : require
         layout(location = 0) in vec3 position;
@@ -58,8 +62,8 @@ class Display:
         }
         """
         # Compiling the shaders
-        self.shader_col = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(vertex_shader, GL_VERTEX_SHADER),
-                                                  OpenGL.GL.shaders.compileShader(fragment_shader, GL_FRAGMENT_SHADER))
+        self.shader_col = GL.shaders.compileProgram(GL.shaders.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
+                                                  GL.shaders.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
     def create_texture_shaders(self):
         vertex_shader = """
@@ -95,14 +99,14 @@ class Display:
         
 
         # Compiling the shaders
-        self.shader_tex = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(vertex_shader, GL_VERTEX_SHADER),
-                                                  OpenGL.GL.shaders.compileShader(fragment_shader, GL_FRAGMENT_SHADER))
+        self.shader_tex = GL.shaders.compileProgram(GL.shaders.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
+                                                  GL.shaders.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
     def init_shader(self,shader):
-        glUseProgram(shader)
+        GL.glUseProgram(shader)
         rot_x = pyrr.Matrix44.from_x_rotation(self.view.xrot)
         rot_y = pyrr.Matrix44.from_y_rotation(self.view.yrot)
-        glUniformMatrix4fv(3, 1, GL_FALSE, rot_x * rot_y)
+        GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, rot_x * rot_y)
 
     def draw_geometries(self, geos,clear_depth_buffer=True, translation_vec=np.array([0,0,0])):
         # Define translation matrices for opening
@@ -114,32 +118,34 @@ class Display:
             tot_move_vec = (2*n+1-self.type.noc)/(self.type.noc-1)*move_vec
             move_mat = pyrr.matrix44.create_from_translation(tot_move_vec+translation_vec)
             moves.append(move_mat)
-        if clear_depth_buffer: glClear(GL_DEPTH_BUFFER_BIT)
+        if clear_depth_buffer: GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
         for geo in geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            glUniformMatrix4fv(4, 1, GL_FALSE, moves[geo.n])
-            glDrawElements(geo.draw_type, geo.count, GL_UNSIGNED_INT,  ctypes.c_void_p(4*geo.start_index))
+            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
     def resizeGL(self, width, height):
-	    glViewport(0, 0, width, height)
-	    glMatrixMode(gl.GL_PROJECTION)
-	    glLoadIdentity()        
-	    aspect = width / float(height)
+        GL.glViewport(0, 0, width, height)
+
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+
+        aspect = width/float(height)
         #self.width = width
         #self.height = height
 
-	    # aspect = 1.267
-	    # oratio = aspect
-	    # if height * oratio > width:
-	    #     height = width / oratio
+        # aspect = 1.267
+        # oratio = aspect
+        # if height * oratio > width:
+        #     height = width / oratio
         #     # height = w / oratio
-	    # else:
-	    #     width = height * oratio
+        # else:
+        #     width = height * oratio
 
-	    # print(aspect)
-	    gluPerspective(45.0, aspect, 1.0, 100.0)
-	    glMatrixMode(gl.GL_MODELVIEW)
+        # print(aspect)
+        gluPerspective(45.0, aspect, 1.0, 100.0)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
 
     def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
         # Define translation matrices for opening
@@ -155,35 +161,35 @@ class Display:
             move_mat_show = pyrr.matrix44.create_from_translation(tot_move_vec+translation_vec)
             moves_show.append(move_mat_show)
         #
-        glClear(GL_DEPTH_BUFFER_BIT)
-        glDisable(GL_DEPTH_TEST)
-        glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE)
-        glEnable(GL_STENCIL_TEST)
-        glStencilFunc(GL_ALWAYS,1,1)
-        glStencilOp(GL_REPLACE,GL_REPLACE,GL_REPLACE)
-        glDepthRange (0.0, 0.9975)
+        GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+        GL.glDisable(GL.GL_DEPTH_TEST)
+        GL.glColorMask(GL.GL_FALSE,GL.GL_FALSE,GL.GL_FALSE,GL.GL_FALSE)
+        GL.glEnable(GL.GL_STENCIL_TEST)
+        GL.glStencilFunc(GL.GL_ALWAYS,1,1)
+        GL.glStencilOp(GL.GL_REPLACE,GL.GL_REPLACE,GL.GL_REPLACE)
+        GL.glDepthRange (0.0, 0.9975)
         for geo in show_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            glUniformMatrix4fv(4, 1, GL_FALSE, moves_show[geo.n])
-            glDrawElements(geo.draw_type, geo.count, GL_UNSIGNED_INT,  ctypes.c_void_p(4*geo.start_index))
-        glEnable(GL_DEPTH_TEST)
-        glStencilFunc(GL_EQUAL,1,1)
-        glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP)
-        glDepthRange (0.0025, 1.0)
+            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves_show[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glStencilFunc(GL.GL_EQUAL,1,1)
+        GL.glStencilOp(GL.GL_KEEP,GL.GL_KEEP,GL.GL_KEEP)
+        GL.glDepthRange (0.0025, 1.0)
         for geo in screen_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            glUniformMatrix4fv(4, 1, GL_FALSE, moves[geo.n])
-            glDrawElements(geo.draw_type, geo.count, GL_UNSIGNED_INT,  ctypes.c_void_p(4*geo.start_index))
-        glDisable(GL_STENCIL_TEST)
-        glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE)
-        glDepthRange (0.0, 0.9975)
+            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+        GL.glDisable(GL.GL_STENCIL_TEST)
+        GL.glColorMask(GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE)
+        GL.glDepthRange (0.0, 0.9975)
         for geo in show_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            glUniformMatrix4fv(4, 1, GL_FALSE, moves_show[geo.n])
-            glDrawElements(geo.draw_type, geo.count, GL_UNSIGNED_INT,  ctypes.c_void_p(4*geo.start_index))
+            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves_show[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
     def pick(self,xpos,ypos,height):
 
@@ -191,15 +197,15 @@ class Display:
 
         if not self.view.gallery:
             ######################## COLOR SHADER ###########################
-            glUseProgram(self.shader_col)
-            glClearColor(1.0, 1.0, 1.0, 1.0) # white
-            glEnable(GL_DEPTH_TEST)
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
-            glMatrixMode(GL_MODELVIEW)
+            GL.glUseProgram(self.shader_col)
+            GL.glClearColor(1.0, 1.0, 1.0, 1.0) # white
+            GL.glEnable(GL.GL_DEPTH_TEST)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+            GL.glMatrixMode(GL.GL_MODELVIEW)
             rot_x = pyrr.Matrix44.from_x_rotation(self.view.xrot)
             rot_y = pyrr.Matrix44.from_y_rotation(self.view.yrot)
-            glUniformMatrix4fv(3, 1, GL_FALSE, rot_x * rot_y)
-            glPolygonOffset(1.0,1.0)
+            GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, rot_x * rot_y)
+            GL.glPolygonOffset(1.0,1.0)
 
             ########################## Draw colorful top faces ##########################
 
@@ -209,7 +215,7 @@ class Display:
                 col = np.zeros(3, dtype=np.float64)
                 col[n%3] = 1.0
                 if n>2: col[(n+1)%self.type.dim] = 1.0
-                glUniform3f(5, col[0], col[1], col[2])
+                GL.glUniform3f(5, col[0], col[1], col[2])
                 self.draw_geometries([self.type.mesh.indices_fpick_not_top[n]],clear_depth_buffer=False)
                 if n==0 or n==self.type.noc-1: mos = 1
                 else: mos = 2
@@ -218,12 +224,12 @@ class Display:
                     # Draw top faces
                     for i in range(self.type.dim*self.type.dim):
                         col -= col_step
-                        glUniform3f(5, col[0], col[1], col[2])
-                        top = ElementProperties(GL_QUADS, 4, self.type.mesh.indices_fpick_top[n].start_index+mos*4*i+4*m, n)
+                        GL.glUniform3f(5, col[0], col[1], col[2])
+                        top = ElementProperties(GL.GL_QUADS, 4, self.type.mesh.indices_fpick_top[n].start_index+mos*4*i+4*m, n)
                         self.draw_geometries([top],clear_depth_buffer=False)
 
         ############### Read pixel color at mouse position ###############
-        mouse_pixel = glReadPixelsub(xpos, height-ypos, 1, 1, GL_RGB, outputType=GL_UNSIGNED_BYTE)[0][0]
+        mouse_pixel = GL.glReadPixelsub(xpos, height-ypos, 1, 1, GL.GL_RGB, outputType=GL.GL_UNSIGNED_BYTE)[0][0]
         mouse_pixel = np.array(mouse_pixel)
         pick_n = pick_d = pick_x = pick_y = None
         self.type.mesh.select.sugg_state = -1
@@ -275,37 +281,37 @@ class Display:
             self.type.mesh.select.state = 10 # hovering component body
             self.type.mesh.select.update_pick(pick_x,pick_y,pick_n,pick_d)
         else: self.type.mesh.select.state = -1
-        glClearColor(1.0, 1.0, 1.0, 1.0)
+        GL.glClearColor(1.0, 1.0, 1.0, 1.0)
 
     def selected(self):
         ################### Draw top face that is currently being hovered ##########
         # Draw base face (hovered)
         if self.type.mesh.select.state==0:
-            glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
-            glUniform3f(5, 0.2, 0.2, 0.2) #dark grey
+            GL.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+            GL.glUniform3f(5, 0.2, 0.2, 0.2) #dark grey
             G1 = self.type.mesh.indices_fpick_not_top
             for face in self.type.mesh.select.faces:
                 if self.type.mesh.select.n==0 or self.type.mesh.select.n==self.type.noc-1: mos = 1
                 else: mos = 2
                 index = int(self.type.dim*face[0]+face[1])
-                top = ElementProperties(GL_QUADS, 4, self.type.mesh.indices_fpick_top[self.type.mesh.select.n].start_index+mos*4*index+(mos-1)*4*self.type.mesh.select.dir, self.type.mesh.select.n)
+                top = ElementProperties(GL.GL_QUADS, 4, self.type.mesh.indices_fpick_top[self.type.mesh.select.n].start_index+mos*4*index+(mos-1)*4*self.type.mesh.select.dir, self.type.mesh.select.n)
                 #top = ElementProperties(GL_QUADS, 4, mesh.indices_fpick_top[mesh.select.n].start_index+4*index, mesh.select.n)
                 self.draw_geometries_with_excluded_area([top],G1)
         # Draw pulled face
         if self.type.mesh.select.state==2:
-            glPushAttrib(GL_ENABLE_BIT)
-            glLineWidth(3)
-            glEnable(GL_LINE_STIPPLE)
-            glLineStipple(2, 0xAAAA)
+            GL.glPushAttrib(GL.GL_ENABLE_BIT)
+            GL.glLineWidth(3)
+            GL.glEnable(GL.GL_LINE_STIPPLE)
+            GL.glLineStipple(2, 0xAAAA)
             for val in range(0,abs(self.type.mesh.select.val)+1):
                 if self.type.mesh.select.val<0: val = -val
                 pulled_vec = [0,0,0]
                 pulled_vec[self.type.sax] = val*self.type.voxel_sizes[self.type.sax]
                 self.draw_geometries([self.type.mesh.outline_selected_faces],translation_vec=np.array(pulled_vec))
-            glPopAttrib()
+            GL.glPopAttrib()
 
     def difference_suggestion(self,index):
-        glPushAttrib(GL_ENABLE_BIT)
+        GL.glPushAttrib(GL.GL_ENABLE_BIT)
         # draw faces of additional part
         #glUniform3f(5, 1.0, 1.0, 1.0) # white
         #for n in range(self.joint_type.noc):
@@ -321,53 +327,53 @@ class Display:
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw outlines
-        glUniform3f(5, 0.0, 0.0, 0.0) # black
-        glLineWidth(3)
-        glEnable(GL_LINE_STIPPLE)
-        glLineStipple(2, 0xAAAA)
+        GL.glUniform3f(5, 0.0, 0.0, 0.0) # black
+        GL.glLineWidth(3)
+        GL.glEnable(GL.GL_LINE_STIPPLE)
+        GL.glLineStipple(2, 0xAAAA)
         for n in range(self.type.noc):
             G0 = [self.type.suggestions[index].indices_lns[n]]
             G1 = self.type.suggestions[index].indices_fall
             self.draw_geometries_with_excluded_area(G0,G1)
-        glPopAttrib()
+        GL.glPopAttrib()
 
 
     def moving_rotating(self):
         # Draw moved_rotated component before action is finalized
         if self.type.mesh.select.state==12 and self.type.mesh.outline_selected_component!=None:
-            glPushAttrib(GL_ENABLE_BIT)
-            glLineWidth(3)
-            glEnable(GL_LINE_STIPPLE)
-            glLineStipple(2, 0xAAAA)
+            GL.glPushAttrib(GL.GL_ENABLE_BIT)
+            GL.glLineWidth(3)
+            GL.glEnable(GL.GL_LINE_STIPPLE)
+            GL.glLineStipple(2, 0xAAAA)
             self.draw_geometries([self.type.mesh.outline_selected_component])
-            glPopAttrib()
+            GL.glPopAttrib()
 
     def joint_geometry(self,mesh=None,lw=3,hidden=True,zoom=False):
 
         if mesh==None: mesh = self.type.mesh
 
         ############################# Draw hidden lines #############################
-        glClear(GL_DEPTH_BUFFER_BIT)
-        glUniform3f(5,0.0,0.0,0.0) # black
-        glPushAttrib(GL_ENABLE_BIT)
-        glLineWidth(1)
-        glLineStipple(3, 0xAAAA) #dashed line
-        glEnable(GL_LINE_STIPPLE)
+        GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+        GL.glUniform3f(5,0.0,0.0,0.0) # black
+        GL.glPushAttrib(GL.GL_ENABLE_BIT)
+        GL.glLineWidth(1)
+        GL.glLineStipple(3, 0xAAAA) #dashed line
+        GL.glEnable(GL.GL_LINE_STIPPLE)
         if hidden and self.view.show_hidden_lines:
             for n in range(mesh.parent.noc):
                 G0 = [mesh.indices_lns[n]]
                 G1 = [mesh.indices_fall[n]]
                 self.draw_geometries_with_excluded_area(G0,G1)
-        glPopAttrib()
+        GL.glPopAttrib()
 
         ############################ Draw visible lines #############################
         for n in range(mesh.parent.noc):
             if not mesh.mainmesh or (mesh.eval.interlocks[n] and self.view.show_feedback) or not self.view.show_feedback:
-                glUniform3f(5,0.0,0.0,0.0) # black
-                glLineWidth(lw)
+                GL.glUniform3f(5,0.0,0.0,0.0) # black
+                GL.glLineWidth(lw)
             else:
-                glUniform3f(5,1.0,0.0,0.0) # red
-                glLineWidth(lw+1)
+                GL.glUniform3f(5,1.0,0.0,0.0) # red
+                GL.glLineWidth(lw+1)
             G0 = [mesh.indices_lns[n]]
             G1 = mesh.indices_fall
             self.draw_geometries_with_excluded_area(G0,G1)
@@ -376,15 +382,15 @@ class Display:
         if mesh.mainmesh:
             ################ When joint is fully open, draw dahsed lines ################
             if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio==1+0.5*(mesh.parent.noc-2):
-                glUniform3f(5,0.0,0.0,0.0) # black
-                glPushAttrib(GL_ENABLE_BIT)
-                glLineWidth(2)
-                glLineStipple(1, 0x00FF)
-                glEnable(GL_LINE_STIPPLE)
+                GL.glUniform3f(5,0.0,0.0,0.0) # black
+                GL.glPushAttrib(GL.GL_ENABLE_BIT)
+                GL.glLineWidth(2)
+                GL.glLineStipple(1, 0x00FF)
+                GL.glEnable(GL.GL_LINE_STIPPLE)
                 G0 = mesh.indices_open_lines
                 G1 = mesh.indices_fall
                 self.draw_geometries_with_excluded_area(G0,G1)
-                glPopAttrib()
+                GL.glPopAttrib()
 
     def end_grains(self):
         self.init_shader(self.shader_tex)
@@ -395,7 +401,7 @@ class Display:
 
     def unfabricatable(self):
         col = [1.0, 0.8, 0.5] # orange
-        glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(5, col[0], col[1], col[2])
         for n in range(self.type.noc):
             if not self.type.mesh.eval.fab_direction_ok[n]:
                 G0 = [self.type.mesh.indices_fall[n]]
@@ -407,14 +413,14 @@ class Display:
     def unconnected(self):
         # 1. Draw hidden geometry
         col = [1.0, 0.8, 0.7]  # light red orange
-        glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(5, col[0], col[1], col[2])
         for n in range(self.type.mesh.parent.noc):
             if not self.type.mesh.eval.connected[n]:
                 self.draw_geometries([self.type.mesh.indices_not_fcon[n]])
 
         # 1. Draw visible geometry
         col = [1.0, 0.2, 0.0] # red orange
-        glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(5, col[0], col[1], col[2])
         G0 = self.type.mesh.indices_not_fcon
         G1 = self.type.mesh.indices_fcon
         self.draw_geometries_with_excluded_area(G0,G1)
@@ -426,7 +432,7 @@ class Display:
                 for m in range(2): # browse the two parts
                     # a) Unbridge part 1
                     col = self.view.unbridge_colors[n][m]
-                    glUniform3f(5, col[0], col[1], col[2])
+                    GL.glUniform3f(5, col[0], col[1], col[2])
                     G0 = [self.type.mesh.indices_not_fbridge[n][m]]
                     G1 = [self.type.mesh.indices_not_fbridge[n][1-m],
                           self.type.mesh.indices_fall[1-n],
@@ -435,21 +441,21 @@ class Display:
 
     def checker(self):
         # 1. Draw hidden geometry
-        glUniform3f(5, 1.0, 0.2, 0.0) # red orange
-        glLineWidth(8)
+        GL.glUniform3f(5, 1.0, 0.2, 0.0) # red orange
+        GL.glLineWidth(8)
         for n in range(self.type.mesh.parent.noc):
             if self.type.mesh.eval.checker[n]:
                 self.draw_geometries([self.type.mesh.indices_chess_lines[n]])
-        glUniform3f(5, 0.0, 0.0, 0.0) # back to black
+        GL.glUniform3f(5, 0.0, 0.0, 0.0) # back to black
 
     def arrows(self):
         #glClear(GL_DEPTH_BUFFER_BIT)
-        glUniform3f(5, 0.0, 0.0, 0.0)
+        GL.glUniform3f(5, 0.0, 0.0, 0.0)
         ############################## Direction arrows ################################
         for n in range(self.type.noc):
-            if (self.type.mesh.eval.interlocks[n]): glUniform3f(5,0.0,0.0,0.0) # black
-            else: glUniform3f(5,1.0,0.0,0.0) # red
-            glLineWidth(3)
+            if (self.type.mesh.eval.interlocks[n]): GL.glUniform3f(5,0.0,0.0,0.0) # black
+            else: GL.glUniform3f(5,1.0,0.0,0.0) # red
+            GL.glLineWidth(3)
             G1 = self.type.mesh.indices_fall
             G0 = self.type.mesh.indices_arrows[n]
             d0 = 2.55*self.type.component_size
@@ -463,23 +469,23 @@ class Display:
     def nondurable(self):
         # 1. Draw hidden geometry
         col = [1.0, 1.0, 0.8] # super light yellow
-        glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(5, col[0], col[1], col[2])
         for n in range(self.type.noc):
             self.draw_geometries_with_excluded_area([self.type.mesh.indices_fbrk[n]],[self.type.mesh.indices_not_fbrk[n]])
 
         # Draw visible geometry
         col = [1.0, 1.0, 0.4] # light yellow
-        glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(5, col[0], col[1], col[2])
         self.draw_geometries_with_excluded_area(self.type.mesh.indices_fbrk,self.type.mesh.indices_not_fbrk)
 
     def milling_paths(self):
         if len(self.type.mesh.indices_milling_path)==0: self.view.show_milling_path = False
         if self.view.show_milling_path:
             cols = [[1.0,0,0],[0,1.0,0],[0,0,1.0],[1.0,1.0,0],[0.0,1.0,1.0],[1.0,0,1.0]]
-            glLineWidth(3)
+            GL.glLineWidth(3)
             for n in range(self.type.noc):
                 if self.type.mesh.eval.fab_direction_ok[n]:
-                    glUniform3f(5,cols[n][0],cols[n][1],cols[n][2])
+                    GL.glUniform3f(5,cols[n][0],cols[n][1],cols[n][2])
                     self.draw_geometries([self.type.mesh.indices_milling_path[n]])
 
     def resizeEvent(self, event):
