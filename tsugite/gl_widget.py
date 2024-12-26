@@ -1,57 +1,87 @@
 import time
 from math import tan, pi
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtCore import pyqtSignal, QPoint, QSize, Qt
-from PyQt5.uic import *
-from PyQt5.QtOpenGL import *
+import PyQt5.QtWidgets as qtw
+import PyQt5.QtGui as qtg
+import PyQt5.QtCore as qtc
+import PyQt5.QtOpenGL as qgl
 
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
+import OpenGL.GL as GL  # imports start with GL
 
-from joint_types import Types
+from joint_types import JointType
+from geometries import Geometries
 from display import Display
 
-class GLWidget(QGLWidget):
-    def __init__(self, parent=None):
-        self.parent = parent
-        QGLWidget.__init__(self, parent)
+class GLWidget(qgl.QGLWidget):
+    def __init__(self, main_window=None, *args):
+        super().__init__(main_window, *args)
+
+        self.parent = main_window
         # self.setMinimumSize(800, 800)
         self.setMouseTracking(True)
         self.click_time = time.time()
         self.x = 0
         self.y = 0
 
+    def print_system_info(self):
+        vendor = GL.glGetString(GL.GL_VENDOR).decode('utf-8')
+        renderer = GL.glGetString(GL.GL_RENDERER).decode('utf-8')
+        opengl = GL.glGetString(GL.GL_VERSION).decode('utf-8')
+        glsl = GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')
+
+        result = ''.join(['Vendor: ', vendor, '\n',
+                          'Renderer: ', renderer, '\n',
+                          'OpenGL version supported: ', opengl, '\n',
+                          'GLSL version supported: ', glsl])
+        print(result)
+
+    def gl_settings(self):
+        # self.qglClearColor(qtg.QColor(255, 255, 255))
+        GL.glClearColor(255, 255, 255, 1)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LESS)
+        # the shapes are basically behind the white background
+        # if you enabled face culling, they will not show
+        # GL.glEnable(GL.GL_CULL_FACE)
+
+    def clear(self):
+        # color it white for better visibility
+        GL.glClearColor(255, 255, 255, 1)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+
     def initializeGL(self):
-        self.qglClearColor(QColor(255, 255, 255))
-        glEnable(GL_DEPTH_TEST)                  # enable depth testing
-        sax = self.parent.findChild(QComboBox, "comboSLIDE").currentIndex()
-        dim = self.parent.findChild(QSpinBox, "spinBoxRES").value()
-        ang = self.parent.findChild(QDoubleSpinBox, "spinANG").value()
-        dx = self.parent.findChild(QDoubleSpinBox, "spinDX").value()
-        dy = self.parent.findChild(QDoubleSpinBox, "spinDY").value()
-        dz = self.parent.findChild(QDoubleSpinBox, "spinDZ").value()
-        dia = self.parent.findChild(QDoubleSpinBox, "spinDIA").value()
-        tol = self.parent.findChild(QDoubleSpinBox, "spinTOL").value()
-        spe = self.parent.findChild(QSpinBox, "spinSPEED").value()
-        spi = self.parent.findChild(QSpinBox, "spinSPINDLE").value()
-        aax = self.parent.findChild(QComboBox, "comboALIGN").currentIndex()
-        inc = self.parent.findChild(QCheckBox, "checkINC").isChecked()
-        fin = self.parent.findChild(QCheckBox, "checkFIN").isChecked()
-        if self.parent.findChild(QRadioButton, "radioGCODE").isChecked(): ext = "gcode"
-        elif self.parent.findChild(QRadioButton, "radioNC").isChecked(): ext = "nc"
-        elif self.parent.findChild(QRadioButton, "radioSBP").isChecked(): ext = "sbp"
-        self.type = Types(self,fs=[[[2,0]],[[2,1]]],sax=sax,dim=dim,ang=ang, td=[dx,dy,dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
-        self.show = Display(self, self.type)
+        self.print_system_info()
+        self.gl_settings()
+
+        sax = self.parent.cmb_sliding_axis.currentIndex() # string x, y, z
+        dim = self.parent.spb_voxel_res.value() # int [2:5]
+        ang = self.parent.spb_angle.value() # int [-80: 80]
+        dx = self.parent.spb_xdim.value() # float [10:150]
+        dy = self.parent.spb_ydim.value() # float [10:150]
+        dz = self.parent.spb_zdim.value() # float [10:150]
+        dia = self.parent.spb_milling_diam.value() # float [1:50]
+        tol = self.parent.spb_tolerances.value() # float [0.15, 5]
+        spe = self.parent.spb_milling_speed.value() # int [100, 1000]
+        spi = self.parent.spb_spindle_speed.value() # int [1000, 10000]
+        aax = self.parent.cmb_alignment_axis.currentIndex() # str x-, y-, x+, y+
+        inc = self.parent.chk_increm_depth.isChecked() # bool
+        fin = self.parent.chk_arc_interp.isChecked() # bool
+        
+        if self.parent.rdo_gcode.isChecked(): ext = "gcode"
+        elif self.parent.rdo_nc.isChecked(): ext = "nc"
+        elif self.parent.rdo_sbp.isChecked(): ext = "sbp"
+        else: ext = "gcode"
+
+        # joint_type and display objects are related to OpenGL hence initialized here
+        # instead of the __init__
+        self.joint_type = JointType(self, fs=[[[2, 0]], [[2, 1]]], sax=sax, dim=dim, ang=ang, td=[dx, dy, dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
+        self.display = Display(self, self.joint_type)
 
     def resizeGL(self, w, h):
         def perspective(fovY, aspect, zNear, zFar):
             fH =tan(fovY / 360. * pi) * zNear
             fW = fH * aspect
-            glFrustum(-fW, fW, -fH, fH, zNear, zFar)
+            GL.glFrustum(-fW, fW, -fH, fH, zNear, zFar)
 
         # oratio = self.width() /self.height()
         ratio = 1.267
@@ -61,11 +91,13 @@ class GLWidget(QGLWidget):
         else:
             w = round(h * ratio)
 
-        glViewport(0, 0, w, h)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
+        # it is still using fixed pipeline
+        GL.glViewport(0, 0, w, h)
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+
         perspective(45.0, ratio, 1, 1000)
-        glMatrixMode(GL_MODELVIEW)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
         self.width = w
         self.height = h
         self.wstep = int(0.5+w/5)
@@ -73,118 +105,118 @@ class GLWidget(QGLWidget):
 
 
     def paintGL(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
-        # glViewport(0,0,self.width-self.wstep,self.height)
-        glLoadIdentity()
+        self.clear()
+        
+        GL.glLoadIdentity()
 
-        self.show.update()
+        self.display.update()
         # ortho = np.multiply(np.array((-2, +2, -2, +2), dtype=float), self.zoomFactor)
-	    # glOrtho(ortho[0], ortho[1], ortho[2], ortho[3], 4.0, 15.0)
+        # glOrtho(ortho[0], ortho[1], ortho[2], ortho[3], 4.0, 15.0)
 
-        glViewport(0,0,self.width-self.wstep,self.height)
+        GL.glViewport(0, 0, self.width - self.wstep, self.height)
         # glLoadIdentity()
         # Color picking / editing
         # Pick faces -1: nothing, 0: hovered, 1: adding, 2: pulling
-        if not self.type.mesh.select.state==2 and not self.type.mesh.select.state==12: # Draw back buffer colors
-            #print(self.x,self.y,self.height)
-            self.show.pick(self.x,self.y,self.height)
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
-        elif self.type.mesh.select.state==2: # Editing joint geometry
-            self.type.mesh.select.edit([self.x,self.y], self.show.view.xrot, self.show.view.yrot, w=self.width, h=self.height)
-        elif self.type.mesh.select.state==12: # Editing timber orientation/position
-            self.type.mesh.select.move([self.x,self.y], self.show.view.xrot, self.show.view.yrot)
+
+        # Draw back buffer colors
+        if not self.joint_type.mesh.select.state == 2 and not self.joint_type.mesh.select.state == 12:
+            self.display.pick(self.x, self.y, self.height)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+        elif self.joint_type.mesh.select.state == 2:  # Edit joint geometry
+            self.joint_type.mesh.select.edit([self.x, self.y], self.display.view.xrot, self.display.view.yrot, w=self.width,
+                                             h=self.height)
+        elif self.joint_type.mesh.select.state == 12:  # Edit timber orientation/position
+            self.joint_type.mesh.select.move([self.x, self.y], self.display.view.xrot, self.display.view.yrot)
 
         # Display main geometry
-        self.show.end_grains()
-        if self.show.view.show_feedback:
-            self.show.unfabricatable()
-            self.show.nondurable()
-            self.show.unconnected()
-            self.show.unbridged()
-            self.show.checker()
-            self.show.arrows()
-            show_area=False #<--replace by checkbox...
+        self.display.end_grains()
+        if self.display.view.show_feedback:
+            self.display.unfabricatable()
+            self.display.nondurable()
+            self.display.unconnected()
+            self.display.unbridged()
+            self.display.checker()
+            self.display.arrows()
+            show_area = False  # <--replace by checkbox...
             if show_area:
-                self.show.area()
-        self.show.joint_geometry()
+                self.display.area()
+        self.display.joint_geometry()
 
-        if self.type.mesh.select.suggstate>=0:
-            index=self.type.mesh.select.suggstate
-            if len(self.type.sugs)>index: self.show.difference_suggestion(index)
+        if self.joint_type.mesh.select.sugg_state >= 0:
+            index = self.joint_type.mesh.select.sugg_state
+            if len(self.joint_type.suggestions) > index:
+                self.display.difference_suggestion(index)
 
         # Display editing in action
-        self.show.selected()
-        self.show.moving_rotating()
+        self.display.selected()
+        self.display.moving_rotating()
 
         # Display milling paths
-        self.show.milling_paths()
+        self.display.milling_paths()
 
         # Suggestions
-        if self.show.view.show_suggestions:
-            for i in range(len(self.type.sugs)):
-                hquater = self.height/4
-                wquater = self.width/5
-                glViewport(self.width-self.wstep,self.height-self.hstep*(i+1),self.wstep,self.hstep)
-                glLoadIdentity()
-                if i==self.type.mesh.select.suggstate:
-                    glEnable(GL_SCISSOR_TEST)
-                    glScissor(self.width-self.wstep,self.height-self.hstep*(i+1),self.wstep,self.hstep)
-                    glClearDepth(1.0)
-                    glClearColor(0.9, 0.9, 0.9, 1.0) #light grey
-                    glClear(GL_COLOR_BUFFER_BIT)
-                    glDisable(GL_SCISSOR_TEST)
-                self.show.joint_geometry(mesh=self.type.sugs[i],lw=2,hidden=False)
+        if self.display.view.show_suggestions:
+            for i in range(len(self.joint_type.suggestions)):
+                # hquater = self.height / 4
+                # wquater = self.width / 5
+                GL.glViewport(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
+                GL.glLoadIdentity()
+                if i == self.joint_type.mesh.select.sugg_state:
+                    GL.glEnable(GL.GL_SCISSOR_TEST)
+                    GL.glScissor(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
+                    GL.glClearDepth(1.0)
+                    GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
+                    GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+                    GL.glDisable(GL.GL_SCISSOR_TEST)
+                self.display.joint_geometry(mesh=self.joint_type.suggestions[i], lw=2, hidden=False)
 
     def mousePressEvent(self, e):
-        print("mouse_pressed")
-        if e.button() == Qt.LeftButton:
-            if time.time()-self.click_time<0.2:
-                self.show.view.open_joint = not self.show.view.open_joint
-            elif self.type.mesh.select.state==0: #face hovered
-                self.type.mesh.select.start_pull([self.parent.scaling*e.x(),self.parent.scaling*e.y()])
-            elif self.type.mesh.select.state==10: #body hovered
-                self.type.mesh.select.start_move([self.parent.scaling*e.x(),self.parent.scaling*e.y()],h=self.height)
+        if e.button() == qtc.Qt.LeftButton:
+            if time.time() - self.click_time < 0.2:
+                self.display.view.open_joint = not self.display.view.open_joint
+            elif self.joint_type.mesh.select.state==0: #face hovered
+                self.joint_type.mesh.select.start_pull([self.parent.scaling*e.x(),self.parent.scaling*e.y()])
+            elif self.joint_type.mesh.select.state==10: #body hovered
+                self.joint_type.mesh.select.start_move([self.parent.scaling*e.x(),self.parent.scaling*e.y()],h=self.height)
             #SUGGESTION PICK
-            elif self.type.mesh.select.suggstate>=0:
-                index = self.type.mesh.select.suggstate
-                if len(self.type.sugs)>index:
-                    self.type.mesh = Geometries(self.type,hfs=self.type.sugs[index].height_fields)
-                    self.type.sugs = []
-                    self.type.combine_and_buffer_indices()
-                    self.type.mesh.select.suggstate=-1
+            elif self.joint_type.mesh.select.sugg_state>=0:
+                index = self.joint_type.mesh.select.sugg_state
+                if len(self.joint_type.suggestions)>index:
+                    self.joint_type.mesh = Geometries(self.joint_type, hfs=self.joint_type.suggestions[index].height_fields)
+                    self.joint_type.suggestions = []
+                    self.joint_type.combine_and_buffer_indices()
+                    self.joint_type.mesh.select.sugg_state=-1
             #GALLERY PICK -- not implemented currently
-            #elif type.mesh.select.gallstate>=0:
-            #    index = type.mesh.select.gallstate
-            #    if index<len(type.gals):
-            #        type.mesh = Geometries(type,hfs=type.gals[index].height_fields)
-            #        type.gals = []
+            #elif joint_type.mesh.select.gallstate>=0:
+            #    index = joint_type.mesh.select.gallstate
+            #    if index<len(joint_type.gals):
+            #        joint_type.mesh = Geometries(joint_type,hfs=joint_type.gals[index].height_fields)
+            #        joint_type.gals = []
             #        view_opt.gallery=False
-            #        type.gallary_start_index = -20
-            #        type.combine_and_buffer_indices()
+            #        joint_type.gallary_start_index = -20
+            #        joint_type.combine_and_buffer_indices()
             else: self.click_time = time.time()
-        elif e.button() == Qt.RightButton:
-            print("start rot")
-            self.show.view.start_rotation_xy(self.parent.scaling*e.x(),self.parent.scaling*e.y())
+        elif e.button() == qtc.Qt.RightButton:
+            self.display.view.start_rotation_xy(self.parent.scaling*e.x(),self.parent.scaling*e.y())
 
     def mouseMoveEvent(self, e):
         self.x = self.parent.scaling*e.x()
         self.y = self.parent.scaling*e.y()
-        if self.show.view.dragged:
-            self.show.view.update_rotation_xy(self.x,self.y)
+        if self.display.view.dragged:
+            self.display.view.update_rotation_xy(self.x, self.y)
 
     def mouseReleaseEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            if self.type.mesh.select.state==2: #face pulled
-                self.type.mesh.select.end_pull()
-            elif self.type.mesh.select.state==12: #body moved
-                self.type.mesh.select.end_move()
-        elif e.button() == Qt.RightButton:
-            self.show.view.end_rotation()
+        if e.button() == qtc.Qt.LeftButton:
+            if self.joint_type.mesh.select.state == 2:  # face pulled
+                self.joint_type.mesh.select.end_pull()
+            elif self.joint_type.mesh.select.state == 12:  # body moved
+                self.joint_type.mesh.select.end_move()
+        elif e.button() == qtc.Qt.RightButton:
+            self.display.view.end_rotation()
 
     def minimumSizeHint(self):
-        return QSize(50, 50)
+        return qtc.QSize(50, 50)
 
     def sizeHint(self):
         # print("resize Hint!")
-        return QSize(800, 800)
-
+        return qtc.QSize(800, 800)

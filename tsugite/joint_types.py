@@ -51,8 +51,8 @@ def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example va
     aa, bb, cc, dd = a * a, b * b, c * c, d * d
     bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
     mat = np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+                    [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                    [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
     rotated_vec = np.dot(mat, vec)
     return rotated_vec
 
@@ -120,14 +120,14 @@ def pad_layer_mat_with_fixed_sides(mat,type,n):
             pad_loc[oax][oside.dir] = 1
             pad_val[oax][oside.dir] = n2
     # If it is an angled joint, pad so that the edge of a joint located on an edge will be trimmed well
-    #if abs(type.ang-90)>1 and len(type.fixed.sides[n])==1 and type.fixed.sides[n][0].ax!=type.sax:
+    #if abs(joint_type.ang-90)>1 and len(joint_type.fixed.sides[n])==1 and joint_type.fixed.sides[n][0].ax!=joint_type.sax:
     #    print("get here")
-    #    ax = type.fixed.sides[n][0].ax
-    #    dir = type.fixed.sides[n][0].dir
+    #    ax = joint_type.fixed.sides[n][0].ax
+    #    dir = joint_type.fixed.sides[n][0].dir
     #    odir = 1-dir
     #    axes = [0,0,0]
     #    axes[ax] = 1
-    #    axes.pop(type.sax)
+    #    axes.pop(joint_type.sax)
     #    oax = axes.index(1)
     #    pad_loc[oax][odir] = 1
     #    pad_val[oax][odir] = 9
@@ -889,7 +889,7 @@ def milling_path_vertices(type,n):
                 reg_ord_verts,reg_verts,closed = get_sublist_of_ordered_verts(reg_verts) #OK
 
                 # Make outline of ordered vertices (for dedugging only!!!!!!!)
-                #if len(reg_ord_verts)>1: outline = get_outline(type,reg_ord_verts,lay_num,n)
+                #if len(reg_ord_verts)>1: outline = get_outline(joint_type,reg_ord_verts,lay_num,n)
 
                 # Offset vertices according to boundary condition (and remove if redundant)
                 outline,corner_artifacts = offset_verts(type,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,reg_ord_verts,lay_num,n) #<----needs to be updated for oblique angles!!!!!<---
@@ -917,7 +917,7 @@ def milling_path_vertices(type,n):
 
     return vertices, milling_vertices
 
-class Types:
+class JointType:
     def __init__(self,parent,fs=[],sax=2,dim=3,ang=0.0, td=[44.0,44.0,44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
         self.parent=parent
         self.sax = sax
@@ -937,7 +937,7 @@ class Types:
         self.fixed.update_unblocked()
         self.vertices = self.create_and_buffer_vertices(milling_path=False) # create and buffer vertices
         self.mesh = Geometries(self, hfs=hfs)
-        self.sugs = []
+        self.suggestions = []
         self.gals = []
         self.update_suggestions()
         self.combine_and_buffer_indices()
@@ -1056,15 +1056,15 @@ class Types:
         self.update_suggestions()
         self.mesh.create_indices(milling_path=milling_path)
         glo_off = len(self.mesh.indices) # global offset
-        for i in range(len(self.sugs)):
-            self.sugs[i].create_indices(glo_off=glo_off,milling_path=False)
-            glo_off+=len(self.sugs[i].indices)
+        for i in range(len(self.suggestions)):
+            self.suggestions[i].create_indices(glo_off=glo_off, milling_path=False)
+            glo_off+=len(self.suggestions[i].indices)
         for i in range(len(self.gals)):
             self.gals[i].create_indices(glo_off=glo_off,milling_path=False)
             glo_off+=len(self.gals[i].indices)
         indices = []
         indices.extend(self.mesh.indices)
-        for mesh in self.sugs: indices.extend(mesh.indices)
+        for mesh in self.suggestions: indices.extend(mesh.indices)
         for mesh in self.gals: indices.extend(mesh.indices)
         self.indices = np.array(indices, dtype=np.uint32)
         Buffer.buffer_indices(self.buff)
@@ -1084,7 +1084,7 @@ class Types:
             self.fixed.update_unblocked()
             self.create_and_buffer_vertices(milling_path=False)
             self.mesh.voxel_matrix_from_height_fields()
-            for mesh in self.sugs: mesh.voxel_matrix_from_height_fields()
+            for mesh in self.suggestions: mesh.voxel_matrix_from_height_fields()
             self.combine_and_buffer_indices()
             return True, ''
 
@@ -1167,17 +1167,17 @@ class Types:
         self.combine_and_buffer_indices()
 
     def update_suggestions(self):
-        self.sugs = [] # clear list of suggestions
+        self.suggestions = [] # clear list of suggestions
         if self.suggestions_on:
             sugg_hfs = []
             if not self.mesh.eval.valid:
                 sugg_hfs = produce_suggestions(self,self.mesh.height_fields)
-                for i in range(len(sugg_hfs)): self.sugs.append(Geometries(self,mainmesh=False,hfs=sugg_hfs[i]))
+                for i in range(len(sugg_hfs)): self.suggestions.append(Geometries(self, mainmesh=False, hfs=sugg_hfs[i]))
 
     def init_gallery(self,start_index):
         self.gallary_start_index = start_index
         self.gals = []
-        self.sugs = []
+        self.suggestions = []
         # Folder
         location = os.path.abspath(os.getcwd())
         location = location.split(os.sep)

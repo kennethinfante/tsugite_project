@@ -226,14 +226,14 @@ class Display:
         mouse_pixel = glReadPixelsub(xpos, height-ypos, 1, 1, GL_RGB, outputType=GL_UNSIGNED_BYTE)[0][0]
         mouse_pixel = np.array(mouse_pixel)
         pick_n = pick_d = pick_x = pick_y = None
-        self.type.mesh.select.suggstate = -1
+        self.type.mesh.select.sugg_state = -1
         self.type.mesh.select.gallstate = -1
         if not self.view.gallery:
             if xpos>self.parent.width-self.parent.wstep: # suggestion side
                 if ypos>0 and ypos<self.parent.height:
                     index = int(ypos/self.parent.hstep)
-                    if self.type.mesh.select.suggstate!=index:
-                        self.type.mesh.select.suggstate=index
+                    if self.type.mesh.select.sugg_state!=index:
+                        self.type.mesh.select.sugg_state=index
             elif not np.all(mouse_pixel==255): # not white / background
                     non_zeros = np.where(mouse_pixel!=0)
                     if len(non_zeros)>0:
@@ -243,7 +243,7 @@ class Display:
                                 pick_n = pick_n+self.type.dim
                                 if mouse_pixel[0]==mouse_pixel[2]: pick_n = 5
                             val = 255-mouse_pixel[non_zeros[0][0]]                            
-                            #i = int(0.5+val*(2+2*self.type.dim*self.type.dim)/255)-1
+                            #i = int(0.5+val*(2+2*self.joint_type.dim*self.joint_type.dim)/255)-1
                             step_size = 128/(self.type.dim**2+1)
                             i=round(val/step_size)-1
                             if i>=0:
@@ -261,7 +261,7 @@ class Display:
                 index = i*4+j
                 mesh.select.gallstate=index
                 mesh.select.state = -1
-                mesh.select.suggstate = -1
+                mesh.select.sugg_state = -1
         """
         ### Update selection
         if pick_x !=None and pick_d!=None and pick_y!=None and pick_n!=None:
@@ -308,16 +308,16 @@ class Display:
         glPushAttrib(GL_ENABLE_BIT)
         # draw faces of additional part
         #glUniform3f(5, 1.0, 1.0, 1.0) # white
-        #for n in range(self.type.noc):
-        #    G0 = [self.type.sugs[index].indices_fall[n]]
-        #    G1 = self.type.mesh.indices_fall
+        #for n in range(self.joint_type.noc):
+        #    G0 = [self.joint_type.suggestions[index].indices_fall[n]]
+        #    G1 = self.joint_type.mesh.indices_fall
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw faces of subtracted part
         #glUniform3f(5, 1.0, 0.5, 0.5) # pink/red
-        #for n in range(self.type.noc):
-        #    G0 = [self.type.mesh.indices_fall[n]]
-        #    G1 = self.type.sugs[index].indices_fall
+        #for n in range(self.joint_type.noc):
+        #    G0 = [self.joint_type.mesh.indices_fall[n]]
+        #    G1 = self.joint_type.suggestions[index].indices_fall
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw outlines
@@ -326,8 +326,8 @@ class Display:
         glEnable(GL_LINE_STIPPLE)
         glLineStipple(2, 0xAAAA)
         for n in range(self.type.noc):
-            G0 = [self.type.sugs[index].indices_lns[n]]
-            G1 = self.type.sugs[index].indices_fall
+            G0 = [self.type.suggestions[index].indices_lns[n]]
+            G1 = self.type.suggestions[index].indices_fall
             self.draw_geometries_with_excluded_area(G0,G1)
         glPopAttrib()
 

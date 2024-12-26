@@ -1,35 +1,25 @@
 #!/usr/bin/env python3
 
 import sys
-import os
 import time
 from math import tan, pi
 
 import numpy as np
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.uic import *
-from PyQt5.QtOpenGL import *
 
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
+import PyQt5.QtWidgets as qtw
+import PyQt5.QtGui as qtg
+import PyQt5.QtCore as qtc
 
-from joint_types import Types
-from geometries import Geometries
-from view_settings import ViewSettings
-from display import Display
-from main_window import get_untitled_filename, mainWindow
+from main_window import get_untitled_filename, MainWindow
 
-class MovieSplashScreen(QSplashScreen):
+class MovieSplashScreen(qtw.QSplashScreen):
 
     def __init__(self, movie, parent = None):
 
         movie.jumpToFrame(0)
-        pixmap = QPixmap(movie.frameRect().size())
+        pixmap =qtg.QPixmap(movie.frameRect().size())
    
-        QSplashScreen.__init__(self, pixmap)
+        qtw.QSplashScreen.__init__(self, pixmap)
         self.movie = movie
         self.movie.frameChanged.connect(self.repaint)
     
@@ -41,7 +31,7 @@ class MovieSplashScreen(QSplashScreen):
     
     def paintEvent(self, event):
     
-        painter = QPainter(self)
+        painter = qtg.QPainter(self)
         pixmap = self.movie.currentPixmap()
         self.setMask(pixmap.mask())
         painter.drawPixmap(0, 0, pixmap)
@@ -51,10 +41,10 @@ class MovieSplashScreen(QSplashScreen):
   
 
 #deal with dpi
-QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
-QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
-app = QApplication(sys.argv)
-movie = QMovie("images/tsugite_loading_3d.gif")
+qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
+qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
+app = qtw.QApplication(sys.argv)
+movie = qtg.QMovie("images/tsugite_loading_3d.gif")
 
 splash = MovieSplashScreen(movie)
 
@@ -62,12 +52,12 @@ splash.show()
 
 start = time.time()
 
-while movie.state() == QMovie.Running and time.time() < start + 1:
+while movie.state() == qtg.QMovie.Running and time.time() < start + 1:
     app.processEvents()
 #screen = app.screens()[0]
 #dpi = screen.physicalDotsPerInch()
 
-window = mainWindow()
+window = MainWindow()
 window.show()
 splash.finish(window)
 sys.exit(app.exec_())
