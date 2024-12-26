@@ -31,6 +31,11 @@ class Display:
             self.view.set_joint_opening_distance(self.type.noc)
 
     def create_color_shaders(self):
+        '''
+        Note values explicity attrib and uniform locations are only availabl ein GL 3.3 and 4.3 respectively
+        If to be use in versions lower than the above, the following are needed for vertex shaders
+        '''
+
         vertex_shader = """
         #version 150
         #extension GL_ARB_explicit_attrib_location : require
