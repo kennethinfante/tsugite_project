@@ -1,10 +1,6 @@
 import numpy as np
 
-def depth(l):
-    if isinstance(l, list):
-        return 1 + max(depth(item) for item in l)
-    else:
-        return 0
+from utils import depth
 
 class FixedSides:
     def __init__(self,parent,side_str=None,fs=None):

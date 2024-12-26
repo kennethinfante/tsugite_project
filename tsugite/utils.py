@@ -34,3 +34,10 @@ def get_same_height_neighbors(hfield,inds):
     if len(new_inds)>len(inds):
         new_inds = get_same_height_neighbors(hfield,new_inds)
     return new_inds
+
+# misc
+def depth(l):
+    if isinstance(l, list):
+        return 1 + max(depth(item) for item in l)
+    else:
+        return 0
