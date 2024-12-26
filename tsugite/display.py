@@ -131,28 +131,6 @@ class Display:
             GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
-    def resizeGL(self, width, height):
-        GL.glViewport(0, 0, width, height)
-
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glLoadIdentity()
-
-        aspect = width/float(height)
-        #self.width = width
-        #self.height = height
-
-        # aspect = 1.267
-        # oratio = aspect
-        # if height * oratio > width:
-        #     height = width / oratio
-        #     # height = w / oratio
-        # else:
-        #     width = height * oratio
-
-        # print(aspect)
-        gluPerspective(45.0, aspect, 1.0, 100.0)
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-
     def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
         # Define translation matrices for opening
         move_vec = [0,0,0]
@@ -198,9 +176,6 @@ class Display:
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
     def pick(self,xpos,ypos,height):
-
-    
-
         if not self.view.gallery:
             ######################## COLOR SHADER ###########################
             GL.glUseProgram(self.shader_col)
@@ -342,7 +317,6 @@ class Display:
             G1 = self.type.suggestions[index].indices_fall
             self.draw_geometries_with_excluded_area(G0,G1)
         GL.glPopAttrib()
-
 
     def moving_rotating(self):
         # Draw moved_rotated component before action is finalized
