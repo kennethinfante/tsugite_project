@@ -12,7 +12,6 @@ from geometries import Geometries, get_index
 from misc import FixedSides
 from utils import normalize, angle_between, rotate_vector_around_axis
 
-
 def mat_from_fields(hfs,ax): ### duplicated function - also exists in Geometries
     dim = len(hfs[0])
     mat = np.zeros(shape=(dim,dim,dim))
@@ -167,7 +166,6 @@ def get_sublist_of_ordered_verts(verts):
                         # If you made it here, you found the next vertex!
                         closed=True
 
-
     return ord_verts, verts, closed
 
 def set_vector_length(vec,new_norm):
@@ -202,8 +200,6 @@ def get_segment_proportions(outline):
         sprops.append(sprop)
 
     return sprops
-
-
 
 def any_minus_one_neighbor(ind,lay_mat):
     bool = False
@@ -261,49 +257,6 @@ def get_neighbors_in_out(ind,reg_inds,lay_mat,org_lay_mat,n):
         in_out.append(temp)
         values.append(temp2)
     return in_out, values
-
-def filleted_points(pt,one_voxel,off_dist,ax,n):
-    ##
-    addx = (one_voxel[0]*2-1)*off_dist
-    addy = (one_voxel[1]*2-1)*off_dist
-    ###
-    pt1 = pt.copy()
-    add = [addx,-addy]
-    add.insert(ax,0)
-    pt1[0] += add[0]
-    pt1[1] += add[1]
-    pt1[2] += add[2]
-    #
-    pt2 = pt.copy()
-    add = [-addx,addy]
-    add.insert(ax,0)
-    pt2[0] += add[0]
-    pt2[1] += add[1]
-    pt2[2] += add[2]
-    #
-    if n%2==1: pt1,pt2 = pt2,pt1
-    return [pt1,pt2]
-
-def is_additional_outer_corner(type,rv,ind,ax,n):
-    outer_corner = False
-    if rv.region_count==1 and rv.block_count==1:
-        other_fixed_sides = type.fixed.sides.copy()
-        other_fixed_sides.pop(n)
-        for sides in other_fixed_sides:
-            for side in sides:
-                if side.ax==ax: continue
-                axes = [0,0,0]
-                axes[side.ax] = 1
-                axes.pop(ax)
-                oax = axes.index(1)
-                not_oax = axes.index(0)
-                # what is this odir?
-                if rv.ind[oax]==odir*type.dim:
-                    if rv.ind[not_oax]!=0 and rv.ind[not_oax]!=type.dim:
-                        outer_corner = True
-                        break
-            if outer_corner: break
-    return outer_corner
 
 class JointType:
     def __init__(self,parent,fs=[],sax=2,dim=3,ang=0.0, td=[44.0,44.0,44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):

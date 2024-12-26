@@ -8,6 +8,13 @@ def normalize(v):
     if norm == 0: return v
     else: return v / norm
 
+def angle_between(vector_1, vector_2):
+    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    angle = np.arccos(dot_product)
+    return angle
+
 def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
     axis = np.asarray(axis)
     axis = axis / math.sqrt(np.dot(axis, axis))
@@ -20,6 +27,29 @@ def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example va
                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
     rotated_vec = np.dot(mat, vec)
     return rotated_vec
+
+# unused
+def filleted_points(pt,one_voxel,off_dist,ax,n):
+    ##
+    addx = (one_voxel[0]*2-1)*off_dist
+    addy = (one_voxel[1]*2-1)*off_dist
+    ###
+    pt1 = pt.copy()
+    add = [addx,-addy]
+    add.insert(ax,0)
+    pt1[0] += add[0]
+    pt1[1] += add[1]
+    pt1[2] += add[2]
+    #
+    pt2 = pt.copy()
+    add = [-addx,addy]
+    add.insert(ax,0)
+    pt2[0] += add[0]
+    pt2[1] += add[1]
+    pt2[2] += add[2]
+    #
+    if n%2==1: pt1,pt2 = pt2,pt1
+    return [pt1,pt2]
 
 # unused
 def get_outline(type,verts,lay_num,n):
@@ -35,12 +65,27 @@ def get_outline(type,verts,lay_num,n):
         outline.append(MillVertex(pt))
     return outline
 
-def angle_between(vector_1, vector_2):
-    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
-    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-    dot_product = np.dot(unit_vector_1, unit_vector_2)
-    angle = np.arccos(dot_product)
-    return angle
+# unused
+def is_additional_outer_corner(type,rv,ind,ax,n):
+    outer_corner = False
+    if rv.region_count==1 and rv.block_count==1:
+        other_fixed_sides = type.fixed.sides.copy()
+        other_fixed_sides.pop(n)
+        for sides in other_fixed_sides:
+            for side in sides:
+                if side.ax==ax: continue
+                axes = [0,0,0]
+                axes[side.ax] = 1
+                axes.pop(ax)
+                oax = axes.index(1)
+                not_oax = axes.index(0)
+                # what is this odir?
+                if rv.ind[oax]==odir*type.dim:
+                    if rv.ind[not_oax]!=0 and rv.ind[not_oax]!=type.dim:
+                        outer_corner = True
+                        break
+            if outer_corner: break
+    return outer_corner
 
 # selection.py
 def angle_between_with_direction(v0, v1):
