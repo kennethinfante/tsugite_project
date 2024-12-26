@@ -1,8 +1,9 @@
-import numpy as np
-import pyrr
-from numpy import linalg
 import copy
 import math
+
+import numpy as np
+import pyrr
+
 from misc import FixedSide
 
 def angle_between_with_direction(v0, v1):
@@ -89,7 +90,7 @@ class Selection:
         sdir_vec = np.delete(sdir_vec,2) # delete Z-value
         ## Calculate angle between mouse vector and sliding direction vector
         cosang = np.dot(mouse_vec, sdir_vec) # Negative / positive depending on direction
-        val = int(linalg.norm(mouse_vec)/linalg.norm(sdir_vec)+0.5)
+        val = int(np.linalg.norm(mouse_vec)/np.linalg.norm(sdir_vec)+0.5)
         if cosang!=None and cosang<0: val = -val
         if self.start_height + val>self.parent.parent.dim: val = self.parent.parent.dim-self.start_height
         elif self.start_height+val<0: val = -self.start_height
@@ -120,7 +121,7 @@ class Selection:
         mouse_vec[0] = 2*mouse_vec[0]/w
         mouse_vec[1] = 2*mouse_vec[1]/h
         ## Check that the move distance is above some threshold
-        move_dist = linalg.norm(mouse_vec)
+        move_dist = np.linalg.norm(mouse_vec)
         if move_dist>0.01:
             ## Get component direction vector
             comp_ax = self.parent.parent.fixed.sides[self.n][0].ax # component axis
@@ -149,7 +150,7 @@ class Selection:
                     other_vec = np.dot(other_vec,rot_x*rot_y)
                     other_vec = np.delete(other_vec,2) # delete Z-value
                     ## Check length
-                    other_length = linalg.norm(other_vec)
+                    other_length = np.linalg.norm(other_vec)
                     if other_length>maxlen:
                         maxlen = other_length
                         oax = other_axes[i]
@@ -180,7 +181,7 @@ class Selection:
                     if side.ax==sax and side.dir==0 and self.n!=0: blocked=True; break
                     if side.ax==sax and side.dir==1 and self.n!=noc-1: blocked=True; break
             else: # Timber moveing mode
-                length_ratio = linalg.norm(mouse_vec)/linalg.norm(comp_vec)
+                length_ratio = np.linalg.norm(mouse_vec)/np.linalg.norm(comp_vec)
                 side_num = len(self.parent.parent.fixed.sides[self.n])
                 if side_num==1 and absang>135: #currently L
                     if length_ratio<0.5: # moved just a bit, L to T
