@@ -8,6 +8,19 @@ def normalize(v):
     if norm == 0: return v
     else: return v / norm
 
+def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
+    axis = np.asarray(axis)
+    axis = axis / math.sqrt(np.dot(axis, axis))
+    a = math.cos(theta / 2.0)
+    b, c, d = -axis * math.sin(theta / 2.0)
+    aa, bb, cc, dd = a * a, b * b, c * c, d * d
+    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+    mat = np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                    [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                    [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+    rotated_vec = np.dot(mat, vec)
+    return rotated_vec
+
 def angle_between(vector_1, vector_2):
     unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
     unit_vector_2 = vector_2 / np.linalg.norm(vector_2)

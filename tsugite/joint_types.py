@@ -10,7 +10,7 @@ from evaluation import Evaluation
 from fabrication import *
 from geometries import Geometries, get_index
 from misc import FixedSides
-from utils import normalize, angle_between
+from utils import normalize, angle_between, rotate_vector_around_axis
 
 
 def mat_from_fields(hfs,ax): ### duplicated function - also exists in Geometries
@@ -30,72 +30,6 @@ def mat_from_fields(hfs,ax): ### duplicated function - also exists in Geometries
                     else: mat[ind3d]=n+1
     mat = np.array(mat)
     return mat
-
-
-
-def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
-    axis = np.asarray(axis)
-    axis = axis / math.sqrt(np.dot(axis, axis))
-    a = math.cos(theta / 2.0)
-    b, c, d = -axis * math.sin(theta / 2.0)
-    aa, bb, cc, dd = a * a, b * b, c * c, d * d
-    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-    mat = np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                    [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                    [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
-    rotated_vec = np.dot(mat, vec)
-    return rotated_vec
-
-def pad_layer_mat_with_fixed_sides(mat,type,n):
-    pad_loc = [[0,0],[0,0]]
-    pad_val = [[-1,-1],[-1,-1]]
-    for n2 in range(len(type.fixed.sides)):
-        for oside in type.fixed.sides[n2]:
-            if oside.ax==type.sax: continue
-            axes = [0,0,0]
-            axes[oside.ax] = 1
-            axes.pop(type.sax)
-            oax = axes.index(1)
-            pad_loc[oax][oside.dir] = 1
-            pad_val[oax][oside.dir] = n2
-    # If it is an angled joint, pad so that the edge of a joint located on an edge will be trimmed well
-    #if abs(joint_type.ang-90)>1 and len(joint_type.fixed.sides[n])==1 and joint_type.fixed.sides[n][0].ax!=joint_type.sax:
-    #    print("get here")
-    #    ax = joint_type.fixed.sides[n][0].ax
-    #    dir = joint_type.fixed.sides[n][0].dir
-    #    odir = 1-dir
-    #    axes = [0,0,0]
-    #    axes[ax] = 1
-    #    axes.pop(joint_type.sax)
-    #    oax = axes.index(1)
-    #    pad_loc[oax][odir] = 1
-    #    pad_val[oax][odir] = 9
-    # Perform the padding
-    pad_loc = tuple(map(tuple, pad_loc))
-    pad_val = tuple(map(tuple, pad_val))
-    mat = np.pad(mat, pad_loc, 'constant', constant_values=pad_val)
-    # take care of -1 corners # does this still work after adding former step??????????????
-    # This could be shorter for sure...
-    for fixed_sides_1 in type.fixed.sides:
-        for fixed_sides_2 in type.fixed.sides:
-            for side1 in fixed_sides_1:
-                if side1.ax==type.sax: continue
-                axes = [0,0,0]
-                axes[side1.ax] = 1
-                axes.pop(type.sax)
-                ax1 = axes.index(1)
-                for side2 in fixed_sides_2:
-                    if side2.ax==type.sax: continue
-                    axes = [0,0,0]
-                    axes[side2.ax] = 1
-                    axes.pop(type.sax)
-                    ax2 = axes.index(1)
-                    if ax1==ax2: continue
-                    ind = [0,0]
-                    ind[ax1] = side1.dir*(mat.shape[ax1]-1)
-                    ind[ax2] = side2.dir*(mat.shape[ax2]-1)
-                    mat[tuple(ind)] = -1
-    return mat,pad_loc
 
 def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
     # also duplicate vertices on diagonal
@@ -143,102 +77,6 @@ def get_diff_neighbors(mat2,inds,val):
     if len(new_inds)>len(inds):
         new_inds = get_diff_neighbors(mat2,new_inds,val)
     return new_inds
-
-def rough_milling_path(type,rough_pixs,lay_num,n):
-    mvertices = []
-
-    # Defines axes
-    ax = type.sax # mill bit axis
-    dir = type.mesh.fab_directions[n]
-    axes = [0,1,2]
-    axes.pop(ax)
-    dir_ax = axes[0] # primary milling direction axis
-    off_ax = axes[1] # milling offset axis
-
-    # Define fabrication parameters
-
-    no_lanes = 2+math.ceil(((type.real_tim_dims[axes[1]]/type.dim)-2*type.fab.dia)/type.fab.dia)
-    lane_width = (type.voxel_sizes[axes[1]]-type.fab.vdia)/(no_lanes-1)
-    ratio = np.linalg.norm(type.pos_vecs[axes[1]])/type.voxel_sizes[axes[1]]
-    v_vrad = type.fab.vrad*ratio
-    lane_width = lane_width*ratio
-
-
-    # create offset direction vectors
-    dir_vec = normalize(type.pos_vecs[axes[0]])
-    off_vec = normalize(type.pos_vecs[axes[1]])
-
-    # get top ones to cut out
-    for pix in rough_pixs:
-        mverts = []
-        if pix.outside: continue
-        if no_lanes<=2:
-            if pix.neighbors[0][0]==1 and pix.neighbors[0][1]==1: continue
-            elif pix.neighbors[1][0]==1 and pix.neighbors[1][1]==1: continue
-        pix_end = pix
-
-        # check that there is no previous same
-        nind = pix.ind_abs.copy()
-        nind[dir_ax] -=1
-        found = False
-        for pix2 in rough_pixs:
-            if pix2.outside: continue
-            if pix2.ind_abs[0]==nind[0] and pix2.ind_abs[1]==nind[1]:
-                if pix.neighbors[1][0]==pix2.neighbors[1][0]:
-                    if pix.neighbors[1][1]==pix2.neighbors[1][1]:
-                        found = True
-                        break
-        if found: continue
-
-        # find next same
-        for i in range(type.dim):
-            nind = pix.ind_abs.copy()
-            nind[0] +=i
-            found = False
-            for pix2 in rough_pixs:
-                if pix2.outside: continue
-                if pix2.ind_abs[0]==nind[0] and pix2.ind_abs[1]==nind[1]:
-                    if pix.neighbors[1][0]==pix2.neighbors[1][0]:
-                        if pix.neighbors[1][1]==pix2.neighbors[1][1]:
-                            found = True
-                            pix_end = pix2
-                            break
-            if found==False: break
-
-        # start
-        ind = list(pix.ind_abs)
-        ind.insert(ax,(type.dim-1)*(1-dir)+(2*dir-1)*lay_num) # 0 when n is 1, dim-1 when n is 0
-        add = [0,0,0]
-        add[ax] = 1-dir
-        i_pt = get_index(ind,add,type.dim)
-        pt1 = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
-        #end
-        ind = list(pix_end.ind_abs)
-        ind.insert(ax,(type.dim-1)*(1-dir)+(2*dir-1)*lay_num) # 0 when n is 1, dim-1 when n is 0
-        add = [0,0,0]
-        add[ax] = 1-dir
-        add[dir_ax] = 1
-        i_pt = get_index(ind,add,type.dim)
-        pt2 = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
-
-        ### REFINE THIS FUNCTION
-        dir_add1 = pix.neighbors[dir_ax][0]*2.5*type.fab.vrad*dir_vec
-        dir_add2 = -pix_end.neighbors[dir_ax][1]*2.5*type.fab.vrad*dir_vec
-
-        pt1 = pt1+v_vrad*off_vec+dir_add1
-        pt2 = pt2+v_vrad*off_vec+dir_add2
-        for i in range(no_lanes):
-            # skip lane if on blocked side in off direction
-            if pix.neighbors[1][0]==1 and i==0: continue
-            elif pix.neighbors[1][1]==1 and i==no_lanes-1: continue
-
-            ptA = pt1+lane_width*off_vec*i
-            ptB = pt2+lane_width*off_vec*i
-            pts = [ptA,ptB]
-            if i%2==1: pts.reverse()
-            for pt in pts: mverts.append(MillVertex(pt))
-        mvertices.append(mverts)
-    return mvertices
 
 def edge_milling_path(type,lay_num,n):
     mverts = []
@@ -791,6 +629,152 @@ class JointType:
                 mat[i][j]=int(self.mesh.voxel_matrix[tuple(ind)])
         return mat
 
+    def _pad_layer_mat_with_fixed_sides(self, mat,n):
+        pad_loc = [[0,0],[0,0]]
+        pad_val = [[-1,-1],[-1,-1]]
+        for n2 in range(len(self.fixed.sides)):
+            for oside in self.fixed.sides[n2]:
+                if oside.ax==self.sax: continue
+                axes = [0,0,0]
+                axes[oside.ax] = 1
+                axes.pop(self.sax)
+                oax = axes.index(1)
+                pad_loc[oax][oside.dir] = 1
+                pad_val[oax][oside.dir] = n2
+        # If it is an angled joint, pad so that the edge of a joint located on an edge will be trimmed well
+        #if abs(self.ang-90)>1 and len(self.fixed.sides[n])==1 and self.fixed.sides[n][0].ax!=self.sax:
+        #    print("get here")
+        #    ax = self.fixed.sides[n][0].ax
+        #    dir = self.fixed.sides[n][0].dir
+        #    odir = 1-dir
+        #    axes = [0,0,0]
+        #    axes[ax] = 1
+        #    axes.pop(self.sax)
+        #    oax = axes.index(1)
+        #    pad_loc[oax][odir] = 1
+        #    pad_val[oax][odir] = 9
+        # Perform the padding
+        pad_loc = tuple(map(tuple, pad_loc))
+        pad_val = tuple(map(tuple, pad_val))
+        mat = np.pad(mat, pad_loc, 'constant', constant_values=pad_val)
+        # take care of -1 corners # does this still work after adding former step??????????????
+        # This could be shorter for sure...
+        for fixed_sides_1 in self.fixed.sides:
+            for fixed_sides_2 in self.fixed.sides:
+                for side1 in fixed_sides_1:
+                    if side1.ax==self.sax: continue
+                    axes = [0,0,0]
+                    axes[side1.ax] = 1
+                    axes.pop(self.sax)
+                    ax1 = axes.index(1)
+                    for side2 in fixed_sides_2:
+                        if side2.ax==self.sax: continue
+                        axes = [0,0,0]
+                        axes[side2.ax] = 1
+                        axes.pop(self.sax)
+                        ax2 = axes.index(1)
+                        if ax1==ax2: continue
+                        ind = [0,0]
+                        ind[ax1] = side1.dir*(mat.shape[ax1]-1)
+                        ind[ax2] = side2.dir*(mat.shape[ax2]-1)
+                        mat[tuple(ind)] = -1
+        return mat,pad_loc
+
+    def _rough_milling_path(self,rough_pixs,lay_num,n):
+        mvertices = []
+
+        # Defines axes
+        ax = self.sax # mill bit axis
+        dir = self.mesh.fab_directions[n]
+        axes = [0,1,2]
+        axes.pop(ax)
+        dir_ax = axes[0] # primary milling direction axis
+        off_ax = axes[1] # milling offset axis
+
+        # Define fabrication parameters
+
+        no_lanes = 2+math.ceil(((self.real_tim_dims[axes[1]]/self.dim)-2*self.fab.dia)/self.fab.dia)
+        lane_width = (self.voxel_sizes[axes[1]]-self.fab.vdia)/(no_lanes-1)
+        ratio = np.linalg.norm(self.pos_vecs[axes[1]])/self.voxel_sizes[axes[1]]
+        v_vrad = self.fab.vrad*ratio
+        lane_width = lane_width*ratio
+
+        # create offset direction vectors
+        dir_vec = normalize(self.pos_vecs[axes[0]])
+        off_vec = normalize(self.pos_vecs[axes[1]])
+
+        # get top ones to cut out
+        for pix in rough_pixs:
+            mverts = []
+            if pix.outside: continue
+            if no_lanes<=2:
+                if pix.neighbors[0][0]==1 and pix.neighbors[0][1]==1: continue
+                elif pix.neighbors[1][0]==1 and pix.neighbors[1][1]==1: continue
+            pix_end = pix
+
+            # check that there is no previous same
+            nind = pix.ind_abs.copy()
+            nind[dir_ax] -=1
+            found = False
+            for pix2 in rough_pixs:
+                if pix2.outside: continue
+                if pix2.ind_abs[0]==nind[0] and pix2.ind_abs[1]==nind[1]:
+                    if pix.neighbors[1][0]==pix2.neighbors[1][0]:
+                        if pix.neighbors[1][1]==pix2.neighbors[1][1]:
+                            found = True
+                            break
+            if found: continue
+
+            # find next same
+            for i in range(self.dim):
+                nind = pix.ind_abs.copy()
+                nind[0] +=i
+                found = False
+                for pix2 in rough_pixs:
+                    if pix2.outside: continue
+                    if pix2.ind_abs[0]==nind[0] and pix2.ind_abs[1]==nind[1]:
+                        if pix.neighbors[1][0]==pix2.neighbors[1][0]:
+                            if pix.neighbors[1][1]==pix2.neighbors[1][1]:
+                                found = True
+                                pix_end = pix2
+                                break
+                if found==False: break
+
+            # start
+            ind = list(pix.ind_abs)
+            ind.insert(ax,(self.dim-1)*(1-dir)+(2*dir-1)*lay_num) # 0 when n is 1, dim-1 when n is 0
+            add = [0,0,0]
+            add[ax] = 1-dir
+            i_pt = get_index(ind,add,self.dim)
+            pt1 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+            #end
+            ind = list(pix_end.ind_abs)
+            ind.insert(ax,(self.dim-1)*(1-dir)+(2*dir-1)*lay_num) # 0 when n is 1, dim-1 when n is 0
+            add = [0,0,0]
+            add[ax] = 1-dir
+            add[dir_ax] = 1
+            i_pt = get_index(ind,add,self.dim)
+            pt2 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+
+            ### REFINE THIS FUNCTION
+            dir_add1 = pix.neighbors[dir_ax][0]*2.5*self.fab.vrad*dir_vec
+            dir_add2 = -pix_end.neighbors[dir_ax][1]*2.5*self.fab.vrad*dir_vec
+
+            pt1 = pt1+v_vrad*off_vec+dir_add1
+            pt2 = pt2+v_vrad*off_vec+dir_add2
+            for i in range(no_lanes):
+                # skip lane if on blocked side in off direction
+                if pix.neighbors[1][0]==1 and i==0: continue
+                elif pix.neighbors[1][1]==1 and i==no_lanes-1: continue
+
+                ptA = pt1+lane_width*off_vec*i
+                ptB = pt2+lane_width*off_vec*i
+                pts = [ptA,ptB]
+                if i%2==1: pts.reverse()
+                for pt in pts: mverts.append(MillVertex(pt))
+            mvertices.append(mverts)
+        return mvertices
+
     def _milling_path_vertices(self, n):
 
         vertices = []
@@ -840,7 +824,7 @@ class JointType:
             lay_mat = self._layer_mat_from_cube(lay_num, n) #OK
 
             # Pad 2d matrix with fixed sides
-            lay_mat,pad_loc = pad_layer_mat_with_fixed_sides(lay_mat,self,n) #OK
+            lay_mat,pad_loc = self._pad_layer_mat_with_fixed_sides(lay_mat, n) #OK
             org_lay_mat = copy.deepcopy(lay_mat) #OK
 
             # Get/browse regions
@@ -865,7 +849,7 @@ class JointType:
                 for ind in reg_inds:
                     rough_inds.append(RoughPixel(ind, lay_mat, pad_loc,self.dim,n)) #should be same...
                 # 2. Produce rough milling paths
-                rough_paths = rough_milling_path(self,rough_inds,lay_num,n)
+                rough_paths = self._rough_milling_path(rough_inds,lay_num,n)
                 for rough_path in rough_paths:
                     if len(rough_path)>0:
                         verts,mverts = get_layered_vertices(self,rough_path,n,lay_num,no_z,dep)
@@ -908,10 +892,11 @@ class JointType:
                             vertices.extend(verts)
                             milling_vertices.extend(mverts)
 
-        # Add end point
-        end_verts, end_mverts = get_milling_end_points(self,n,milling_vertices[-1].pt[self.sax])
-        vertices.extend(end_verts)
-        milling_vertices.extend(end_mverts)
+        # Add end point - check first if it is empty
+        if milling_vertices:
+            end_verts, end_mverts = get_milling_end_points(self,n,milling_vertices[-1].pt[self.sax])
+            vertices.extend(end_verts)
+            milling_vertices.extend(end_mverts)
 
         # Format and return
         vertices = np.array(vertices, dtype = np.float32)
