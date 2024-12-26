@@ -78,62 +78,6 @@ def get_diff_neighbors(mat2,inds,val):
         new_inds = get_diff_neighbors(mat2,new_inds,val)
     return new_inds
 
-def edge_milling_path(type,lay_num,n):
-    mverts = []
-
-    if len(type.fixed.sides[n])==1 and type.fixed.sides[n][0].ax!=type.sax:
-
-        # ax dir of current fixed side
-        ax = type.fixed.sides[n][0].ax
-        dir = type.fixed.sides[n][0].dir
-        # oax - axis perp. to component axis
-        oax = [0,1,2]
-        oax.remove(type.sax)
-        oax.remove(ax)
-        oax=oax[0]
-        # fabrication direction
-        fdir = type.mesh.fab_directions[n]
-
-        # check so that that part is not removed anyways...
-        # i.e. if the whole bottom row in that direction is of other material
-        ind = [0,0,0]
-        ind[ax] = (1-dir)*(type.dim-1)
-        ind[type.sax] = fdir*(type.dim-1)
-        free=True
-        for i in range(type.dim):
-            ind[oax]=i
-            val = type.mesh.voxel_matrix[tuple(ind)]
-            if int(val)==n:
-                free=False
-                break
-
-        if not free:
-            # define start (pt0) and end (pt1) points of edge
-            ind = [0,0,0]
-            add = [0,0,0]
-            ind[ax] = (1-dir)*type.dim
-            ind[type.sax] = type.dim*(1-fdir)+(2*fdir-1)*lay_num
-            i_pt = get_index(ind,add,type.dim)
-            pt0 = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
-            ind[oax] = type.dim
-            i_pt = get_index(ind,add,type.dim)
-            pt1 = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
-
-            # offset edge line by radius of millingbit
-            dir_vec = normalize(pt0-pt1)
-            sax_vec = [0,0,0]
-            sax_vec[type.sax] = 2*fdir-1
-            off_vec = rotate_vector_around_axis(dir_vec, sax_vec, math.radians(90))
-            off_vec = (2*dir-1)*type.fab.vrad*off_vec
-            pt0 = pt0+off_vec
-            pt1 = pt1+off_vec
-
-            # Write to mverts
-            mverts=[MillVertex(pt0),MillVertex(pt1)]
-
-
-    return mverts
-
 def set_starting_vert(verts):
     first_i = None
     second_i = None
@@ -231,115 +175,6 @@ def set_vector_length(vec,new_norm):
     vec = vec/norm
     vec = new_norm*vec
     return vec
-
-def offset_verts(type,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,verts,lay_num,n):
-    outline = []
-    corner_artifacts = []
-
-    fdir = type.mesh.fab_directions[n]
-
-    test_first=True
-    for i,rv in enumerate(list(verts)): # browse each vertex in the outline
-
-        # remove vertices with neighbor count 2 #OK
-        if rv.region_count==2 and rv.block_count==2: continue # redundant
-        if rv.block_count==0: continue                        # redundant
-        if rv.ind[0]<0 or rv.ind[0]>type.dim: continue        # out of bounds
-        if rv.ind[1]<0 or rv.ind[1]>type.dim: continue        # out of bounds
-
-        # add vertex information #OK
-        ind = rv.ind.copy()
-        ind.insert(type.sax,(type.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
-        add = [0,0,0]
-        add[type.sax] = 1-fdir
-        i_pt = get_index(ind,add,type.dim)
-        pt = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
-
-        # move vertex according to boundary condition <---needs to be updated
-        off_vecs = []
-        if rv.block_count==1:
-            nind = tuple(np.argwhere(rv.neighbors==1)[0])
-            off_vecs.append(-neighbor_vectors[nind])
-        if rv.region_count==1 and rv.free_count!=3:
-            nind = tuple(np.argwhere(rv.neighbors==0)[0])
-            off_vecs.append(neighbor_vectors[nind])
-            if np.any(rv.flat_neighbor_values==-2):
-                nind = tuple(np.argwhere(rv.neighbor_values==-2)[0])
-                off_vecs.append(neighbor_vectors[nind])
-
-        off_vec = np.average(off_vecs,axis=0)
-        # check if it is an outer corner that should be rounded
-        rounded = False
-        if rv.region_count==3: # outer corner, check if it should be rounded or not
-            # check if this outer corner correspond to an inner corner of another material
-            for n2 in range(type.noc):
-                if n2==n: continue
-                cnt = np.sum(rv.flat_neighbor_values==n2)
-                if cnt==3: rounded = True
-                elif cnt==2:
-                    # Check if it is a diagonal
-                    dia1 = rv.neighbor_values[0][0]==rv.neighbor_values[1][1]
-                    dia2 = rv.neighbor_values[0][1]==rv.neighbor_values[1][0]
-                    if dia1 or dia2:
-                        rounded = True
-        if rounded:
-            nind = tuple(np.argwhere(rv.neighbors==1)[0])
-            off_vec_a = -neighbor_vectors_a[nind]
-            off_vec_b = -neighbor_vectors_b[nind]
-            le2 = math.sqrt(math.pow(2*np.linalg.norm(off_vec_a+off_vec_b),2)-math.pow(2*type.fab.vrad,2))-np.linalg.norm(off_vec_a)
-            off_vec_a2 = set_vector_length(off_vec_a,le2)
-            off_vec_b2 = set_vector_length(off_vec_b,le2)
-
-            # define end points and the center point of the arc
-            pt1 = pt+off_vec_a-off_vec_b2
-            pt2 = pt+off_vec_b-off_vec_a2
-            pts = [pt1,pt2]
-            ctr = pt-off_vec_a-off_vec_b # arc center
-
-
-            # Reorder pt1 and pt2
-            if len(outline)>0: # if it is not the first point in the outline
-                ppt = outline[-1].pt
-                v1 = pt1-ppt
-                v2 = pt2-ppt
-                ang1 = angle_between(v1,off_vec_b) #should be 0 if order is already good
-                ang2 = angle_between(v2,off_vec_b) #should be more than 0
-                if ang1>ang2: pts.reverse()
-            outline.append(MillVertex(pts[0],is_arc=True,arc_ctr=ctr))
-            outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))
-
-            # Extreme case where corner is very rounded and everything is not cut
-            dist = np.linalg.norm(pt-ctr)
-            if dist>type.fab.vdia and lay_num<type.dim-1:
-                artifact = []
-                v0 = type.fab.vdia*normalize(pt+off_vec-pts[0])
-                v1 = type.fab.vdia*normalize(pt+off_vec-pts[1])
-                vp = type.fab.vrad*normalize(pts[1]-pts[0])
-                pts3 =  [pts[0]-vp+v0,pt+2*off_vec,pts[1]+vp+v1]
-                while np.linalg.norm(pts3[2]-pts3[0])>type.fab.vdia:
-                    pts3[0] += vp
-                    pts3[1] += -off_vec
-                    pts3[2] += -vp
-                    for i in range(3): artifact.append(MillVertex(pts3[i]))
-                    pts3.reverse()
-                    vp = -vp
-                if len(artifact)>0:
-                    corner_artifacts.append(artifact)
-
-        else: # other corner
-            pt = pt+off_vec
-            outline.append(MillVertex(pt))
-        if len(outline)>2 and outline[0].is_arc and test_first:
-            # if the previous one was an arc but it was the first point of the outline,
-            # so we couldn't verify the order of the points
-            # we might need to retrospectively switch order of the arc points
-            npt = outline[2].pt
-            d1 = np.linalg.norm(outline[0].pt-npt)
-            d2 = np.linalg.norm(outline[1].pt-npt)
-            if d1<d2: outline[0],outline[1] = outline[1],outline[0]
-            test_first=False
-
-    return outline, corner_artifacts
 
 def get_outline(type,verts,lay_num,n):
     fdir = type.mesh.fab_directions[n]
@@ -775,6 +610,170 @@ class JointType:
             mvertices.append(mverts)
         return mvertices
 
+    def _edge_milling_path(self,lay_num,n):
+        mverts = []
+
+        if len(self.fixed.sides[n])==1 and self.fixed.sides[n][0].ax!=self.sax:
+
+            # ax dir of current fixed side
+            ax = self.fixed.sides[n][0].ax
+            dir = self.fixed.sides[n][0].dir
+            # oax - axis perp. to component axis
+            oax = [0,1,2]
+            oax.remove(self.sax)
+            oax.remove(ax)
+            oax=oax[0]
+            # fabrication direction
+            fdir = self.mesh.fab_directions[n]
+
+            # check so that that part is not removed anyways...
+            # i.e. if the whole bottom row in that direction is of other material
+            ind = [0,0,0]
+            ind[ax] = (1-dir)*(self.dim-1)
+            ind[self.sax] = fdir*(self.dim-1)
+            free=True
+            for i in range(self.dim):
+                ind[oax]=i
+                val = self.mesh.voxel_matrix[tuple(ind)]
+                if int(val)==n:
+                    free=False
+                    break
+
+            if not free:
+                # define start (pt0) and end (pt1) points of edge
+                ind = [0,0,0]
+                add = [0,0,0]
+                ind[ax] = (1-dir)*self.dim
+                ind[self.sax] = self.dim*(1-fdir)+(2*fdir-1)*lay_num
+                i_pt = get_index(ind,add,self.dim)
+                pt0 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+                ind[oax] = self.dim
+                i_pt = get_index(ind,add,self.dim)
+                pt1 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+
+                # offset edge line by radius of millingbit
+                dir_vec = normalize(pt0-pt1)
+                sax_vec = [0,0,0]
+                sax_vec[self.sax] = 2*fdir-1
+                off_vec = rotate_vector_around_axis(dir_vec, sax_vec, math.radians(90))
+                off_vec = (2*dir-1)*self.fab.vrad*off_vec
+                pt0 = pt0+off_vec
+                pt1 = pt1+off_vec
+
+                # Write to mverts
+                mverts = [MillVertex(pt0),MillVertex(pt1)]
+
+        return mverts
+
+    def _offset_verts(self,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,verts,lay_num,n):
+        outline = []
+        corner_artifacts = []
+
+        fdir = self.mesh.fab_directions[n]
+
+        test_first=True
+        for i,rv in enumerate(list(verts)): # browse each vertex in the outline
+
+            # remove vertices with neighbor count 2 #OK
+            if rv.region_count==2 and rv.block_count==2: continue # redundant
+            if rv.block_count==0: continue                        # redundant
+            if rv.ind[0]<0 or rv.ind[0]>self.dim: continue        # out of bounds
+            if rv.ind[1]<0 or rv.ind[1]>self.dim: continue        # out of bounds
+
+            # add vertex information #OK
+            ind = rv.ind.copy()
+            ind.insert(self.sax,(self.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
+            add = [0,0,0]
+            add[self.sax] = 1-fdir
+            i_pt = get_index(ind,add,self.dim)
+            pt = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+
+            # move vertex according to boundary condition <---needs to be updated
+            off_vecs = []
+            if rv.block_count==1:
+                nind = tuple(np.argwhere(rv.neighbors==1)[0])
+                off_vecs.append(-neighbor_vectors[nind])
+            if rv.region_count==1 and rv.free_count!=3:
+                nind = tuple(np.argwhere(rv.neighbors==0)[0])
+                off_vecs.append(neighbor_vectors[nind])
+                if np.any(rv.flat_neighbor_values==-2):
+                    nind = tuple(np.argwhere(rv.neighbor_values==-2)[0])
+                    off_vecs.append(neighbor_vectors[nind])
+
+            off_vec = np.average(off_vecs,axis=0)
+            # check if it is an outer corner that should be rounded
+            rounded = False
+            if rv.region_count==3: # outer corner, check if it should be rounded or not
+                # check if this outer corner correspond to an inner corner of another material
+                for n2 in range(self.noc):
+                    if n2==n: continue
+                    cnt = np.sum(rv.flat_neighbor_values==n2)
+                    if cnt==3: rounded = True
+                    elif cnt==2:
+                        # Check if it is a diagonal
+                        dia1 = rv.neighbor_values[0][0]==rv.neighbor_values[1][1]
+                        dia2 = rv.neighbor_values[0][1]==rv.neighbor_values[1][0]
+                        if dia1 or dia2:
+                            rounded = True
+            if rounded:
+                nind = tuple(np.argwhere(rv.neighbors==1)[0])
+                off_vec_a = -neighbor_vectors_a[nind]
+                off_vec_b = -neighbor_vectors_b[nind]
+                le2 = math.sqrt(math.pow(2*np.linalg.norm(off_vec_a+off_vec_b),2)-math.pow(2*self.fab.vrad,2))-np.linalg.norm(off_vec_a)
+                off_vec_a2 = set_vector_length(off_vec_a,le2)
+                off_vec_b2 = set_vector_length(off_vec_b,le2)
+
+                # define end points and the center point of the arc
+                pt1 = pt+off_vec_a-off_vec_b2
+                pt2 = pt+off_vec_b-off_vec_a2
+                pts = [pt1,pt2]
+                ctr = pt-off_vec_a-off_vec_b # arc center
+
+
+                # Reorder pt1 and pt2
+                if len(outline)>0: # if it is not the first point in the outline
+                    ppt = outline[-1].pt
+                    v1 = pt1-ppt
+                    v2 = pt2-ppt
+                    ang1 = angle_between(v1,off_vec_b) #should be 0 if order is already good
+                    ang2 = angle_between(v2,off_vec_b) #should be more than 0
+                    if ang1>ang2: pts.reverse()
+                outline.append(MillVertex(pts[0],is_arc=True,arc_ctr=ctr))
+                outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))
+
+                # Extreme case where corner is very rounded and everything is not cut
+                dist = np.linalg.norm(pt-ctr)
+                if dist>self.fab.vdia and lay_num<self.dim-1:
+                    artifact = []
+                    v0 = self.fab.vdia*normalize(pt+off_vec-pts[0])
+                    v1 = self.fab.vdia*normalize(pt+off_vec-pts[1])
+                    vp = self.fab.vrad*normalize(pts[1]-pts[0])
+                    pts3 =  [pts[0]-vp+v0,pt+2*off_vec,pts[1]+vp+v1]
+                    while np.linalg.norm(pts3[2]-pts3[0])>self.fab.vdia:
+                        pts3[0] += vp
+                        pts3[1] += -off_vec
+                        pts3[2] += -vp
+                        for i in range(3): artifact.append(MillVertex(pts3[i]))
+                        pts3.reverse()
+                        vp = -vp
+                    if len(artifact)>0:
+                        corner_artifacts.append(artifact)
+
+            else: # other corner
+                pt = pt+off_vec
+                outline.append(MillVertex(pt))
+            if len(outline)>2 and outline[0].is_arc and test_first:
+                # if the previous one was an arc but it was the first point of the outline,
+                # so we couldn't verify the order of the points
+                # we might need to retrospectively switch order of the arc points
+                npt = outline[2].pt
+                d1 = np.linalg.norm(outline[0].pt-npt)
+                d2 = np.linalg.norm(outline[1].pt-npt)
+                if d1<d2: outline[0],outline[1] = outline[1],outline[0]
+                test_first=False
+
+        return outline, corner_artifacts
+
     def _milling_path_vertices(self, n):
 
         vertices = []
@@ -837,7 +836,7 @@ class JointType:
 
                 #If oblique joint, create path to trim edge
                 edge_path = []
-                if abs(self.ang)>1: edge_path = edge_milling_path(self,lay_num,n)
+                if abs(self.ang)>1: edge_path = self._edge_milling_path(lay_num, n)
                 if len(edge_path)>0:
                     verts,mverts = get_layered_vertices(self,edge_path,n,lay_num,no_z,dep)
                     vertices.extend(verts)
@@ -877,7 +876,7 @@ class JointType:
                     #if len(reg_ord_verts)>1: outline = get_outline(joint_self,reg_ord_verts,lay_num,n)
 
                     # Offset vertices according to boundary condition (and remove if redundant)
-                    outline,corner_artifacts = offset_verts(self,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,reg_ord_verts,lay_num,n) #<----needs to be updated for oblique angles!!!!!<---
+                    outline,corner_artifacts = self._offset_verts(neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,reg_ord_verts,lay_num,n) #<----needs to be updated for oblique angles!!!!!<---
 
                     # Get z height and extend vertices to global list
                     if len(reg_ord_verts)>1 and len(outline)>0:
