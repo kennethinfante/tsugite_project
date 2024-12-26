@@ -14,7 +14,7 @@ from main_window import get_untitled_filename, MainWindow
 
 class MovieSplashScreen(qtw.QSplashScreen):
 
-    def __init__(self, movie, parent = None):
+    def __init__(self, movie, parent=None):
 
         movie.jumpToFrame(0)
         pixmap =qtg.QPixmap(movie.frameRect().size())
