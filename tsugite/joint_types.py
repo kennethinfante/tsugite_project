@@ -176,46 +176,11 @@ def set_vector_length(vec,new_norm):
     vec = new_norm*vec
     return vec
 
-def get_outline(type,verts,lay_num,n):
-    fdir = type.mesh.fab_directions[n]
-    outline = []
-    for rv in verts:
-        ind = rv.ind.copy()
-        ind.insert(type.sax,(type.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
-        add = [0,0,0]
-        add[type.sax] = 1-fdir
-        i_pt = get_index(ind,add,type.dim)
-        pt = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
-        outline.append(MillVertex(pt))
-    return outline
-
 def get_vertex(index,verts,n):
     x = verts[n*index]
     y = verts[n*index+1]
     z = verts[n*index+2]
     return np.array([x,y,z])
-
-def get_milling_end_points(type,n,last_z):
-    verts = []
-    mverts = []
-
-    r = g = b = tx = ty = 0.0
-
-    fdir = type.mesh.fab_directions[n]
-
-    origin_vert = [0,0,0]
-    origin_vert[type.sax] = last_z
-
-    extra_zheight = 15/type.ratio
-    above_origin_vert = [0,0,0]
-    above_origin_vert[type.sax] = last_z-(2*fdir-1)*extra_zheight
-
-    mverts.append(MillVertex(origin_vert, is_tra=True))
-    mverts.append(MillVertex(above_origin_vert, is_tra=True))
-    verts.extend([origin_vert[0],origin_vert[1],origin_vert[2],r,g,b,tx,ty])
-    verts.extend([above_origin_vert[0],above_origin_vert[1],above_origin_vert[2],r,g,b,tx,ty])
-
-    return verts,mverts
 
 def get_segment_proportions(outline):
     olen = 0
@@ -238,70 +203,7 @@ def get_segment_proportions(outline):
 
     return sprops
 
-def get_layered_vertices(type,outline,n,lay_num,no_z,dep):
-    verts = []
-    mverts = []
 
-    r = g = b = tx = ty = 0.0
-
-    fdir = type.mesh.fab_directions[n]
-    # add startpoint
-    start_vert = [outline[0].x,outline[0].y,outline[0].z]
-    safe_height = outline[0].pt[type.sax]-(2*fdir-1)*(lay_num*type.voxel_sizes[type.sax]+2*dep)
-    start_vert[type.sax] = safe_height
-    mverts.append(MillVertex(start_vert,is_tra=True))
-    verts.extend([start_vert[0],start_vert[1],start_vert[2],r,g,b,tx,ty])
-    if lay_num!=0:
-        start_vert2 = [outline[0].x,outline[0].y,outline[0].z]
-        safe_height2 = outline[0].pt[type.sax]-(2*fdir-1)*dep
-        start_vert2[type.sax] = safe_height2
-        mverts.append(MillVertex(start_vert2,is_tra=True))
-        verts.extend([start_vert2[0],start_vert2[1],start_vert2[2],r,g,b,tx,ty])
-
-    # add layers with Z-height
-    # set start number (one layer earlier if first layer)
-    if lay_num==0: stn=0
-    else: stn=1
-    # set end number (one layer more if last layer and not sliding direction aligned component)
-    if lay_num==type.dim-1 and type.sax!=type.fixed.sides[n][0].ax: enn=no_z+2
-    else: enn=no_z+1
-    if type.incremental:
-        enn+=1
-        seg_props = get_segment_proportions(outline)
-    else: seg_props = [1.0]*len(outline)
-    #calculate depth for incremental setting
-
-    for num in range(stn,enn):
-        if type.incremental and num==enn-1: seg_props = [0.0]*len(outline)
-        for i, (mv, sp) in enumerate(zip(outline,seg_props)):
-            pt = [mv.x,mv.y,mv.z]
-            pt[type.sax] += (2*fdir-1)*(num-1+sp)*dep
-            if mv.is_arc:
-                ctr = [mv.arc_ctr[0],mv.arc_ctr[1],mv.arc_ctr[2]]
-                ctr[type.sax] += (2*fdir-1)*(num-1+sp)*dep
-                mverts.append(MillVertex(pt, is_arc=True, arc_ctr=ctr))
-            else:
-                mverts.append(MillVertex(pt))
-            if i>0:
-                pmv = outline[i-1]
-            if i>0 and connected_arc(mv,pmv):
-                ppt = [pmv.x,pmv.y,pmv.z]
-                ppt[type.sax] += (2*fdir-1)*(num-1+sp)*dep
-                pctr = [pmv.arc_ctr[0],pmv.arc_ctr[1],pmv.arc_ctr[2]]
-                pctr[type.sax] += (2*fdir-1)*(num-1+sp)*dep
-                arc_pts = arc_points(ppt,pt,pctr,ctr,type.sax,math.radians(5))
-                for arc_pt in arc_pts: verts.extend([arc_pt[0],arc_pt[1],arc_pt[2],r,g,b,tx,ty])
-            else:
-                verts.extend([pt[0],pt[1],pt[2],r,g,b,tx,ty])
-        outline.reverse()
-
-    # add endpoint
-    end_vert = [outline[0].x,outline[0].y,outline[0].z]
-    end_vert[type.sax] = safe_height
-    mverts.append(MillVertex(end_vert, is_tra=True))
-    verts.extend([end_vert[0],end_vert[1],end_vert[2],r,g,b,tx,ty])
-
-    return verts,mverts
 
 def any_minus_one_neighbor(ind,lay_mat):
     bool = False
@@ -774,6 +676,93 @@ class JointType:
 
         return outline, corner_artifacts
 
+    def _get_layered_vertices(self, outline,n,lay_num,no_z,dep):
+        verts = []
+        mverts = []
+
+        r = g = b = tx = ty = 0.0
+
+        fdir = self.mesh.fab_directions[n]
+        # add startpoint
+        start_vert = [outline[0].x,outline[0].y,outline[0].z]
+        safe_height = outline[0].pt[self.sax]-(2*fdir-1)*(lay_num*self.voxel_sizes[self.sax]+2*dep)
+        start_vert[self.sax] = safe_height
+        mverts.append(MillVertex(start_vert,is_tra=True))
+        verts.extend([start_vert[0],start_vert[1],start_vert[2],r,g,b,tx,ty])
+        if lay_num!=0:
+            start_vert2 = [outline[0].x,outline[0].y,outline[0].z]
+            safe_height2 = outline[0].pt[self.sax]-(2*fdir-1)*dep
+            start_vert2[self.sax] = safe_height2
+            mverts.append(MillVertex(start_vert2,is_tra=True))
+            verts.extend([start_vert2[0],start_vert2[1],start_vert2[2],r,g,b,tx,ty])
+
+        # add layers with Z-height
+        # set start number (one layer earlier if first layer)
+        if lay_num==0: stn=0
+        else: stn=1
+        # set end number (one layer more if last layer and not sliding direction aligned component)
+        if lay_num==self.dim-1 and self.sax!=self.fixed.sides[n][0].ax: enn=no_z+2
+        else: enn=no_z+1
+        if self.incremental:
+            enn+=1
+            seg_props = get_segment_proportions(outline)
+        else: seg_props = [1.0]*len(outline)
+        #calculate depth for incremental setting
+
+        for num in range(stn,enn):
+            if self.incremental and num==enn-1: seg_props = [0.0]*len(outline)
+            for i, (mv, sp) in enumerate(zip(outline,seg_props)):
+                pt = [mv.x,mv.y,mv.z]
+                pt[self.sax] += (2*fdir-1)*(num-1+sp)*dep
+                if mv.is_arc:
+                    ctr = [mv.arc_ctr[0],mv.arc_ctr[1],mv.arc_ctr[2]]
+                    ctr[self.sax] += (2*fdir-1)*(num-1+sp)*dep
+                    mverts.append(MillVertex(pt, is_arc=True, arc_ctr=ctr))
+                else:
+                    mverts.append(MillVertex(pt))
+                if i>0:
+                    pmv = outline[i-1]
+                if i>0 and connected_arc(mv,pmv):
+                    ppt = [pmv.x,pmv.y,pmv.z]
+                    ppt[self.sax] += (2*fdir-1)*(num-1+sp)*dep
+                    pctr = [pmv.arc_ctr[0],pmv.arc_ctr[1],pmv.arc_ctr[2]]
+                    pctr[self.sax] += (2*fdir-1)*(num-1+sp)*dep
+                    arc_pts = arc_points(ppt,pt,pctr,ctr,self.sax,math.radians(5))
+                    for arc_pt in arc_pts: verts.extend([arc_pt[0],arc_pt[1],arc_pt[2],r,g,b,tx,ty])
+                else:
+                    verts.extend([pt[0],pt[1],pt[2],r,g,b,tx,ty])
+            outline.reverse()
+
+        # add endpoint
+        end_vert = [outline[0].x,outline[0].y,outline[0].z]
+        end_vert[self.sax] = safe_height
+        mverts.append(MillVertex(end_vert, is_tra=True))
+        verts.extend([end_vert[0],end_vert[1],end_vert[2],r,g,b,tx,ty])
+
+        return verts,mverts
+
+    def _get_milling_end_points(self,n,last_z):
+        verts = []
+        mverts = []
+
+        r = g = b = tx = ty = 0.0
+
+        fdir = self.mesh.fab_directions[n]
+
+        origin_vert = [0,0,0]
+        origin_vert[self.sax] = last_z
+
+        extra_zheight = 15/self.ratio
+        above_origin_vert = [0,0,0]
+        above_origin_vert[self.sax] = last_z-(2*fdir-1)*extra_zheight
+
+        mverts.append(MillVertex(origin_vert, is_tra=True))
+        mverts.append(MillVertex(above_origin_vert, is_tra=True))
+        verts.extend([origin_vert[0],origin_vert[1],origin_vert[2],r,g,b,tx,ty])
+        verts.extend([above_origin_vert[0],above_origin_vert[1],above_origin_vert[2],r,g,b,tx,ty])
+
+        return verts,mverts
+
     def _milling_path_vertices(self, n):
 
         vertices = []
@@ -838,7 +827,7 @@ class JointType:
                 edge_path = []
                 if abs(self.ang)>1: edge_path = self._edge_milling_path(lay_num, n)
                 if len(edge_path)>0:
-                    verts,mverts = get_layered_vertices(self,edge_path,n,lay_num,no_z,dep)
+                    verts,mverts = self._get_layered_vertices(edge_path,n,lay_num,no_z,dep)
                     vertices.extend(verts)
                     milling_vertices.extend(mverts)
 
@@ -851,7 +840,7 @@ class JointType:
                 rough_paths = self._rough_milling_path(rough_inds,lay_num,n)
                 for rough_path in rough_paths:
                     if len(rough_path)>0:
-                        verts,mverts = get_layered_vertices(self,rough_path,n,lay_num,no_z,dep)
+                        verts,mverts = self._get_layered_vertices(rough_path,n,lay_num,no_z,dep)
                         vertices.extend(verts)
                         milling_vertices.extend(mverts)
 
@@ -881,19 +870,19 @@ class JointType:
                     # Get z height and extend vertices to global list
                     if len(reg_ord_verts)>1 and len(outline)>0:
                         if closed: outline.append(MillVertex(outline[0].pt))
-                        verts,mverts = get_layered_vertices(self,outline,n,lay_num,no_z,dep)
+                        verts,mverts = self._get_layered_vertices(outline,n,lay_num,no_z,dep)
                         vertices.extend(verts)
                         milling_vertices.extend(mverts)
 
                     if len(corner_artifacts)>0:
                         for artifact in corner_artifacts:
-                            verts,mverts = get_layered_vertices(self,artifact,n,lay_num,no_z,dep)
+                            verts,mverts = self._get_layered_vertices(artifact,n,lay_num,no_z,dep)
                             vertices.extend(verts)
                             milling_vertices.extend(mverts)
 
         # Add end point - check first if it is empty
         if milling_vertices:
-            end_verts, end_mverts = get_milling_end_points(self,n,milling_vertices[-1].pt[self.sax])
+            end_verts, end_mverts = self._get_milling_end_points(n,milling_vertices[-1].pt[self.sax])
             vertices.extend(end_verts)
             milling_vertices.extend(end_mverts)
 

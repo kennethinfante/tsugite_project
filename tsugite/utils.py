@@ -21,6 +21,20 @@ def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example va
     rotated_vec = np.dot(mat, vec)
     return rotated_vec
 
+# unused
+def get_outline(type,verts,lay_num,n):
+    fdir = type.mesh.fab_directions[n]
+    outline = []
+    for rv in verts:
+        ind = rv.ind.copy()
+        ind.insert(type.sax,(type.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
+        add = [0,0,0]
+        add[type.sax] = 1-fdir
+        i_pt = get_index(ind,add,type.dim)
+        pt = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
+        outline.append(MillVertex(pt))
+    return outline
+
 def angle_between(vector_1, vector_2):
     unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
     unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
