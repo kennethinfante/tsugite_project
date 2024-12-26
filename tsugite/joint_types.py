@@ -1,20 +1,18 @@
-from OpenGL.GL import *
-from PyQt5.QtWidgets import *
-import numpy as np
-from numpy import linalg
 import math
 import copy
 import os
 import random
+
+import numpy as np
+
 from buffer import Buffer
 from evaluation import Evaluation
 from fabrication import *
-from geometries import Geometries
-from geometries import get_index
+from geometries import Geometries, get_index
 from misc import FixedSides
 
 def normalize(v):
-    norm = linalg.norm(v)
+    norm = np.linalg.norm(v)
     if norm == 0: return v
     else: return v / norm
 
@@ -532,14 +530,14 @@ def offset_verts(type,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,ver
             outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))
 
             # Extreme case where corner is very rounded and everything is not cut
-            dist = linalg.norm(pt-ctr)
+            dist = np.linalg.norm(pt-ctr)
             if dist>type.fab.vdia and lay_num<type.dim-1:
                 artifact = []
                 v0 = type.fab.vdia*normalize(pt+off_vec-pts[0])
                 v1 = type.fab.vdia*normalize(pt+off_vec-pts[1])
                 vp = type.fab.vrad*normalize(pts[1]-pts[0])
                 pts3 =  [pts[0]-vp+v0,pt+2*off_vec,pts[1]+vp+v1]
-                while linalg.norm(pts3[2]-pts3[0])>type.fab.vdia:
+                while np.linalg.norm(pts3[2]-pts3[0])>type.fab.vdia:
                     pts3[0] += vp
                     pts3[1] += -off_vec
                     pts3[2] += -vp
@@ -613,7 +611,7 @@ def get_segment_proportions(outline):
     for i in range(1,len(outline)):
         ppt = outline[i-1].pt
         pt = outline[i].pt
-        dist = linalg.norm(pt-ppt)
+        dist = np.linalg.norm(pt-ppt)
         slens.append(dist)
         olen+=dist
 
@@ -783,6 +781,7 @@ def is_additional_outer_corner(type,rv,ind,ax,n):
                 axes.pop(ax)
                 oax = axes.index(1)
                 not_oax = axes.index(0)
+                # what is this odir?
                 if rv.ind[oax]==odir*type.dim:
                     if rv.ind[not_oax]!=0 and rv.ind[not_oax]!=type.dim:
                         outer_corner = True
