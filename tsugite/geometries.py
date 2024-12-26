@@ -1,11 +1,13 @@
-from OpenGL.GL import *
-import numpy as np
 import random
+import copy
+import os
+
+import numpy as np
+import OpenGL.GL as GL  # imports start with GL
+
 from selection import Selection
 from evaluation import Evaluation
 from buffer import ElementProperties
-import copy
-import os
 from misc import FixedSide
 
 # Supporting functions
@@ -90,12 +92,12 @@ def joint_face_indices(self,all_indices,mat,fixed_sides,n,offset,global_offset=0
     indices_ends = np.array(indices_ends, dtype=np.uint32)
     indices_ends = indices_ends + offset
     # Store
-    indices_prop = ElementProperties(GL_QUADS, len(indices), len(all_indices)+global_offset, n)
+    indices_prop = ElementProperties(GL.GL_QUADS, len(indices), len(all_indices)+global_offset, n)
     if len(all_indices)>0: all_indices = np.concatenate([all_indices, indices])
     else: all_indices = indices
-    indices_ends_prop = ElementProperties(GL_QUADS, len(indices_ends), len(all_indices)+global_offset, n)
+    indices_ends_prop = ElementProperties(GL.GL_QUADS, len(indices_ends), len(all_indices)+global_offset, n)
     all_indices = np.concatenate([all_indices, indices_ends])
-    indices_all_prop = ElementProperties(GL_QUADS, len(indices)+len(indices_ends), indices_prop.start_index, n)
+    indices_all_prop = ElementProperties(GL.GL_QUADS, len(indices)+len(indices_ends), indices_prop.start_index, n)
     # Return
     return indices_prop, indices_ends_prop, indices_all_prop, all_indices
 
@@ -147,10 +149,10 @@ def joint_area_face_indices(self,all_indices,mat,area_faces,n):
     indices_ends = np.array(indices_ends, dtype=np.uint32)
     #indices_ends = indices_ends + offset
     # Store
-    indices_prop = ElementProperties(GL_QUADS, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_QUADS, len(indices), len(all_indices), n)
     if len(all_indices)>0: all_indices = np.concatenate([all_indices, indices])
     else: all_indices = indices
-    indices_ends_prop = ElementProperties(GL_QUADS, len(indices_ends), len(all_indices), n)
+    indices_ends_prop = ElementProperties(GL.GL_QUADS, len(indices_ends), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices_ends])
     # Return
     return indices_prop, indices_ends_prop, all_indices
@@ -229,7 +231,7 @@ def joint_line_indices(self,all_indices,n,offset,global_offset=0):
     indices = np.array(indices, dtype=np.uint32)
     indices = indices + offset
     # Store
-    indices_prop = ElementProperties(GL_LINES, len(indices), len(all_indices)+global_offset, n)
+    indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices)+global_offset, n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -268,7 +270,7 @@ def chess_line_indices(self,all_indices,chess_verts,n,offset):
     indices = np.array(indices, dtype=np.uint32)
     indices = indices + offset
     # Store
-    indices_prop = ElementProperties(GL_LINES, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -283,7 +285,7 @@ def break_line_indices(self,all_indices,break_inds,n,offset):
     indices = np.array(indices, dtype=np.uint32)
     indices = indices + offset
     # Store
-    indices_prop = ElementProperties(GL_LINES, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -304,7 +306,7 @@ def open_line_indices(self,all_indices,n,offset):
     indices = np.array(indices, dtype=np.uint32)
     indices = indices + offset
     # Store
-    indices_prop = ElementProperties(GL_LINES, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -329,9 +331,9 @@ def arrow_indices(self,all_indices,slide_dirs,n,offset):
     face_indices = np.array(face_indices, dtype=np.uint32)
     face_indices = face_indices + offset
     # Store
-    line_indices_prop = ElementProperties(GL_LINES, len(line_indices), len(all_indices), n)
+    line_indices_prop = ElementProperties(GL.GL_LINES, len(line_indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, line_indices])
-    face_indices_prop = ElementProperties(GL_TRIANGLES, len(face_indices), len(all_indices), n)
+    face_indices_prop = ElementProperties(GL.GL_TRIANGLES, len(face_indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, face_indices])
     # Return
     return line_indices_prop, face_indices_prop, all_indices
@@ -417,9 +419,9 @@ def joint_top_face_indices(self,all_indices,n,noc,offset):
     indices_tops = np.array(indices_tops, dtype=np.int32)
     indices_tops = indices_tops + offset
     # Store
-    indices_prop = ElementProperties(GL_QUADS, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_QUADS, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
-    indices_tops_prop = ElementProperties(GL_QUADS, len(indices_tops), len(all_indices), n)
+    indices_tops_prop = ElementProperties(GL.GL_QUADS, len(indices_tops), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices_tops])
     # Return
     return indices_prop, indices_tops_prop, all_indices
@@ -462,7 +464,7 @@ def joint_selected_top_line_indices(self,select,all_indices):
     indices = np.array(indices, dtype=np.uint32)
     indices = indices + offset
     # Store
-    indices_prop = ElementProperties(GL_LINES, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -495,7 +497,7 @@ def component_outline_indices(self,all_indices,fixed_sides,n,offset):
     indices = np.array(indices, dtype=np.uint32)
     indices = indices + offset
     # Store
-    indices_prop = ElementProperties(GL_LINES, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -572,7 +574,7 @@ def milling_path_indices(self,all_indices,count,start,n):
     # Format
     indices = np.array(indices, dtype=np.uint32)
     # Store
-    indices_prop = ElementProperties(GL_LINE_STRIP, len(indices), len(all_indices), n)
+    indices_prop = ElementProperties(GL.GL_LINE_STRIP, len(indices), len(all_indices), n)
     all_indices = np.concatenate([all_indices, indices])
     # Return
     return indices_prop, all_indices
@@ -641,7 +643,7 @@ class Geometries:
                 if not self.eval.connected[n]:
                     fne,fe,uncon,all_inds = joint_face_indices(self,all_inds,self.eval.voxel_matrix_unconnected,[],n,ax*self.parent.vn)
                     self.indices_not_fcon.append(uncon)
-                    all = ElementProperties(GL_QUADS, con.count+uncon.count, con.start_index, n)
+                    all = ElementProperties(GL.GL_QUADS, con.count+uncon.count, con.start_index, n)
                 else:
                     self.indices_not_fcon.append(None)
                     all = con

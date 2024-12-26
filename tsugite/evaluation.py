@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+
 from fabrication import RegionVertex
 from misc import FixedSide
 

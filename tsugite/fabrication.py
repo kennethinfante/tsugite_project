@@ -1,6 +1,6 @@
-import numpy as np
 import math
 import os
+import numpy as np
 
 def angle_between(vector_1, vector_2, normal_vector=[]):
     unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
