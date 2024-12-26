@@ -12,23 +12,6 @@ from PyQt5.QtCore import pyqtSlot
 from gl_widget import GLWidget
 
 
-def get_untitled_filename(name,ext,sep):
-    # list of all filenames with specified extension in the current directory
-    extnames = []
-    for item in os.listdir():
-        items = item.split(".")
-        if len(items)>1 and items[1]==ext:
-            extnames.append(items[0])
-    # if the name already exists, append separator and number
-    fname = name
-    cnt = 1
-    while fname in extnames:
-        fname = name+sep+str(cnt)
-        cnt+=1
-    # add path and extension, return
-    fname = os.getcwd()+os.sep+fname+"."+ext
-    return fname
-
 class MainWindow(qtw.QMainWindow):
 
     def __init__(self, *args):
@@ -39,7 +22,7 @@ class MainWindow(qtw.QMainWindow):
         self.setupUi()
 
         self.title = "Tsugite"
-        self.filename = get_untitled_filename("Untitled","tsu","_")
+        self.filename = MainWindow.get_untitled_filename("Untitled","tsu","_")
         self.setWindowTitle(self.filename.split(os.sep)[-1]+" - "+self.title)
         self.setWindowIcon(qtg.QIcon("images/tsugite_icon.png"))
 
@@ -176,6 +159,24 @@ class MainWindow(qtw.QMainWindow):
 
         self.act_pln = self.findChild(qtw.QAction, "act_pln")
         self.act_pln.triggered.connect(self.set_closest_plane_rotation)
+
+    @staticmethod
+    def get_untitled_filename(name, ext, sep):
+        # list of all filenames with specified extension in the current directory
+        extnames = []
+        for item in os.listdir():
+            items = item.split(".")
+            if len(items)>1 and items[1]==ext:
+                extnames.append(items[0])
+        # if the name already exists, append separator and number
+        fname = name
+        cnt = 1
+        while fname in extnames:
+            fname = name+sep+str(cnt)
+            cnt+=1
+        # add path and extension, return
+        fname = os.getcwd()+os.sep+fname+"."+ext
+        return fname
 
     @pyqtSlot()
     def open_close_joint(self):
@@ -355,7 +356,7 @@ class MainWindow(qtw.QMainWindow):
 
     @pyqtSlot()
     def new_file(self):
-        self.filename = get_untitled_filename("Untitled", "tsu", "_")
+        self.filename = MainWindow.get_untitled_filename("Untitled", "tsu", "_")
         self.setWindowTitle(self.filename.split("/")[-1] + " - " + self.title)
         self.glWidget.display.view.show_milling_path = False
         self.glWidget.joint_type.reset()

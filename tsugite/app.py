@@ -10,7 +10,7 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 
-from main_window import get_untitled_filename, MainWindow
+from main_window import MainWindow
 
 class MovieSplashScreen(qtw.QSplashScreen):
 
