@@ -2,6 +2,19 @@
 import numpy as np
 import math
 
+# joint_types
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0: return v
+    else: return v / norm
+
+def angle_between(vector_1, vector_2):
+    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    angle = np.arccos(dot_product)
+    return angle
+
 # selection.py
 def angle_between_with_direction(v0, v1):
     v0 = v0 / np.linalg.norm(v0)
