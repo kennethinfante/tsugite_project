@@ -1,7 +1,5 @@
 import numpy as np
 
-from utils import depth
-
 class FixedSides:
     def __init__(self,parent,side_str=None,fs=None):
         self.parent = parent
@@ -49,17 +47,25 @@ class FixedSide:
         self.ax = ax
         self.dir = dir
 
+    @staticmethod
+    def depth(l):
+        if isinstance(l, list):
+            return 1 + max(FixedSide.depth(item) for item in l)
+        else:
+            return 0
+
     def unique(self, other_sides):
         unique=True
-        if depth(other_sides)==1:
+        if FixedSide.depth(other_sides)==1:
             for side in other_sides:
                 if self.ax==side.ax and self.dir==side.dir:
                     unique=False
                     break
-        elif depth(other_sides)==2:
+        elif FixedSide.depth(other_sides)==2:
             for sides in other_sides:
                 for side in sides:
                     if self.ax==side.ax and self.dir==side.dir:
                         unique=False
                         break
         return unique
+
