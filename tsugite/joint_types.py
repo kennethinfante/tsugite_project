@@ -8,7 +8,7 @@ import numpy as np
 from buffer import Buffer
 from evaluation import Evaluation
 from fabrication import *
-from geometries import Geometries, get_index
+from geometries import Geometries
 from misc import FixedSides
 
 from utils import Utils
@@ -19,7 +19,7 @@ def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
     for i in range(lay_mat.shape[0]+1):
         for j in range(lay_mat.shape[1]+1):
             ind = [i,j]
-            neigbors,neighbor_values = get_neighbors_in_out(ind,reg_inds,lay_mat,org_lay_mat,n)
+            neigbors,neighbor_values = Utils.get_neighbors_in_out(ind,reg_inds,lay_mat,org_lay_mat,n)
             neigbors = np.array(neigbors)
             abs_ind = ind.copy()
             ind[0] -= pad_loc[0][0]
@@ -35,211 +35,10 @@ def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
                         oneigbors = np.array(oneigbors)
                         reg_verts.append(RegionVertex(ind,abs_ind,oneigbors,neighbor_values,dia=True))
                 else: # normal situation
-                    if any_minus_one_neighbor(ind,lay_mat): mon = True
+                    if Utils.any_minus_one_neighbor(ind,lay_mat): mon = True
                     else: mon = False
                     reg_verts.append(RegionVertex(ind,abs_ind,neigbors,neighbor_values,minus_one_neighbor=mon))
     return reg_verts
-
-def get_diff_neighbors(mat2,inds,val):
-    new_inds = list(inds)
-    for ind in inds:
-        for ax in range(2):
-            for dir in range(-1,2,2):
-                ind2 = ind.copy()
-                ind2[ax] += dir
-                if ind2[ax]>=0 and ind2[ax]<mat2.shape[ax]:
-                    val2 = mat2[tuple(ind2)]
-                    if val2==val or val2==-1: continue
-                    unique = True
-                    for ind3 in new_inds:
-                        if ind2[0]==ind3[0] and ind2[1]==ind3[1]:
-                            unique = False
-                            break
-                    if unique: new_inds.append(ind2)
-    if len(new_inds)>len(inds):
-        new_inds = get_diff_neighbors(mat2,new_inds,val)
-    return new_inds
-
-def set_starting_vert(verts):
-    first_i = None
-    second_i = None
-    for i,rv in enumerate(verts):
-        if rv.block_count>0:
-            if rv.free_count>0: first_i=i
-            else: second_i = i
-    if first_i==None:
-        first_i=second_i
-    if first_i==None: first_i=0
-    verts.insert(0,verts[first_i])
-    verts.pop(first_i+1)
-    return verts
-
-def get_sublist_of_ordered_verts(verts):
-    ord_verts = []
-
-    # Start ordered vertices with the first item (simultaneously remove from main list)
-    ord_verts.append(verts[0])
-    verts.remove(verts[0])
-
-    browse_num = len(verts)
-    for i in range(browse_num):
-        found_next = False
-        #try all directions to look for next vertex
-        for vax in range(2):
-            for vdir in range(-1,2,2):
-                # check if there is an available vertex
-                next_ind = ord_verts[-1].ind.copy()
-                next_ind[vax]+=vdir
-                next_rv = None
-                for rv in verts:
-                    if rv.ind==next_ind:
-                        if len(ord_verts)>1 and rv.ind==ord_verts[-2].ind: break # prevent going back
-                        # check so that it is not crossing a blocked region etc
-                        # 1) from point of view of previous point
-                        p_neig = ord_verts[-1].neighbors
-                        vaxval = int(0.5*(vdir+1))
-                        nind0 = [0,0]
-                        nind0[vax] = vaxval
-                        nind1 = [1,1]
-                        nind1[vax] = vaxval
-                        ne0 = p_neig[nind0[0]][nind0[1]]
-                        ne1 = p_neig[nind1[0]][nind1[1]]
-                        if ne0!=1 and ne1!=1: continue # no block
-                        if int(0.5*(ne0+1))==int(0.5*(ne1+1)): continue # trying to cross blocked material
-                        # 2) from point of view of point currently tested
-                        nind0 = [0,0]
-                        nind0[vax] = 1-vaxval
-                        nind1 = [1,1]
-                        nind1[vax] = 1-vaxval
-                        ne0 = rv.neighbors[nind0[0]][nind0[1]]
-                        ne1 = rv.neighbors[nind1[0]][nind1[1]]
-                        if ne0!=1 and ne1!=1: continue # no block
-                        if int(0.5*(ne0+1))==int(0.5*(ne1+1)): continue # trying to cross blocked material
-                        # If you made it here, you found the next vertex!
-                        found_next=True
-                        ord_verts.append(rv)
-                        verts.remove(rv)
-                        break
-                if found_next: break
-            if found_next: break
-        if found_next: continue
-
-    # check if outline is closed by ckecing if endpoint finds startpoint
-
-    closed = False
-    if len(ord_verts)>3: # needs to be at least 4 vertices to be able to close
-        start_ind = np.array(ord_verts[0].ind.copy())
-        end_ind = np.array(ord_verts[-1].ind.copy())
-        diff_ind = start_ind-end_ind ###reverse?
-        if len(np.argwhere(diff_ind==0))==1: #difference only in one axis
-            vax = np.argwhere(diff_ind!=0)[0][0]
-            if abs(diff_ind[vax])==1: #difference is only one step
-                vdir = diff_ind[vax]
-               # check so that it is not crossing a blocked region etc
-                p_neig = ord_verts[-1].neighbors
-                vaxval = int(0.5*(vdir+1))
-                nind0 = [0,0]
-                nind0[vax] = vaxval
-                nind1 = [1,1]
-                nind1[vax] = vaxval
-                ne0 = p_neig[nind0[0]][nind0[1]]
-                ne1 = p_neig[nind1[0]][nind1[1]]
-                if ne0==1 or ne1==1:
-                    if int(0.5*(ne0+1))!=int(0.5*(ne1+1)):
-                        # If you made it here, you found the next vertex!
-                        closed=True
-
-    return ord_verts, verts, closed
-
-def set_vector_length(vec,new_norm):
-    norm = np.linalg.norm(vec)
-    vec = vec/norm
-    vec = new_norm*vec
-    return vec
-
-def get_vertex(index,verts,n):
-    x = verts[n*index]
-    y = verts[n*index+1]
-    z = verts[n*index+2]
-    return np.array([x,y,z])
-
-def get_segment_proportions(outline):
-    olen = 0
-    slens = []
-    sprops = []
-
-    for i in range(1,len(outline)):
-        ppt = outline[i-1].pt
-        pt = outline[i].pt
-        dist = np.linalg.norm(pt-ppt)
-        slens.append(dist)
-        olen+=dist
-
-    olen2=0
-    sprops.append(0.0)
-    for slen in slens:
-        olen2+=slen
-        sprop = olen2/olen
-        sprops.append(sprop)
-
-    return sprops
-
-def any_minus_one_neighbor(ind,lay_mat):
-    bool = False
-    for add0 in range(-1,1,1):
-        temp = []
-        temp2 = []
-        for add1 in range(-1,1,1):
-            # Define neighbor index to test
-            nind = [ind[0]+add0,ind[1]+add1]
-            # If test index is within bounds
-            if np.all(np.array(nind)>=0) and nind[0]<lay_mat.shape[0] and nind[1]<lay_mat.shape[1]:
-                # If the value is -1
-                if lay_mat[tuple(nind)]==-1:
-                    bool = True
-                    break
-    return bool
-
-def get_neighbors_in_out(ind,reg_inds,lay_mat,org_lay_mat,n):
-    # 0 = in region
-    # 1 = outside region, block
-    # 2 = outside region, free
-    in_out = []
-    values = []
-    for add0 in range(-1,1,1):
-        temp = []
-        temp2 = []
-        for add1 in range(-1,1,1):
-
-            # Define neighbor index to test
-            nind = [ind[0]+add0,ind[1]+add1]
-
-            # FIND TYPE
-            type = -1
-            val = None
-            # Check if this index is in the list of region-included indices
-            for rind in reg_inds:
-                if rind[0]==nind[0] and rind[1]==nind[1]:
-                    type = 0 # in region
-                    break
-            if type!=0:
-                # If there are out of bound indices they are free
-                if np.any(np.array(nind)<0) or nind[0]>=lay_mat.shape[0] or nind[1]>=lay_mat.shape[1]:
-                    type = 2 # free
-                    val =-1
-                elif lay_mat[tuple(nind)]<0:
-                    type = 2 # free
-                    val = -2
-                else: type = 1 # blocked
-
-            if val==None:
-                val=org_lay_mat[tuple(nind)]
-
-            temp.append(type)
-            temp2.append(val)
-        in_out.append(temp)
-        values.append(temp2)
-    return in_out, values
 
 class JointType:
     def __init__(self,parent,fs=[],sax=2,dim=3,ang=0.0, td=[44.0,44.0,44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
@@ -418,16 +217,16 @@ class JointType:
             ind.insert(ax,(self.dim-1)*(1-dir)+(2*dir-1)*lay_num) # 0 when n is 1, dim-1 when n is 0
             add = [0,0,0]
             add[ax] = 1-dir
-            i_pt = get_index(ind,add,self.dim)
-            pt1 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+            i_pt = Utils.get_index(ind,add,self.dim)
+            pt1 = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
             #end
             ind = list(pix_end.ind_abs)
             ind.insert(ax,(self.dim-1)*(1-dir)+(2*dir-1)*lay_num) # 0 when n is 1, dim-1 when n is 0
             add = [0,0,0]
             add[ax] = 1-dir
             add[dir_ax] = 1
-            i_pt = get_index(ind,add,self.dim)
-            pt2 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+            i_pt = Utils.get_index(ind,add,self.dim)
+            pt2 = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
 
             ### REFINE THIS FUNCTION
             dir_add1 = pix.neighbors[dir_ax][0]*2.5*self.fab.vrad*dir_vec
@@ -483,11 +282,11 @@ class JointType:
                 add = [0,0,0]
                 ind[ax] = (1-dir)*self.dim
                 ind[self.sax] = self.dim*(1-fdir)+(2*fdir-1)*lay_num
-                i_pt = get_index(ind,add,self.dim)
-                pt0 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+                i_pt = Utils.get_index(ind,add,self.dim)
+                pt0 = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
                 ind[oax] = self.dim
-                i_pt = get_index(ind,add,self.dim)
-                pt1 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+                i_pt = Utils.get_index(ind,add,self.dim)
+                pt1 = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
 
                 # offset edge line by radius of millingbit
                 dir_vec = Utils.normalize(pt0-pt1)
@@ -523,8 +322,8 @@ class JointType:
             ind.insert(self.sax,(self.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
             add = [0,0,0]
             add[self.sax] = 1-fdir
-            i_pt = get_index(ind,add,self.dim)
-            pt = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+            i_pt = Utils.get_index(ind,add,self.dim)
+            pt = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
 
             # move vertex according to boundary condition <---needs to be updated
             off_vecs = []
@@ -558,8 +357,8 @@ class JointType:
                 off_vec_a = -neighbor_vectors_a[nind]
                 off_vec_b = -neighbor_vectors_b[nind]
                 le2 = math.sqrt(math.pow(2*np.linalg.norm(off_vec_a+off_vec_b),2)-math.pow(2*self.fab.vrad,2))-np.linalg.norm(off_vec_a)
-                off_vec_a2 = set_vector_length(off_vec_a,le2)
-                off_vec_b2 = set_vector_length(off_vec_b,le2)
+                off_vec_a2 = Utils.set_vector_length(off_vec_a,le2)
+                off_vec_b2 = Utils.set_vector_length(off_vec_b,le2)
 
                 # define end points and the center point of the arc
                 pt1 = pt+off_vec_a-off_vec_b2
@@ -641,7 +440,7 @@ class JointType:
         else: enn=no_z+1
         if self.incremental:
             enn+=1
-            seg_props = get_segment_proportions(outline)
+            seg_props = Utils.get_segment_proportions(outline)
         else: seg_props = [1.0]*len(outline)
         #calculate depth for incremental setting
 
@@ -757,7 +556,7 @@ class JointType:
                 # Get indices of a region
                 inds = np.argwhere((lay_mat!=-1) & (lay_mat!=n)) #OK
                 if len(inds)==0: break #OK
-                reg_inds = get_diff_neighbors(lay_mat,[inds[0]],n) #OK
+                reg_inds = Utils.get_diff_neighbors(lay_mat,[inds[0]],n) #OK
 
                 #If oblique joint, create path to trim edge
                 edge_path = []
@@ -792,10 +591,10 @@ class JointType:
                     if len(reg_verts)==0: break
 
                     #Make sure first item in region vertices is on blocked/free corner, or blocked
-                    reg_verts = set_starting_vert(reg_verts) #OK
+                    reg_verts = Utils.set_starting_vert(reg_verts) #OK
 
                     #Get a sequence of ordered vertices
-                    reg_ord_verts,reg_verts,closed = get_sublist_of_ordered_verts(reg_verts) #OK
+                    reg_ord_verts,reg_verts,closed = Utils.get_sublist_of_ordered_verts(reg_verts) #OK
 
                     # Make outline of ordered vertices (for dedugging only!!!!!!!)
                     #if len(reg_ord_verts)>1: outline = get_outline(joint_self,reg_ord_verts,lay_num,n)

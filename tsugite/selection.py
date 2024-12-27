@@ -8,28 +8,6 @@ from misc import FixedSide
 
 from utils import Utils
 
-def get_same_height_neighbors(hfield,inds):
-    dim = len(hfield)
-    val = hfield[tuple(inds[0])]
-    new_inds = list(inds)
-    for ind in inds:
-        for ax in range(2):
-            for dir in range(-1,2,2):
-                ind2 = ind.copy()
-                ind2[ax] += dir
-                if np.all(ind2>=0) and np.all(ind2<dim):
-                    val2 = hfield[tuple(ind2)]
-                    if val2==val:
-                        unique = True
-                        for ind3 in new_inds:
-                            if ind2[0]==ind3[0] and ind2[1]==ind3[1]:
-                                unique = False
-                                break
-                        if unique: new_inds.append(ind2)
-    if len(new_inds)>len(inds):
-        new_inds = get_same_height_neighbors(hfield,new_inds)
-    return new_inds
-
 class Selection:
     def __init__(self,parent):
         self.state = -1 #-1: nothing, 0: hovered, 1: adding, 2: pulling, 10: timber hovered, 12: timber pulled
@@ -50,7 +28,7 @@ class Selection:
         self.dir = dir
         if self.x!=None and self.y!=None:
             if self.shift:
-                self.faces = get_same_height_neighbors(self.parent.height_fields[n-dir],[np.array([self.x,self.y])])
+                self.faces = Utils.get_same_height_neighbors(self.parent.height_fields[n-dir],[np.array([self.x,self.y])])
             else: self.faces = [np.array([self.x,self.y])]
 
     def start_pull(self,mouse_pos):
