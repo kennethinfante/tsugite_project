@@ -10,7 +10,26 @@ from evaluation import Evaluation
 from fabrication import *
 from geometries import Geometries, get_index
 from misc import FixedSides
-from utils import normalize, angle_between, rotate_vector_around_axis
+
+from utils import Utils
+
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0: return v
+    else: return v / norm
+
+def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
+    axis = np.asarray(axis)
+    axis = axis / math.sqrt(np.dot(axis, axis))
+    a = math.cos(theta / 2.0)
+    b, c, d = -axis * math.sin(theta / 2.0)
+    aa, bb, cc, dd = a * a, b * b, c * c, d * d
+    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+    mat = np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                    [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                    [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+    rotated_vec = np.dot(mat, vec)
+    return rotated_vec
 
 def mat_from_fields(hfs,ax): ### duplicated function - also exists in Geometries
     dim = len(hfs[0])
@@ -590,8 +609,8 @@ class JointType:
                     ppt = outline[-1].pt
                     v1 = pt1-ppt
                     v2 = pt2-ppt
-                    ang1 = angle_between(v1,off_vec_b) #should be 0 if order is already good
-                    ang2 = angle_between(v2,off_vec_b) #should be more than 0
+                    ang1 = Utils.angle_between(v1, off_vec_b) #should be 0 if order is already good
+                    ang2 = Utils.angle_between(v2, off_vec_b) #should be more than 0
                     if ang1>ang2: pts.reverse()
                 outline.append(MillVertex(pts[0],is_arc=True,arc_ctr=ctr))
                 outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))

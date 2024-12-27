@@ -5,7 +5,30 @@ import numpy as np
 import pyrr
 
 from misc import FixedSide
-from utils import angle_between_with_direction, unitize, get_same_height_neighbors
+
+from utils import Utils
+
+def get_same_height_neighbors(hfield,inds):
+    dim = len(hfield)
+    val = hfield[tuple(inds[0])]
+    new_inds = list(inds)
+    for ind in inds:
+        for ax in range(2):
+            for dir in range(-1,2,2):
+                ind2 = ind.copy()
+                ind2[ax] += dir
+                if np.all(ind2>=0) and np.all(ind2<dim):
+                    val2 = hfield[tuple(ind2)]
+                    if val2==val:
+                        unique = True
+                        for ind3 in new_inds:
+                            if ind2[0]==ind3[0] and ind2[1]==ind3[1]:
+                                unique = False
+                                break
+                        if unique: new_inds.append(ind2)
+    if len(new_inds)>len(inds):
+        new_inds = get_same_height_neighbors(hfield,new_inds)
+    return new_inds
 
 class Selection:
     def __init__(self,parent):
@@ -95,14 +118,14 @@ class Selection:
             comp_ax = self.parent.parent.fixed.sides[self.n][0].ax # component axis
             comp_dir = self.parent.parent.fixed.sides[self.n][0].dir
             comp_len = 2.5*(2*comp_dir-1)*self.parent.parent.component_size
-            comp_vec = comp_len*unitize(self.parent.parent.pos_vecs[comp_ax])
+            comp_vec = comp_len * Utils.unitize(self.parent.parent.pos_vecs[comp_ax])
             ## Flatten vector to screen
             rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
             rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
             comp_vec = np.dot(comp_vec,rot_x*rot_y)
             comp_vec = np.delete(comp_vec,2) # delete Z-value
             ## Calculate angle between mouse vector and component vector
-            ang = angle_between_with_direction(mouse_vec, comp_vec)
+            ang = Utils.angle_between(mouse_vec, comp_vec, direction=True)
             oax = None
             absang = abs(ang)%180
             if absang>45 and absang<135: # Timber rotation mode
