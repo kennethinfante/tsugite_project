@@ -13,24 +13,6 @@ from misc import FixedSides
 
 from utils import Utils
 
-def mat_from_fields(hfs,ax): ### duplicated function - also exists in Geometries
-    dim = len(hfs[0])
-    mat = np.zeros(shape=(dim,dim,dim))
-    for i in range(dim):
-        for j in range(dim):
-            for k in range(dim):
-                ind = [i,j]
-                ind3d = ind.copy()
-                ind3d.insert(ax,k)
-                ind3d = tuple(ind3d)
-                ind2d = tuple(ind)
-                h = 0
-                for n,hf in enumerate(hfs):
-                    if k<hf[ind2d]: mat[ind3d]=n; break
-                    else: mat[ind3d]=n+1
-    mat = np.array(mat)
-    return mat
-
 def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
     # also duplicate vertices on diagonal
     reg_verts = []
@@ -1077,7 +1059,7 @@ class JointType:
                         sugg_hfs[i][j][k]+=add
                         val = sugg_hfs[i][j][k]
                         if val>=0 and val<=self.dim:
-                            sugg_voxmat = mat_from_fields(sugg_hfs,self.sax)
+                            sugg_voxmat = Utils.matrix_from_height_fields(sugg_hfs,self.sax)
                             sugg_eval = Evaluation(sugg_voxmat,self,mainmesh=False)
                             if sugg_eval.valid:
                                 valid_suggestions.append(sugg_hfs)

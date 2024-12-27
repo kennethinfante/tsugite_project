@@ -10,6 +10,8 @@ from evaluation import Evaluation
 from buffer import ElementProperties
 from misc import FixedSide
 
+from utils import Utils
+
 # Supporting functions
 def get_random_height_fields(dim,noc):
     hfs = []
@@ -22,24 +24,6 @@ def get_random_height_fields(dim,noc):
         hfs.append(hf)
         phf = copy.deepcopy(hf)
     return hfs
-
-def mat_from_fields(hfs,ax):
-    dim = len(hfs[0])
-    mat = np.zeros(shape=(dim,dim,dim))
-    for i in range(dim):
-        for j in range(dim):
-            for k in range(dim):
-                ind = [i,j]
-                ind3d = ind.copy()
-                ind3d.insert(ax,k)
-                ind3d = tuple(ind3d)
-                ind2d = tuple(ind)
-                h = 0
-                for n,hf in enumerate(hfs):
-                    if k<hf[ind2d]: mat[ind3d]=n; break
-                    else: mat[ind3d]=n+1
-    mat = np.array(mat)
-    return mat
 
 def face_neighbors(mat,ind,ax,n,fixed_sides):
     values = []
@@ -178,7 +162,7 @@ class Geometries:
         self.voxel_matrix_from_height_fields(first=True)
 
     def voxel_matrix_from_height_fields(self, first=False):
-        vox_mat = mat_from_fields(self.height_fields,self.parent.sax)
+        vox_mat = Utils.matrix_from_height_fields(self.height_fields,self.parent.sax)
         self.voxel_matrix = vox_mat
         if self.mainmesh:
             self.eval = Evaluation(self.voxel_matrix,self.parent)
