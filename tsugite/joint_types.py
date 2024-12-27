@@ -13,11 +13,6 @@ from misc import FixedSides
 
 from utils import Utils
 
-def normalize(v):
-    norm = np.linalg.norm(v)
-    if norm == 0: return v
-    else: return v / norm
-
 def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
     axis = np.asarray(axis)
     axis = axis / math.sqrt(np.dot(axis, axis))
@@ -409,8 +404,8 @@ class JointType:
         lane_width = lane_width*ratio
 
         # create offset direction vectors
-        dir_vec = normalize(self.pos_vecs[axes[0]])
-        off_vec = normalize(self.pos_vecs[axes[1]])
+        dir_vec = Utils.normalize(self.pos_vecs[axes[0]])
+        off_vec = Utils.normalize(self.pos_vecs[axes[1]])
 
         # get top ones to cut out
         for pix in rough_pixs:
@@ -526,7 +521,7 @@ class JointType:
                 pt1 = get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
 
                 # offset edge line by radius of millingbit
-                dir_vec = normalize(pt0-pt1)
+                dir_vec = Utils.normalize(pt0-pt1)
                 sax_vec = [0,0,0]
                 sax_vec[self.sax] = 2*fdir-1
                 off_vec = rotate_vector_around_axis(dir_vec, sax_vec, math.radians(90))
@@ -619,9 +614,9 @@ class JointType:
                 dist = np.linalg.norm(pt-ctr)
                 if dist>self.fab.vdia and lay_num<self.dim-1:
                     artifact = []
-                    v0 = self.fab.vdia*normalize(pt+off_vec-pts[0])
-                    v1 = self.fab.vdia*normalize(pt+off_vec-pts[1])
-                    vp = self.fab.vrad*normalize(pts[1]-pts[0])
+                    v0 = self.fab.vdia * Utils.normalize(pt+off_vec-pts[0])
+                    v1 = self.fab.vdia * Utils.normalize(pt+off_vec-pts[1])
+                    vp = self.fab.vrad * Utils.normalize(pts[1]-pts[0])
                     pts3 =  [pts[0]-vp+v0,pt+2*off_vec,pts[1]+vp+v1]
                     while np.linalg.norm(pts3[2]-pts3[0])>self.fab.vdia:
                         pts3[0] += vp

@@ -5,6 +5,12 @@ import math
 class Utils:
 
     @staticmethod
+    def normalize(v):
+        norm = np.linalg.norm(v)
+        if norm == 0: return v
+        else: return v / norm
+
+    @staticmethod
     def unitize(v):
         uv = v/np.linalg.norm(v)
         return uv
