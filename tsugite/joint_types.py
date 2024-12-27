@@ -13,19 +13,6 @@ from misc import FixedSides
 
 from utils import Utils
 
-def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
-    axis = np.asarray(axis)
-    axis = axis / math.sqrt(np.dot(axis, axis))
-    a = math.cos(theta / 2.0)
-    b, c, d = -axis * math.sin(theta / 2.0)
-    aa, bb, cc, dd = a * a, b * b, c * c, d * d
-    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-    mat = np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                    [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                    [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
-    rotated_vec = np.dot(mat, vec)
-    return rotated_vec
-
 def mat_from_fields(hfs,ax): ### duplicated function - also exists in Geometries
     dim = len(hfs[0])
     mat = np.zeros(shape=(dim,dim,dim))
@@ -524,7 +511,7 @@ class JointType:
                 dir_vec = Utils.normalize(pt0-pt1)
                 sax_vec = [0,0,0]
                 sax_vec[self.sax] = 2*fdir-1
-                off_vec = rotate_vector_around_axis(dir_vec, sax_vec, math.radians(90))
+                off_vec = Utils.rotate_vector_around_axis(dir_vec, sax_vec, math.radians(90))
                 off_vec = (2*dir-1)*self.fab.vrad*off_vec
                 pt0 = pt0+off_vec
                 pt1 = pt1+off_vec
@@ -912,7 +899,7 @@ class JointType:
             for i,ax in enumerate(non_sax):
                 theta = math.radians(0.5*self.ang)
                 if i%2==1: theta = -theta
-                self.pos_vecs[ax] = rotate_vector_around_axis(self.pos_vecs[ax],self.pos_vecs[self.sax],theta)
+                self.pos_vecs[ax] = Utils.rotate_vector_around_axis(self.pos_vecs[ax],self.pos_vecs[self.sax],theta)
                 self.pos_vecs[ax] = self.pos_vecs[ax]/math.cos(math.radians(abs(self.ang)))
         # Add all vertices of the dim*dim*dim voxel cube
         for i in range(self.dim+1):
