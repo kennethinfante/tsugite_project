@@ -52,6 +52,9 @@ class MainWindow(qtw.QMainWindow):
         self.chk_show_feedback = self.findChild(qtw.QCheckBox, "chk_show_feedback")
         self.chk_show_feedback.stateChanged.connect(self.set_feedback_view)
 
+        # TODO
+        self.chk_show_suggestions = self.findChild(qtw.QCheckBox, "chk_show_suggestions")
+
         # suggestions
         self.cmb_sliding_axis = self.findChild(qtw.QComboBox, "cmb_sliding_axis")
         self.cmb_sliding_axis.currentTextChanged.connect(self.change_sliding_axis)
@@ -255,7 +258,7 @@ class MainWindow(qtw.QMainWindow):
         mp = self.glWidget.display.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
-            val = self.glWidget.joint_type.real_timber_dims[0]
+            val = self.glWidget.joint_type.real_tim_dims[0]
             self.glWidget.joint_type.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
             self.spb_ydim.setValue(val)
             self.spb_zdim.setValue(val)

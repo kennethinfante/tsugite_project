@@ -35,11 +35,6 @@
 **/ehthumbs.db
 **/Thumbs.db
 
-# Folders to exclude #
-######################
-Exercise_Files/
-.idea/
-
 # Python Specifics #
 ######################
 env
@@ -47,3 +42,9 @@ venv
 *.pyc
 __pycache__
 _config.py
+
+# Project specific #
+######################
+.idea/
+tsugite/Untitled_*.*
+
