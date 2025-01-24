@@ -6,7 +6,7 @@ import pyrr
 
 from misc import FixedSide
 
-from utils import Utils
+import utils as Utils
 
 class Selection:
     def __init__(self,parent):

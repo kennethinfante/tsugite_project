@@ -11,7 +11,7 @@ from fabrication import *
 from geometries import Geometries
 from misc import FixedSides
 
-from utils import Utils
+import utils as Utils
 
 def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
     # also duplicate vertices on diagonal

@@ -10,7 +10,7 @@ from evaluation import Evaluation
 from buffer import ElementProperties
 from misc import FixedSide
 
-from utils import Utils
+import utils as Utils
 
 # Supporting functions
 
