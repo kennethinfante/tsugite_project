@@ -15,23 +15,6 @@ import utils as Utils
 # Supporting functions
 
 
-
-def get_corner_indices(ax,n,dim):
-    other_axes = np.array([0,1,2])
-    other_axes = np.delete(other_axes,np.where(other_axes==ax))
-    ind = np.array([0,0,0])
-    ind[ax] = n*dim
-    corner_indices = []
-    for x in range(2):
-        for y in range(2):
-            add = np.array([0,0,0])
-            add[other_axes[0]] = x*dim
-            add[other_axes[1]] = y*dim
-            corner_indices.append(Utils.get_index(ind,add,dim))
-    return corner_indices
-
-
-
 def get_top_corner_heights(mat,n,ax,dir):
     heights = []
     dim = len(mat)
@@ -52,24 +35,6 @@ def get_top_corner_heights(mat,n,ax,dir):
     return heights
 
 ##########
-
-def get_same_neighbors(ind,fixed_sides,voxel_matrix,dim):
-    neighbors = []
-    val = voxel_matrix[tuple(ind)]
-    for ax in range(3):
-        for n in range(2):
-            add = [0,0]
-            add.insert(ax,2*n-1)
-            add = np.array(add)
-            ind2 = ind+add
-            if (ind2[ax]<0 or ind2[ax]>=dim) and not FixedSide(ax,n).unique(fixed_sides): #and [ax,n] in fixed_sides:
-                val2 = val
-            elif np.all(ind2>=0) and np.all(ind2<dim):
-                val2 = voxel_matrix[tuple(ind2)]
-            else: val2=None
-            if val==val2:
-                neighbors.append([ax,n])
-    return neighbors
 
 def get_count(ind,neighbors,fixed_sides,voxel_matrix,dim):
     cnt = 0
