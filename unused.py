@@ -229,3 +229,82 @@ def get_same_neighbors_2d(mat2,inds,val):
     if len(new_inds)>len(inds):
         new_inds = get_same_neighbors_2d(mat2,new_inds,val)
     return new_inds
+
+# unused
+def is_connected_to_fixed_side_2d(inds,fixed_sides,ax,dim):
+    connected = False
+    for side in fixed_sides:
+        fax2d = [0,0,0]
+        fax2d[side.ax] = 1
+        fax2d.pop(ax)
+        fax2d = fax2d.index(1)
+        for ind in inds:
+            if ind[fax2d]==side.dir*(dim-1):
+                connected = True
+                break
+        if connected: break
+    return connected
+
+# unused
+def get_neighbors_2d(ind,reg_inds,lay_mat,n):
+    # 0 = in region
+    # 1 = outside region, block
+    # 2 = outside region, free
+    in_out = []
+    values = []
+    for add0 in range(-1,1,1):
+        temp = []
+        temp2 = []
+        for add1 in range(-1,1,1):
+
+            # Define neighbor index to test
+            nind = [ind[0]+add0,ind[1]+add1]
+
+            # FIND TYPE
+            type = -1
+            val = None
+            # Check if this index is in the list of region-included indices
+            for rind in reg_inds:
+                if rind[0]==nind[0] and rind[1]==nind[1]:
+                    type = 0 # in region
+                    break
+            if type!=0:
+                # If there are out of bound indices they are free
+                if np.any(np.array(nind)<0) or nind[0]>=lay_mat.shape[0] or nind[1]>=lay_mat.shape[1]:
+                    type = 1 # free
+                    val =-1
+                elif lay_mat[tuple(nind)]<0:
+                    type = 1 # free
+                else: type = 1 # blocked
+
+            if val==None:
+                val=lay_mat[tuple(nind)]
+
+            temp.append(type)
+            temp2.append(val)
+        in_out.append(temp)
+        values.append(temp2)
+    return in_out, values
+
+# unused
+def get_region_outline(reg_inds,lay_mat,fixed_neighbors,n):
+    # also duplicate vertices on diagonal
+    reg_verts = []
+    for i in range(lay_mat.shape[0]+1):
+        for j in range(lay_mat.shape[1]+1):
+            ind = [i,j]
+            neigbors,neighbor_values = get_neighbors_2d(ind,reg_inds,lay_mat,n)
+            neigbors = np.array(neigbors)
+            if np.any(neigbors.flatten()==0) and not np.all(neigbors.flatten()==0): # some but not all region neighbors
+                dia1 = neigbors[0][1]==neigbors[1][0]
+                dia2 = neigbors[0][0]==neigbors[1][1]
+                if np.sum(neigbors.flatten()==0)==2 and  np.sum(neigbors.flatten()==1)==2 and dia1 and dia2: # diagonal detected
+                    other_indices = np.argwhere(neigbors==0)
+                    for oind in other_indices:
+                        oneigbors = copy.deepcopy(neigbors)
+                        oneigbors[tuple(oind)] = 1
+                        oneigbors = np.array(oneigbors)
+                        reg_verts.append(RegionVertex(ind,ind,oneigbors,neighbor_values,dia=True))
+                else: # normal situation
+                    reg_verts.append(RegionVertex(ind,ind,neigbors,neighbor_values))
+    return reg_verts
