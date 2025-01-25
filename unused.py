@@ -155,3 +155,77 @@ def is_bridged(mat,n):
         connected_same = len(inds)
         if connected_same==all_same: bridged = True
     return bridged
+
+# unused
+def get_columns(mat,ax):
+    columns = []
+    if ax==0:
+        for j in range(len(mat[0])):
+            for k in range(len(mat[0][0])):
+                col = []
+                for i in range(len(mat)): col.append(mat[i][j][k])
+                columns.append(col)
+    elif ax==1:
+        for i in range(len(mat)):
+            for k in range(len(mat[0][0])):
+                col = []
+                for j in range(len(mat[0])): col.append(mat[i][j][k])
+                columns.append(col)
+    elif ax==2:
+        for layer in mat:
+            for col in layer: columns.append(col)
+    columns2 = []
+    for col in columns:
+        col = np.array(col)
+        col = col[np.logical_not(np.isnan(col))] #remove nans
+        if len(col)==0: continue
+        col = col.astype(int)
+        columns2.append(col)
+    return columns2
+
+# unused
+def reverse_columns(cols):
+    new_cols = []
+    for i in range(len(cols)):
+        temp = []
+        for j in range(len(cols[i])):
+            temp.append(cols[i][len(cols[i])-j-1].astype(int))
+        new_cols.append(temp)
+    return new_cols
+
+# unused
+def get_axial_neighbors(mat,ind,ax):
+    indices = []
+    values = []
+    m = ax
+    for n in range(2):      # go up and down one step
+        n=2*n-1             # -1,1
+        ind0 = list(ind)
+        ind0[m] = ind[m]+n
+        ind0 = tuple(ind0)
+        if ind0[m]>=0 and ind0[m]<mat.shape[m]:
+            indices.append(ind0)
+            try: values.append(int(mat[ind0]))
+            except: values.append(mat[ind0])
+    return indices,values
+
+# unused
+def get_same_neighbors_2d(mat2,inds,val):
+    new_inds = list(inds)
+    for ind in inds:
+        for ax in range(2):
+            for dir in range(-1,2,2):
+                ind2 = ind.copy()
+                ind2[ax] += dir
+                if ind2[ax]>=0 and ind2[ax]<mat2.shape[ax]:
+                    val2 = mat2[tuple(ind2)]
+                    if val2!=val: continue
+                    unique = True
+                    for ind3 in new_inds:
+                        if ind2[0]==ind3[0] and ind2[1]==ind3[1]:
+                            unique = False
+                            break
+                    if unique: new_inds.append(ind2)
+    if len(new_inds)>len(inds):
+        new_inds = get_same_neighbors_2d(mat2,new_inds,val)
+    return new_inds
