@@ -103,7 +103,7 @@ class Selection:
             comp_vec = np.dot(comp_vec,rot_x*rot_y)
             comp_vec = np.delete(comp_vec,2) # delete Z-value
             ## Calculate angle between mouse vector and component vector
-            ang = Utils.angle_between(mouse_vec, comp_vec, direction=True)
+            ang = Utils.angle_between_vectors1(mouse_vec, comp_vec, direction=True)
             oax = None
             absang = abs(ang)%180
             if absang>45 and absang<135: # Timber rotation mode

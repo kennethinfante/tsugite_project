@@ -13,7 +13,7 @@ def unitize(v):
     uv = v/np.linalg.norm(v)
     return uv
 
-def angle_between(vector_1, vector_2, direction=False):
+def angle_between_vectors1(vector_1, vector_2, direction=False):
     unit_vector_1 = unitize(vector_1)
     unit_vector_2 = unitize(vector_2)
     v_dot_product = np.dot(unit_vector_1, unit_vector_2)
@@ -24,6 +24,15 @@ def angle_between(vector_1, vector_2, direction=False):
     else:
         angle = np.arccos(v_dot_product)
         return angle
+
+def angle_between_vectors2(vector_1, vector_2, normal_vector=[]):
+    unit_vector_1 = unitize(vector_1)
+    unit_vector_2 = unitize(vector_2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    angle = np.arccos(dot_product)
+    cross = np.cross(unit_vector_1,unit_vector_2)
+    if len(normal_vector)>0 and np.dot(normal_vector, cross)<0: angle = -angle
+    return angle
     
 def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
     axis = np.asarray(axis)

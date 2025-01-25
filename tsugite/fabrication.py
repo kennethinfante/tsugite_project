@@ -2,14 +2,7 @@ import math
 import os
 import numpy as np
 
-def angle_between(vector_1, vector_2, normal_vector=[]):
-    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
-    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-    dot_product = np.dot(unit_vector_1, unit_vector_2)
-    angle = np.arccos(dot_product)
-    cross = np.cross(unit_vector_1,unit_vector_2)
-    if len(normal_vector)>0 and np.dot(normal_vector, cross)<0: angle = -angle
-    return angle
+import utils as Utils
 
 def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
     axis = np.asarray(axis)
@@ -42,9 +35,9 @@ def arc_points(st,en,ctr0,ctr1,ax,astep):
     # calculate steps and count and produce in between points
     v0 = st-ctr0
     v1 = en-ctr1
-    cnt = int(0.5+angle_between(v0,v1)/astep)
+    cnt = int(0.5+Utils.angle_between_vectors2(v0,v1)/astep)
     if cnt>0:
-        astep = angle_between(v0,v1)/cnt
+        astep = Utils.angle_between_vectors2(v0,v1)/cnt
         zstep = (en[ax]-st[ax])/cnt
     else:
         astep=0 
@@ -202,7 +195,7 @@ class Fabrication:
             aax = [0,0,0]
             aax[int(self.align_ax/2)] = 2*(self.align_ax%2)-1
             #aax = rotate_vector_around_axis(aax, axis=zax, theta=math.radians(self.extra_rot_deg))
-            rot_ang = angle_between(aax,comp_vec,normal_vector=zax)
+            rot_ang = Utils.angle_between_vectors2(aax,comp_vec,normal_vector=zax)
             if fdir==0: rot_ang=-rot_ang
             #
             file_name = filename_tsu[:-4] + "_"+names[n]+"."+self.ext
@@ -250,7 +243,7 @@ class Fabrication:
                     xvec = np.cross(vec1,zvec)
                     vec2 = pmv.pt-mv.arc_ctr
                     vec2 = vec2/np.linalg.norm(vec2)
-                    diff_ang = angle_between(xvec,vec2)
+                    diff_ang = Utils.angle_between_vectors2(xvec,vec2)
                     if diff_ang>0.5*math.pi: clockwise = True
 
                 #write to file

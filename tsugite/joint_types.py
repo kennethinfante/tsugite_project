@@ -372,8 +372,8 @@ class JointType:
                     ppt = outline[-1].pt
                     v1 = pt1-ppt
                     v2 = pt2-ppt
-                    ang1 = Utils.angle_between(v1, off_vec_b) #should be 0 if order is already good
-                    ang2 = Utils.angle_between(v2, off_vec_b) #should be more than 0
+                    ang1 = Utils.angle_between_vectors1(v1, off_vec_b) #should be 0 if order is already good
+                    ang2 = Utils.angle_between_vectors1(v2, off_vec_b) #should be more than 0
                     if ang1>ang2: pts.reverse()
                 outline.append(MillVertex(pts[0],is_arc=True,arc_ctr=ctr))
                 outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))
