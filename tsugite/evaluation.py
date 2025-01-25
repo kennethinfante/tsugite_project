@@ -6,137 +6,6 @@ from misc import FixedSide
 
 import utils as Utils
 
-
-def is_fab_direction_ok(mat,ax,n):
-    fab_dir = 1
-    dim = len(mat)
-    for dir in range(2):
-        is_ok = True
-        for i in range(dim):
-            for j in range(dim):
-                found_first_same = False
-                for k in range(dim):
-                    if dir==0: k = dim-k-1
-                    ind = [i,j]
-                    ind.insert(ax,k)
-                    val = mat[tuple(ind)]
-                    if val==n: found_first_same=True
-                    elif found_first_same: is_ok=False; break
-                if not is_ok: break
-            if not is_ok: break
-        if is_ok:
-            fab_dir=dir
-            break
-    return is_ok, fab_dir
-
-def layer_mat(mat3d,ax,dim,lay_num):
-    mat2d = np.ndarray(shape=(dim,dim), dtype=int)
-    for i in range(dim):
-        for j in range(dim):
-            ind = [i,j]
-            ind.insert(ax,lay_num)
-            mat2d[i][j]=int(mat3d[tuple(ind)])
-    return mat2d
-
-def open_matrix(mat,sax,noc):
-    # Pad matrix by correct number of rows top and bottom
-    dim = len(mat)
-    pad_loc = [[0,0],[0,0],[0,0]]
-    pad_loc[sax] = [0,noc-1]
-    pad_val = [[-1,-1],[-1,-1],[-1,-1]]
-    pad_loc = tuple(map(tuple, pad_loc))
-    pad_val = tuple(map(tuple, pad_val))
-    mat = np.pad(mat, pad_loc, 'constant', constant_values=pad_val)
-
-    # Move integers one step at the time
-    for i in range(noc-1,0,-1):
-        inds = np.argwhere(mat==i)
-        for ind in inds:
-            mat[tuple(ind)]=-1
-        for ind in inds:
-            ind[sax]+=i
-            mat[tuple(ind)]=i
-    return mat
-
-def flood_all_nonneg(mat,floodval):
-    inds = np.argwhere(mat==floodval)
-    start_len = len(inds)
-    for ind in inds:
-        for ax in range(3):
-            for dir in range(-1,2,2):
-                #define neighbor index
-                ind2 = np.copy(ind)
-                ind2[ax]+=dir
-                #within bounds?
-                if ind2[ax]<0: continue
-                if ind2[ax]>=mat.shape[ax]: continue
-                #relevant value?
-                val = mat[tuple(ind2)]
-                if val<0 or val==floodval: continue
-                #overwrite
-                mat[tuple(ind2)]=floodval
-    end_len = len(np.argwhere(mat==floodval))
-    if end_len>start_len:
-        mat = flood_all_nonneg(mat,floodval)
-    return mat
-
-def is_potentially_connected(mat,dim,noc,level):
-    potconn=True
-    mat[mat==level] = -1
-    mat[mat==level+10] = -1
-
-    # 1. Check for connectivity
-    floodval = 99
-    mat_conn = np.copy(mat)
-    flood_start_vals = []
-    for n in range(noc):
-        if n!=level: mat_conn[mat_conn==n+10] = floodval
-
-    # Recursively add all positive neigbors
-    mat_conn = flood_all_nonneg(mat_conn,floodval)
-
-    # Get the count of all uncovered voxels
-    uncovered_inds = np.argwhere((mat_conn!=floodval)&(mat_conn>=0))
-    if len(uncovered_inds)>0: potconn=False
-
-
-    if potconn:
-        # 3. Check so that there are at least some (3) voxels that could connect to each fixed side
-        for n in range(noc):
-            if n==level: continue
-            mat_conn = np.copy(mat)
-            mat_conn[mat_conn==n+10] = floodval
-            for n2 in range(noc):
-                if n2==level or n2==n: continue
-                mat_conn[mat_conn==n2+10] = -1
-            start_len = len(np.argwhere(mat_conn==floodval))
-            # Recursively add all positive neigbors
-            mat_conn = flood_all_nonneg(mat_conn,floodval)
-            end_len = len(np.argwhere(mat_conn==floodval))
-            if end_len-start_len<3:
-                potconn=False
-                #print("too few potentially connected for",n,".difference:",end_len-start_len)
-                #print(mat)
-                break
-        # 3. Check for potential bridging
-        for n in range(noc):
-            if n==level: continue
-            inds = np.argwhere(mat==n+10)
-            if len(inds)>dim*dim*dim: #i.e. if there are more than 1 fixed side
-                mat_conn = np.copy(mat)
-                mat_conn[tuple(inds[0])] = floodval #make 1 item 99
-                for n2 in range(noc):
-                    if n2==level or n2==n: continue
-                    mat_conn[mat_conn==n2+10] = -1
-                # Recursively add all positive neigbors
-                mat_conn = flood_all_nonneg(mat_conn,floodval)
-                for ind in inds:
-                    if mat_conn[tuple(ind)]!=floodval:
-                        potconn = False
-                        #print("Not potentially bridgning")
-                        break
-    return potconn
-
 class Evaluation:
     def __init__(self,voxel_matrix,type,mainmesh=True):
         self.mainmesh = mainmesh
@@ -196,7 +65,7 @@ class Evaluation:
                 if n==0: fab_directions[n]=0
                 else: fab_directions[n]=1
             else:
-                fab_ok,fab_dir = is_fab_direction_ok(voxel_matrix,type.sax,n)
+                fab_ok,fab_dir = Utils.is_fab_direction_ok(voxel_matrix,type.sax,n)
                 fab_directions[n] = fab_dir
                 self.fab_direction_ok.append(fab_ok)
 
@@ -336,7 +205,7 @@ class EvaluationOne:
             other_level = 0
             if level==0: other_level = 1
             special_voxmat_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides, 10)
-            self.other_connected_and_bridged = is_potentially_connected(special_voxmat_with_sides,dim,noc,level)
+            self.other_connected_and_bridged = Utils.is_potentially_connected(special_voxmat_with_sides,dim,noc,level)
             if not self.other_connected_and_bridged: return
 
         # Checkerboard
@@ -374,7 +243,7 @@ class EvaluationSlides:
                     if nos[n]>1: sliding_depths[n]=depth
                 else:
                     if nos[n]>0: sliding_depths[n]=depth
-            open_mat = open_matrix(open_mat,sax,noc)
+            open_mat = Utils.open_matrix(open_mat,sax,noc)
         self.slide_depths = sliding_depths
         #self.slide_depths_sorted = sliding_depths
         #self.slide_depth_product = np.prod(np.array(sliding_depths))

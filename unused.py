@@ -308,3 +308,13 @@ def get_region_outline(reg_inds,lay_mat,fixed_neighbors,n):
                 else: # normal situation
                     reg_verts.append(RegionVertex(ind,ind,neigbors,neighbor_values))
     return reg_verts
+
+# unused
+def layer_mat(mat3d,ax,dim,lay_num):
+    mat2d = np.ndarray(shape=(dim,dim), dtype=int)
+    for i in range(dim):
+        for j in range(dim):
+            ind = [i,j]
+            ind.insert(ax,lay_num)
+            mat2d[i][j]=int(mat3d[tuple(ind)])
+    return mat2d
