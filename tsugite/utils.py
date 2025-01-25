@@ -340,3 +340,35 @@ def get_corner_indices(ax,n,dim):
             add[other_axes[1]] = y*dim
             corner_indices.append(get_index(ind,add,dim))
     return corner_indices
+
+def connected_arc(mv0,mv1):
+    conn_arc = False
+    if mv0.is_arc and mv1.is_arc:
+        if mv0.arc_ctr[0]==mv1.arc_ctr[0]:
+            if mv0.arc_ctr[1]==mv1.arc_ctr[1]:
+                conn_arc=True
+    return conn_arc
+
+def arc_points(st,en,ctr0,ctr1,ax,astep):
+    pts = []
+    # numpy arrays
+    st = np.array(st)
+    en = np.array(en)
+    ctr0 = np.array(ctr0)
+    ctr1 = np.array(ctr1)
+    # calculate steps and count and produce in between points
+    v0 = st-ctr0
+    v1 = en-ctr1
+    cnt = int(0.5 + angle_between_vectors2(v0,v1)/astep)
+    if cnt>0:
+        astep = angle_between_vectors2(v0,v1)/cnt
+        zstep = (en[ax]-st[ax])/cnt
+    else:
+        astep=0
+        zstep=0
+    ax_vec = np.cross(v0,v1)
+    for i in range(1,cnt+1):
+        rvec = rotate_vector_around_axis(v0, ax_vec, astep*i)
+        zvec = [0,0,zstep*i]
+        pts.append(ctr0+rvec+zvec)
+    return pts

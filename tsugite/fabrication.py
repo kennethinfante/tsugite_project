@@ -4,51 +4,6 @@ import numpy as np
 
 import utils as Utils
 
-def rotate_vector_around_axis(vec=[3,5,0], axis=[4,4,1], theta=1.2): #example values
-    axis = np.asarray(axis)
-    axis = axis / math.sqrt(np.dot(axis, axis))
-    a = math.cos(theta / 2.0)
-    b, c, d = -axis * math.sin(theta / 2.0)
-    aa, bb, cc, dd = a * a, b * b, c * c, d * d
-    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-    mat = np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
-    rotated_vec = np.dot(mat, vec)
-    return rotated_vec
-
-def connected_arc(mv0,mv1):
-    conn_arc = False
-    if mv0.is_arc and mv1.is_arc:
-        if mv0.arc_ctr[0]==mv1.arc_ctr[0]:
-            if mv0.arc_ctr[1]==mv1.arc_ctr[1]:
-                conn_arc=True
-    return conn_arc
-
-def arc_points(st,en,ctr0,ctr1,ax,astep):
-    pts = []
-    # numpy arrays
-    st = np.array(st)
-    en = np.array(en)
-    ctr0 = np.array(ctr0)
-    ctr1 = np.array(ctr1)
-    # calculate steps and count and produce in between points
-    v0 = st-ctr0
-    v1 = en-ctr1
-    cnt = int(0.5+Utils.angle_between_vectors2(v0,v1)/astep)
-    if cnt>0:
-        astep = Utils.angle_between_vectors2(v0,v1)/cnt
-        zstep = (en[ax]-st[ax])/cnt
-    else:
-        astep=0 
-        zstep=0
-    ax_vec = np.cross(v0,v1)
-    for i in range(1,cnt+1):
-        rvec = rotate_vector_around_axis(v0, ax_vec, astep*i)
-        zvec = [0,0,zstep*i]
-        pts.append(ctr0+rvec+zvec)
-    return pts
-
 class RegionVertex:
     def __init__(self,ind,abs_ind,neighbors,neighbor_values,dia=False,minus_one_neighbor=False):
         self.ind = ind
@@ -135,7 +90,7 @@ class MillVertex:
 
     def rotate(self,ang,d):
         self.pt = np.array([self.x,self.y,self.z])
-        self.pt = rotate_vector_around_axis(self.pt, [0,0,1], ang)
+        self.pt = Utils.rotate_vector_around_axis(self.pt, [0,0,1], ang)
         self.x = self.pt[0]
         self.y = self.pt[1]
         self.z = self.pt[2]
@@ -145,7 +100,7 @@ class MillVertex:
         self.zstr = str(round(self.z,d))
         ##
         if self.is_arc:
-            self.arc_ctr = rotate_vector_around_axis(self.arc_ctr, [0,0,1], ang)
+            self.arc_ctr = Utils.rotate_vector_around_axis(self.arc_ctr, [0,0,1], ang)
             self.arc_ctr = np.array(self.arc_ctr)
 
 class Fabrication:
@@ -235,7 +190,7 @@ class Fabrication:
                 # check segment angle
                 arc = False
                 clockwise = False
-                if i>0 and connected_arc(mv,pmv):
+                if i>0 and Utils.connected_arc(mv,pmv):
                     arc = True
                     vec1 = mv.pt-mv.arc_ctr
                     vec1 = vec1/np.linalg.norm(vec1)
@@ -255,7 +210,7 @@ class Fabrication:
                         if mv.z!=pmv.z: file.write(" Z"+mv.zstr)
                         file.write("\n")
                     elif arc and not self.interp:
-                        pts = arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
+                        pts = Utils.arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
                         for pt in pts:
                             file.write("G1")
                             file.write(" X"+str(round(pt[0],3))+" Y"+str(round(pt[1],3)))
@@ -275,7 +230,7 @@ class Fabrication:
                         if clockwise: file.write("1\n")
                         else: file.write("-1\n")
                     elif arc and mv.z!=pmv.z:
-                        pts = arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
+                        pts = Utils.arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
                         for pt in pts:
                             file.write("M3,"+str(round(pt[0],3))+","+str(round(pt[1],3))+","+str(round(pt[2],3))+"\n")
                     elif i==0 or mv.x!=pmv.x or mv.y!=pmv.y or mv.z!=pmv.z:

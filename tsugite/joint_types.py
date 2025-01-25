@@ -457,12 +457,12 @@ class JointType:
                     mverts.append(MillVertex(pt))
                 if i>0:
                     pmv = outline[i-1]
-                if i>0 and connected_arc(mv,pmv):
+                if i>0 and Utils.connected_arc(mv,pmv):
                     ppt = [pmv.x,pmv.y,pmv.z]
                     ppt[self.sax] += (2*fdir-1)*(num-1+sp)*dep
                     pctr = [pmv.arc_ctr[0],pmv.arc_ctr[1],pmv.arc_ctr[2]]
                     pctr[self.sax] += (2*fdir-1)*(num-1+sp)*dep
-                    arc_pts = arc_points(ppt,pt,pctr,ctr,self.sax,math.radians(5))
+                    arc_pts = Utils.arc_points(ppt,pt,pctr,ctr,self.sax,math.radians(5))
                     for arc_pt in arc_pts: verts.extend([arc_pt[0],arc_pt[1],arc_pt[2],r,g,b,tx,ty])
                 else:
                     verts.extend([pt[0],pt[1],pt[2],r,g,b,tx,ty])
