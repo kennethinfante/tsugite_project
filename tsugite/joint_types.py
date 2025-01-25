@@ -13,6 +13,7 @@ from misc import FixedSides
 
 import utils as Utils
 
+# this remains here for now because it is using other classes
 def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
     # also duplicate vertices on diagonal
     reg_verts = []

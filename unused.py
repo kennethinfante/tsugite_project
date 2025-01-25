@@ -1,3 +1,4 @@
+import utils as Utils
 
 # unused
 def filleted_points(pt,one_voxel,off_dist,ax,n):
@@ -143,3 +144,14 @@ def get_next_same_axial_index(ind,ax,mat,dim):
             return ind_next_next
         else: return ind
     else: return ind
+
+# unused
+def is_bridged(mat,n):
+    bridged = False
+    all_same = np.count_nonzero(mat==n) # Count number of ones in matrix
+    if all_same>0:
+        ind = tuple(np.argwhere(mat==n)[0]) # Pick a random one
+        inds = Utils.get_all_same_connected(mat,[ind]) # Get all its neighbors (recursively)
+        connected_same = len(inds)
+        if connected_same==all_same: bridged = True
+    return bridged

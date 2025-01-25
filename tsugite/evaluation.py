@@ -4,6 +4,8 @@ import copy
 from fabrication import RegionVertex
 from misc import FixedSide
 
+import utils as Utils
+
 def get_ordered_outline(verts):
     ord_verts = []
 
@@ -110,87 +112,6 @@ def get_friction_and_contact_areas(mat,slides,fixed_sides,n):
                             ffaces.append([side.ax,list(find)])
     return friction, ffaces, contact, cfaces
 
-def is_connected(mat,n):
-    connected = False
-    all_same = np.count_nonzero(mat==n) # Count number of ones in matrix
-    if all_same>0:
-        ind = tuple(np.argwhere(mat==n)[0]) # Pick a random one
-        inds = get_all_same_connected(mat,[ind]) # Get all its neighbors (recursively)
-        connected_same = len(inds)
-        if connected_same==all_same: connected = True
-    return connected
-
-def is_bridged(mat,n):
-    bridged = False
-    all_same = np.count_nonzero(mat==n) # Count number of ones in matrix
-    if all_same>0:
-        ind = tuple(np.argwhere(mat==n)[0]) # Pick a random one
-        inds = get_all_same_connected(mat,[ind]) # Get all its neighbors (recursively)
-        connected_same = len(inds)
-        if connected_same==all_same: bridged = True
-    return bridged
-
-def get_sliding_directions(mat,noc):
-    sliding_directions = []
-    number_of_sliding_directions = []
-    for n in range(noc): # Browse the components
-        mat_sliding = []
-        for ax in range(3): # Browse the three possible sliding axes
-            oax = [0,1,2]
-            oax.remove(ax)
-            for dir in range(2): # Browse the two possible directions of the axis
-                slides_in_this_direction = True
-                for i in range(mat.shape[oax[0]]):
-                    for j in range(mat.shape[oax[1]]):
-                        first_same = False
-                        for k in range(mat.shape[ax]):
-                            if dir==0: k = mat.shape[ax]-k-1
-                            ind = [i,j]
-                            ind.insert(ax,k)
-                            val = mat[tuple(ind)]
-                            if val==n:
-                                first_same = True
-                                continue
-                            elif first_same and val!=-1:
-                                slides_in_this_direction=False
-                                break
-                        if slides_in_this_direction==False: break
-                    if slides_in_this_direction==False: break
-                if slides_in_this_direction==True:
-                    mat_sliding.append([ax,dir])
-        sliding_directions.append(mat_sliding)
-        number_of_sliding_directions.append(len(mat_sliding))
-    return sliding_directions,number_of_sliding_directions
-
-def get_sliding_directions_of_one_timber(mat,level):
-    sliding_directions = []
-    n = level
-    for ax in range(3): # Browse the three possible sliding axes
-        oax = [0,1,2]
-        oax.remove(ax)
-        for dir in range(2): # Browse the two possible directions of the axis
-            slides_in_this_direction = True
-            for i in range(mat.shape[oax[0]]):
-                for j in range(mat.shape[oax[1]]):
-                    first_same = False
-                    for k in range(mat.shape[ax]):
-                        if dir==0: k = mat.shape[ax]-k-1
-                        ind = [i,j]
-                        ind.insert(ax,k)
-                        val = mat[tuple(ind)]
-                        if val==n:
-                            first_same = True
-                            continue
-                        elif first_same and val!=-1:
-                            slides_in_this_direction=False
-                            break
-                    if slides_in_this_direction==False: break
-                if slides_in_this_direction==False: break
-            if slides_in_this_direction==True:
-                sliding_directions.append([ax,dir])
-    number_of_sliding_directions = len(sliding_directions)
-    return sliding_directions,number_of_sliding_directions
-
 def add_fixed_sides(mat,fixed_sides, add=0):
     dim = len(mat)
     pad_loc = [[0,0],[0,0],[0,0]]
@@ -268,34 +189,7 @@ def get_axial_neighbors(mat,ind,ax):
             except: values.append(mat[ind0])
     return indices,values
 
-def get_all_same_connected(mat,indices):
-    start_n = len(indices)
-    val = int(mat[indices[0]])
-    all_same_neighbors = []
-    for ind in indices:
-        n_indices,n_values = get_neighbors(mat,ind)
-        for n_ind,n_val in zip(n_indices,n_values):
-            if n_val==val: all_same_neighbors.append(n_ind)
-    indices.extend(all_same_neighbors)
-    if len(indices)>0:
-        indices = np.unique(indices, axis=0)
-        indices = [tuple(ind) for ind in indices]
-        if len(indices)>start_n: indices = get_all_same_connected(mat,indices)
-    return indices
 
-def get_neighbors(mat,ind):
-    indices = []
-    values = []
-    for m in range(len(ind)):   # For each direction (x,y)
-        for n in range(2):      # go up and down one step
-            n=2*n-1             # -1,1
-            ind0 = list(ind)
-            ind0[m] = ind[m]+n
-            ind0 = tuple(ind0)
-            if ind0[m]>=0 and ind0[m]<mat.shape[m]:
-                indices.append(ind0)
-                values.append(int(mat[ind0]))
-    return indices, np.array(values)
 
 def is_connected_to_fixed_side(indices,mat,fixed_sides):
     connected = False
@@ -735,7 +629,7 @@ class Evaluation:
         self.bridged = []
         self.voxel_matrices_unbridged = []
         for n in range(type.noc):
-            self.connected.append(is_connected(self.voxel_matrix_with_sides,n))
+            self.connected.append(Utils.is_connected(self.voxel_matrix_with_sides,n))
             self.bridged.append(True)
             self.voxel_matrices_unbridged.append(None)
         self.voxel_matrix_connected = voxel_matrix.copy()
@@ -746,7 +640,7 @@ class Evaluation:
         # Bridging
         voxel_matrix_connected_with_sides = add_fixed_sides(self.voxel_matrix_connected, type.fixed.sides)
         for n in range(type.noc):
-            self.bridged[n] = is_connected(voxel_matrix_connected_with_sides,n)
+            self.bridged[n] = Utils.is_connected(voxel_matrix_connected_with_sides,n)
             if not self.bridged[n]:
                 voxel_matrix_unbridged_1, voxel_matrix_unbridged_2 = self.seperate_unbridged(voxel_matrix,type.fixed.sides,type.dim,n)
                 self.voxel_matrices_unbridged[n] = [voxel_matrix_unbridged_1, voxel_matrix_unbridged_2]
@@ -773,7 +667,7 @@ class Evaluation:
             self.checker_vertices.append(verts)
 
         # Sliding directions
-        self.slides,self.number_of_slides = get_sliding_directions(self.voxel_matrix_with_sides,type.noc)
+        self.slides,self.number_of_slides = Utils.get_sliding_directions(self.voxel_matrix_with_sides,type.noc)
         self.interlock = True
         for n in range(type.noc):
             if (n==0 or n==type.noc-1):
@@ -892,7 +786,7 @@ class EvaluationOne:
         dim = len(voxel_matrix)
 
         #Connectivity and bridging
-        self.connected_and_bridged = is_connected(self.voxel_matrix_with_sides,level)
+        self.connected_and_bridged = Utils.is_connected(self.voxel_matrix_with_sides,level)
         if not self.connected_and_bridged: return
 
         # Other connectivity and bridging
@@ -910,7 +804,7 @@ class EvaluationOne:
             if not self.nocheck: return
 
         # Slidability
-        self.slides,self.number_of_slides = get_sliding_directions_of_one_timber(self.voxel_matrix_with_sides,level)
+        self.slides,self.number_of_slides = Utils.get_sliding_directions_of_one_timber(self.voxel_matrix_with_sides,level)
         if level==0 or level==noc-1:
             if self.number_of_slides!=1: self.interlock=False
         else:
@@ -931,7 +825,7 @@ class EvaluationSlides:
         sliding_depths = [3,3,3]
         open_mat = np.copy(voxel_matrix_with_sides)
         for depth in range(4):
-            slds,nos = get_sliding_directions(open_mat,noc)
+            slds,nos = Utils.get_sliding_directions(open_mat,noc)
             for n in range(noc):
                 if sliding_depths[n]!=3: continue
                 if n==0 or n==noc-1:
