@@ -90,24 +90,6 @@ def get_random_height_fields(dim,noc):
         phf = copy.deepcopy(hf)
     return hfs
 
-def get_same_neighbors(ind,fixed_sides,voxel_matrix,dim):
-    neighbors = []
-    val = voxel_matrix[tuple(ind)]
-    for ax in range(3):
-        for n in range(2):
-            add = [0,0]
-            add.insert(ax,2*n-1)
-            add = np.array(add)
-            ind2 = ind+add
-            if (ind2[ax]<0 or ind2[ax]>=dim) and not FixedSide(ax,n).unique(fixed_sides): #and [ax,n] in fixed_sides:
-                val2 = val
-            elif np.all(ind2>=0) and np.all(ind2<dim):
-                val2 = voxel_matrix[tuple(ind2)]
-            else: val2=None
-            if val==val2:
-                neighbors.append([ax,n])
-    return neighbors
-
 def get_diff_neighbors(mat2,inds,val):
     new_inds = list(inds)
     for ind in inds:
