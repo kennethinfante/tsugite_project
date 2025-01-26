@@ -144,6 +144,7 @@ class GLWidget(qgl.QGLWidget):
 
                 if i == self.joint_type.mesh.select.sugg_state:
                     GL.glEnable(GL.GL_SCISSOR_TEST)
+                    # glClear is determined by the scissor box.
                     GL.glScissor(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
                     GL.glClearDepth(1.0)
                     GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
