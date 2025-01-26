@@ -10,6 +10,9 @@ import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
 
+# needed for inspecting np array
+np.set_printoptions(threshold=np.inf)
+
 from main_window import MainWindow
 
 class MovieSplashScreen(qtw.QSplashScreen):
