@@ -78,26 +78,7 @@ class GLWidget(qgl.QGLWidget):
         self.display = Display(self, self.joint_type)
 
     def resizeGL(self, w, h):
-        def perspective(fovY, aspect, zNear, zFar):
-            fH =tan(fovY / 360. * pi) * zNear
-            fW = fH * aspect
-            GL.glFrustum(-fW, fW, -fH, fH, zNear, zFar)
-
-        # oratio = self.width() /self.height()
-        ratio = 1.267
-
-        if h * ratio > w:
-            h = round(w / ratio)
-        else:
-            w = round(h * ratio)
-
-        # it is still using fixed pipeline
-        GL.glViewport(0, 0, w, h)
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glLoadIdentity()
-
-        perspective(45.0, ratio, 1, 1000)
-        GL.glMatrixMode(GL.GL_MODELVIEW)
+        # remove the calls to matrixmode because the programmable pipeline is used
         self.width = w
         self.height = h
         self.wstep = int(0.5+w/5)
@@ -106,15 +87,15 @@ class GLWidget(qgl.QGLWidget):
 
     def paintGL(self):
         self.clear()
-        
+
+        # technically not needed because it is part of fixed pipeline
+        # https://stackoverflow.com/questions/21112570/opengl-changing-from-fixed-functions-to-programmable-pipeline
         GL.glLoadIdentity()
 
         self.display.update()
-        # ortho = np.multiply(np.array((-2, +2, -2, +2), dtype=float), self.zoomFactor)
-        # glOrtho(ortho[0], ortho[1], ortho[2], ortho[3], 4.0, 15.0)
 
         GL.glViewport(0, 0, self.width - self.wstep, self.height)
-        # glLoadIdentity()
+
         # Color picking / editing
         # Pick faces -1: nothing, 0: hovered, 1: adding, 2: pulling
 
@@ -160,7 +141,7 @@ class GLWidget(qgl.QGLWidget):
                 # hquater = self.height / 4
                 # wquater = self.width / 5
                 GL.glViewport(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
-                GL.glLoadIdentity()
+
                 if i == self.joint_type.mesh.select.sugg_state:
                     GL.glEnable(GL.GL_SCISSOR_TEST)
                     GL.glScissor(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)

@@ -182,7 +182,10 @@ class Display:
             GL.glClearColor(1.0, 1.0, 1.0, 1.0) # white
             GL.glEnable(GL.GL_DEPTH_TEST)
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
-            GL.glMatrixMode(GL.GL_MODELVIEW)
+
+            # removed call to modelview because we are using programmable pipeline
+            # GL.glMatrixMode(GL.GL_MODELVIEW)
+            
             rot_x = pyrr.Matrix44.from_x_rotation(self.view.xrot)
             rot_y = pyrr.Matrix44.from_y_rotation(self.view.yrot)
             GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, rot_x * rot_y)
