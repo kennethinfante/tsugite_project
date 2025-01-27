@@ -26,7 +26,10 @@ class Display:
     #     glViewport( 0, 0, height*aspect, height )
 
     def update(self):
-        self.bind_view_mat_to_shader_transform_mat(self.shader_col)
+        GL.glUseProgram(self.shader_col)
+        col_transform_ref = GL.glGetUniformLocation(self.shader_col, 'transform')
+
+        self.bind_view_mat_to_shader_transform_mat(col_transform_ref)
         if (self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or (not self.view.open_joint and self.view.open_ratio > 0):
             self.view.set_joint_opening_distance(self.joint.noc)
 
@@ -108,12 +111,10 @@ class Display:
         self.shader_tex = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
                                                   GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
-    def bind_view_mat_to_shader_transform_mat(self, shader):
-        GL.glUseProgram(shader)
+    def bind_view_mat_to_shader_transform_mat(self, transform_ref):
         rot_x = pyrr.Matrix44.from_x_rotation(self.view.xrot)
         rot_y = pyrr.Matrix44.from_y_rotation(self.view.yrot)
 
-        transform_ref = GL.glGetUniformLocation(shader, 'transform')
         GL.glUniformMatrix4fv(transform_ref, 1, GL.GL_FALSE, rot_x * rot_y)
 
     def draw_geometries(self, geos,clear_depth_buffer=True, translation_vec=np.array([0,0,0])):
@@ -181,11 +182,14 @@ class Display:
     def pick(self,xpos,ypos,height):
         if not self.view.gallery:
             ######################## COLOR SHADER ###########################
+            GL.glUseProgram(self.shader_col)
+
             GL.glClearColor(1.0, 1.0, 1.0, 1.0) # white
             GL.glEnable(GL.GL_DEPTH_TEST)
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
 
-            self.bind_view_mat_to_shader_transform_mat(self.shader_col)
+            col_transform_ref = GL.glGetUniformLocation(self.shader_col, 'transform')
+            self.bind_view_mat_to_shader_transform_mat(col_transform_ref)
             GL.glPolygonOffset(1.0,1.0)
 
             ########################## Draw colorful top faces ##########################
@@ -373,11 +377,17 @@ class Display:
                 GL.glPopAttrib()
 
     def end_grains(self):
-        self.bind_view_mat_to_shader_transform_mat(self.shader_tex)
+        GL.glUseProgram(self.shader_tex)
+        tex_transform_ref = GL.glGetUniformLocation(self.shader_tex, 'transform')
+        self.bind_view_mat_to_shader_transform_mat(tex_transform_ref)
+
         G0 = self.joint.mesh.indices_fend
         G1 = self.joint.mesh.indices_not_fend
         self.draw_geometries_with_excluded_area(G0,G1)
-        self.bind_view_mat_to_shader_transform_mat(self.shader_col)
+
+        GL.glUseProgram(self.shader_col)
+        col_transform_ref = GL.glGetUniformLocation(self.shader_col, 'transform')
+        self.bind_view_mat_to_shader_transform_mat(col_transform_ref)
 
     def unfabricatable(self):
         col = [1.0, 0.8, 0.5] # orange
