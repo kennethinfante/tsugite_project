@@ -10,6 +10,7 @@ List of things to do
     - refactor the use of ui file - ok
     - refactor import * - ok
     - clarify UI variable names - ok
+    - clarify the usage of translate matrix - IMPORTANT!!!
     - organize orphaned functions - static or class method?
     - refactor functions that are outside of classes
     - check parts that are still using fixed pipeline - can they be removed?

@@ -46,8 +46,8 @@ class Display:
         layout(location = 0) in vec3 position;
         layout(location = 1) in vec3 color;
         layout(location = 2) in vec2 inTexCoords;
-        layout(location = 3) uniform mat4 transform;
-        layout(location = 4) uniform mat4 translate;
+        layout(location = 3) uniform mat4 translate;
+        layout(location = 4) uniform mat4 transform;
         layout(location = 5) uniform vec3 myColor;
         out vec3 newColor;
         out vec2 outTexCoords;
@@ -82,8 +82,8 @@ class Display:
         layout(location = 0) in vec3 position;
         layout(location = 1) in vec3 color;
         layout(location = 2) in vec2 inTexCoords;
-        layout(location = 3) uniform mat4 transform;
-        layout(location = 4) uniform mat4 translate;
+        layout(location = 3) uniform mat4 translate;
+        layout(location = 4) uniform mat4 transform;
         out vec3 newColor;
         out vec2 outTexCoords;
         void main()
@@ -132,7 +132,7 @@ class Display:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
 
-            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, moves[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
     def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
@@ -159,7 +159,7 @@ class Display:
         for geo in show_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves_show[geo.n])
+            GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, moves_show[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glStencilFunc(GL.GL_EQUAL,1,1)
@@ -168,7 +168,7 @@ class Display:
         for geo in screen_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, moves[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
         GL.glDisable(GL.GL_STENCIL_TEST)
         GL.glColorMask(GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE)
@@ -176,7 +176,7 @@ class Display:
         for geo in show_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            GL.glUniformMatrix4fv(4, 1, GL.GL_FALSE, moves_show[geo.n])
+            GL.glUniformMatrix4fv(3, 1, GL.GL_FALSE, moves_show[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
     def pick(self,xpos,ypos,height):
