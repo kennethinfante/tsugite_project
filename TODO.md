@@ -25,7 +25,31 @@ List of things to do
   * No - is the function used only inside one class?
     * Yes - Static
     * No - Standalone, possible that a Utils class can be made
-    
+  
+## Dependency Graph
+
+Two ways to build dependency graph
+
+* Using `pydeps`
+```
+$ pip install pydeps
+$ pydeps tsugite -v -T png --noshow --rmprefix tsugite --rankdir BT --cluster --show-cycles
+
+```
+
+* Using `tach`
+
+https://www.gauge.sh/blog/how-to-visualize-your-python-projects-dependency-graph
+
+```
+$ pip install tach
+$ cd tsugite
+$ tach mod    # follow the instructions
+$ tach show   # will generate dot file
+$ dot -Tpng tach_module_graph.dot -o ../img/tsugite_graph.png
+
+```
+
 ## Notes
 
 https://nrotella.github.io/journal/first-steps-python-qt-opengl.html

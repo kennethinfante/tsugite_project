@@ -48,4 +48,6 @@ _config.py
 .idea/
 tsugite/Untitled_*.*
 test.py
+tsugite/tach.toml
+tsugite/tach_module_graph.dot
 
