@@ -41,7 +41,7 @@ class Buffer:
             # print("parent", sys.getsizeof(self.parent.vertices[10]))
             # print("parent dtype", self.parent.vertices.dtype)
             # print("len", len(self.parent.vertices)) #3512
-            # print("6 * len", cnt) #21072, but len of 3512
+            # print("6 * len", cnt) #21072
             # print("nbytes", self.parent.vertices.nbytes) #14048, because 4 bytes each (32 bits/8),
 
             # STREAM - The data store contents will be modified once and used at most a few times.
