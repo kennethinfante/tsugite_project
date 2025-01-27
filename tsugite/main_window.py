@@ -194,24 +194,24 @@ class MainWindow(qtw.QMainWindow):
     def change_sliding_axis(self):
         ax = self.cmb_sliding_axis.currentIndex()
         # the boolean component is not used
-        _, msg = self.glWidget.joint_type.update_sliding_direction(ax)
+        _, msg = self.glWidget.joint.update_sliding_direction(ax)
         print(msg)
 
     @pyqtSlot()
     def change_number_of_timbers(self):
         val = self.spb_timber_count.value()
-        self.glWidget.joint_type.update_number_of_components(val)
+        self.glWidget.joint.update_number_of_components(val)
 
     @pyqtSlot()
     def change_resolution(self):
         val = self.spb_voxel_res.value()
-        add = val - self.glWidget.joint_type.voxel_res
-        self.glWidget.joint_type.update_dimension(add)
+        add = val - self.glWidget.joint.voxel_res
+        self.glWidget.joint.update_dimension(add)
 
     @pyqtSlot()
     def set_angle_of_intersection(self):
         val = self.spb_angle.value()
-        self.glWidget.joint_type.update_angle(val)
+        self.glWidget.joint.update_angle(val)
 
     @pyqtSlot()
     def set_timber_X(self):
@@ -220,14 +220,14 @@ class MainWindow(qtw.QMainWindow):
 
         # why this block only present in X voxel_res?
         if mp:
-            self.glWidget.joint_type.create_and_buffer_vertices(milling_path=True)
+            self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
 
         if self.chk_timber_dim_cubic.isChecked():
-            self.glWidget.joint_type.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
+            self.glWidget.joint.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
             self.spb_ydim.setValue(val)
             self.spb_zdim.setValue(val)
         else:
-            self.glWidget.joint_type.update_timber_width_and_height([0], val, milling_path=mp)
+            self.glWidget.joint.update_timber_width_and_height([0], val, milling_path=mp)
 
     @pyqtSlot()
     def set_timber_Y(self):
@@ -235,11 +235,11 @@ class MainWindow(qtw.QMainWindow):
         mp = self.glWidget.display.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
-            self.glWidget.joint_type.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
+            self.glWidget.joint.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
             self.spb_xdim.setValue(val)
             self.spb_zdim.setValue(val)
         else:
-            self.glWidget.joint_type.update_timber_width_and_height([1], val, milling_path=mp)
+            self.glWidget.joint.update_timber_width_and_height([1], val, milling_path=mp)
 
     @pyqtSlot()
     def set_timber_Z(self):
@@ -247,122 +247,122 @@ class MainWindow(qtw.QMainWindow):
         mp = self.glWidget.display.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
-            self.glWidget.joint_type.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
+            self.glWidget.joint.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
             self.spb_xdim.setValue(val)
             self.spb_ydim.setValue(val)
         else:
-            self.glWidget.joint_type.update_timber_width_and_height([2], val, milling_path=mp)
+            self.glWidget.joint.update_timber_width_and_height([2], val, milling_path=mp)
 
     @pyqtSlot()
     def set_all_timber_same(self):
         mp = self.glWidget.display.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
-            val = self.glWidget.joint_type.real_tim_dims[0]
-            self.glWidget.joint_type.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
+            val = self.glWidget.joint.real_tim_dims[0]
+            self.glWidget.joint.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
             self.spb_ydim.setValue(val)
             self.spb_zdim.setValue(val)
 
     @pyqtSlot()
     def randomize_geometry(self):
-        self.glWidget.joint_type.mesh.randomize_height_fields()
+        self.glWidget.joint.mesh.randomize_height_fields()
 
     @pyqtSlot()
     def clear_geometry(self):
-        self.glWidget.joint_type.mesh.clear_height_fields()
+        self.glWidget.joint.mesh.clear_height_fields()
 
     @pyqtSlot()
     def set_milling_bit_diameter(self):
         val = self.spb_milling_diam.value()
-        self.glWidget.joint_type.fab.real_diam = val
-        self.glWidget.joint_type.fab.radius = 0.5 * self.glWidget.joint_type.fab.real_diam - \
-                                              self.glWidget.joint_type.fab.tolerances
-        self.glWidget.joint_type.fab.diameter = 2 * self.glWidget.joint_type.fab.radius
-        self.glWidget.joint_type.fab.vdiam = self.glWidget.joint_type.fab.diameter / self.glWidget.joint_type.ratio
-        self.glWidget.joint_type.fab.vradius = self.glWidget.joint_type.fab.radius / self.glWidget.joint_type.ratio
+        self.glWidget.joint.fab.real_diam = val
+        self.glWidget.joint.fab.radius = 0.5 * self.glWidget.joint.fab.real_diam - \
+                                         self.glWidget.joint.fab.tolerances
+        self.glWidget.joint.fab.diameter = 2 * self.glWidget.joint.fab.radius
+        self.glWidget.joint.fab.vdiam = self.glWidget.joint.fab.diameter / self.glWidget.joint.ratio
+        self.glWidget.joint.fab.vradius = self.glWidget.joint.fab.radius / self.glWidget.joint.ratio
 
         if self.glWidget.display.view.show_milling_path:
-            self.glWidget.joint_type.create_and_buffer_vertices(milling_path=True)
-            self.glWidget.joint_type.combine_and_buffer_indices(milling_path=True)
+            self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
+            self.glWidget.joint.combine_and_buffer_indices(milling_path=True)
 
     @pyqtSlot()
     def set_fab_tolerance(self):
         val = self.spb_tolerances.value()
-        self.glWidget.joint_type.fab.tolerances = val
-        self.glWidget.joint_type.fab.radius = 0.5 * self.glWidget.joint_type.fab.real_diam - \
-                                              self.glWidget.joint_type.fab.tolerances
-        self.glWidget.joint_type.fab.diameter = 2 * self.glWidget.joint_type.fab.radius
-        self.glWidget.joint_type.fab.vdiam = self.glWidget.joint_type.fab.diameter / self.glWidget.joint_type.ratio
-        self.glWidget.joint_type.fab.vradius = self.glWidget.joint_type.fab.radius / self.glWidget.joint_type.ratio
-        self.glWidget.joint_type.fab.vtolerances = self.glWidget.joint_type.fab.tolerances / self.glWidget.joint_type.ratio
+        self.glWidget.joint.fab.tolerances = val
+        self.glWidget.joint.fab.radius = 0.5 * self.glWidget.joint.fab.real_diam - \
+                                         self.glWidget.joint.fab.tolerances
+        self.glWidget.joint.fab.diameter = 2 * self.glWidget.joint.fab.radius
+        self.glWidget.joint.fab.vdiam = self.glWidget.joint.fab.diameter / self.glWidget.joint.ratio
+        self.glWidget.joint.fab.vradius = self.glWidget.joint.fab.radius / self.glWidget.joint.ratio
+        self.glWidget.joint.fab.vtolerances = self.glWidget.joint.fab.tolerances / self.glWidget.joint.ratio
 
         if self.glWidget.display.view.show_milling_path:
-            self.glWidget.joint_type.create_and_buffer_vertices(milling_path=True)
-            self.glWidget.joint_type.combine_and_buffer_indices(milling_path=True)
+            self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
+            self.glWidget.joint.combine_and_buffer_indices(milling_path=True)
 
     @pyqtSlot()
     def set_fab_speed(self):
         val = self.spb_milling_speed.value()
-        self.glWidget.joint_type.fab.milling_speed = val
+        self.glWidget.joint.fab.milling_speed = val
 
 
     @pyqtSlot()
     def set_fab_spindle_speed(self):
         val = self.spb_spindle_speed.value()
-        self.glWidget.joint_type.fab.spindle_speed = val
+        self.glWidget.joint.fab.spindle_speed = val
 
     @pyqtSlot()
     def set_milling_path_axis_alignment(self):
         val = self.cmb_alignment_axis.currentIndex()
-        self.glWidget.joint_type.fab.alignment_axis = val
+        self.glWidget.joint.fab.alignment_axis = val
 
     @pyqtSlot()
     def set_incremental(self):
         val = self.chk_increm_depth.isChecked()
-        self.glWidget.joint_type.increm_depth = val
+        self.glWidget.joint.increm_depth = val
 
     @pyqtSlot()
     def set_interpolation(self):
         val = self.chk_arc_interp.isChecked()
-        self.glWidget.joint_type.fab.arc_interp = val
+        self.glWidget.joint.fab.arc_interp = val
 
     @pyqtSlot()
     def set_milling_path_view(self):
         self.glWidget.display.view.show_milling_path = not self.glWidget.display.view.show_milling_path
         milling_path_showed = self.glWidget.display.view.show_milling_path
-        self.glWidget.joint_type.create_and_buffer_vertices(milling_path=milling_path_showed)
-        self.glWidget.joint_type.combine_and_buffer_indices(milling_path=milling_path_showed)
+        self.glWidget.joint.create_and_buffer_vertices(milling_path=milling_path_showed)
+        self.glWidget.joint.combine_and_buffer_indices(milling_path=milling_path_showed)
 
     @pyqtSlot()
     def export_gcode(self):
         if not self.glWidget.display.view.show_milling_path:
             self.glWidget.display.view.show_milling_path = True
-            self.glWidget.joint_type.create_and_buffer_vertices(milling_path=True)
-            self.glWidget.joint_type.combine_and_buffer_indices(milling_path=True)
-        self.glWidget.joint_type.fab.export_gcode(filename_tsu=self.filename)
+            self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
+            self.glWidget.joint.combine_and_buffer_indices(milling_path=True)
+        self.glWidget.joint.fab.export_gcode(filename_tsu=self.filename)
 
     @pyqtSlot()
     def set_gcode_as_standard(self):
         if self.rdo_gcode.isChecked():
-            self.glWidget.joint_type.fab.export_ext = "gcode"
+            self.glWidget.joint.fab.export_ext = "gcode"
 
     @pyqtSlot()
     def set_nccode_as_standard(self):
         if self.rdo_nc.isChecked():
-            self.glWidget.joint_type.fab.export_ext = "nc"
+            self.glWidget.joint.fab.export_ext = "nc"
 
 
     @pyqtSlot()
     def set_sbp_as_standard(self):
         if self.rdo_sbp.isChecked():
-            self.glWidget.joint_type.fab.export_ext = "sbp"
+            self.glWidget.joint.fab.export_ext = "sbp"
 
     @pyqtSlot()
     def new_file(self):
         self.filename = MainWindow.get_untitled_filename("Untitled", "tsu", "_")
         self.setWindowTitle(self.filename.split("/")[-1] + " - " + self.title)
         self.glWidget.display.view.show_milling_path = False
-        self.glWidget.joint_type.reset()
+        self.glWidget.joint.reset()
         self.set_ui_values()
         self.show_all_timbers()
 
@@ -373,12 +373,12 @@ class MainWindow(qtw.QMainWindow):
             self.filename = filename
             self.setWindowTitle(self.filename.split("/")[-1] + " - " + self.title)
             self.chk_timber_dim_cubic.setChecked(False)
-            self.glWidget.joint_type.open(self.filename)
+            self.glWidget.joint.open(self.filename)
             self.set_ui_values()
 
     @pyqtSlot()
     def save_file(self):
-        self.glWidget.joint_type.save(self.filename)
+        self.glWidget.joint.save(self.filename)
 
     @pyqtSlot()
     def save_file_as(self):
@@ -386,7 +386,7 @@ class MainWindow(qtw.QMainWindow):
         if filename != '':
             self.filename = filename
             self.setWindowTitle(self.filename.split("/")[-1] + " - " + self.title)
-            self.glWidget.joint_type.save(self.filename)
+            self.glWidget.joint.save(self.filename)
 
     @pyqtSlot()
     def show_hide_hidden_lines(self):
@@ -434,40 +434,40 @@ class MainWindow(qtw.QMainWindow):
         self.glWidget.display.view.yrot = yrot
 
     def set_ui_values(self):
-        self.cmb_sliding_axis.setCurrentIndex(self.glWidget.joint_type.sliding_axis)
-        self.spb_timber_count.setValue(self.glWidget.joint_type.timber_count)
-        self.spb_voxel_res.setValue(self.glWidget.joint_type.voxel_res)
-        self.spb_angle.setValue(self.glWidget.joint_type.angle)
-        self.spb_xdim.setValue(self.glWidget.joint_type.real_timber_dims[0])
-        self.spb_ydim.setValue(self.glWidget.joint_type.real_timber_dims[1])
-        self.spb_zdim.setValue(self.glWidget.joint_type.real_timber_dims[2])
+        self.cmb_sliding_axis.setCurrentIndex(self.glWidget.joint.sliding_axis)
+        self.spb_timber_count.setValue(self.glWidget.joint.timber_count)
+        self.spb_voxel_res.setValue(self.glWidget.joint.voxel_res)
+        self.spb_angle.setValue(self.glWidget.joint.angle)
+        self.spb_xdim.setValue(self.glWidget.joint.real_timber_dims[0])
+        self.spb_ydim.setValue(self.glWidget.joint.real_timber_dims[1])
+        self.spb_zdim.setValue(self.glWidget.joint.real_timber_dims[2])
 
-        if np.max(self.glWidget.joint_type.real_timber_dims) == np.min(self.glWidget.joint_type.real_timber_dims):
+        if np.max(self.glWidget.joint.real_timber_dims) == np.min(self.glWidget.joint.real_timber_dims):
             self.chk_timber_dim_cubic.setChecked(True)
         else:
             self.chk_timber_dim_cubic.setChecked(False)
 
-        self.spb_milling_diam.setValue(self.glWidget.joint_type.fab.real_diam)
-        self.spb_tolerances.setValue(self.glWidget.joint_type.fab.tolerances)
-        self.spb_milling_speed.setValue(self.glWidget.joint_type.fab.milling_speed)
-        self.spb_spindle_speed.setValue(self.glWidget.joint_type.fab.spindle_speed)
-        self.chk_increm_depth.setChecked(self.glWidget.joint_type.increm_depth)
-        self.chk_arc_interp.setChecked(self.glWidget.joint_type.fab.arc_interp)
-        self.cmb_alignment_axis.setCurrentIndex(self.glWidget.joint_type.fab.alignment_axis)
+        self.spb_milling_diam.setValue(self.glWidget.joint.fab.real_diam)
+        self.spb_tolerances.setValue(self.glWidget.joint.fab.tolerances)
+        self.spb_milling_speed.setValue(self.glWidget.joint.fab.milling_speed)
+        self.spb_spindle_speed.setValue(self.glWidget.joint.fab.spindle_speed)
+        self.chk_increm_depth.setChecked(self.glWidget.joint.increm_depth)
+        self.chk_arc_interp.setChecked(self.glWidget.joint.fab.arc_interp)
+        self.cmb_alignment_axis.setCurrentIndex(self.glWidget.joint.fab.alignment_axis)
 
-        if self.glWidget.joint_type.fab.export_ext == "gcode":
+        if self.glWidget.joint.fab.export_ext == "gcode":
             self.rdo_gcode.setChecked(True)
-        elif self.glWidget.joint_type.fab.export_ext == "sbp":
+        elif self.glWidget.joint.fab.export_ext == "sbp":
             self.rdo_sbp.setChecked(True)
-        elif self.glWidget.joint_type.fab.export_ext == "nc":
+        elif self.glWidget.joint.fab.export_ext == "nc":
             self.rdo_nc.setChecked(True)
 
     def keyPressEvent(self, e):
         if e.key() == qtc.Qt.Key_Shift:
-            self.glWidget.joint_type.mesh.select.shift = True
-            self.glWidget.joint_type.mesh.select.refresh = True
+            self.glWidget.joint.mesh.select.shift = True
+            self.glWidget.joint.mesh.select.refresh = True
 
     def keyReleaseEvent(self, e):
         if e.key() == qtc.Qt.Key_Shift:
-            self.glWidget.joint_type.mesh.select.shift = False
-            self.glWidget.joint_type.mesh.select.refresh = True
+            self.glWidget.joint.mesh.select.shift = False
+            self.glWidget.joint.mesh.select.refresh = True

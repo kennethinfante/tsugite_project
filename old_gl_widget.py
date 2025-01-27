@@ -72,7 +72,7 @@ class GLWidget(qgl.QGLWidget):
         elif self.parent.rdo_sbp.isChecked(): ext = "sbp"
         else: ext = "gcode"
 
-        # joint_type and display objects are related to OpenGL hence initialized here
+        # joint and display objects are related to OpenGL hence initialized here
         # instead of the __init__
         self.joint_type = JointType(self, fs=[[[2, 0]], [[2, 1]]], sax=sax, dim=dim, ang=ang, td=[dx, dy, dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
         self.display = Display(self, self.joint_type)
@@ -187,14 +187,14 @@ class GLWidget(qgl.QGLWidget):
                     self.joint_type.combine_and_buffer_indices()
                     self.joint_type.mesh.select.sugg_state=-1
             #GALLERY PICK -- not implemented currently
-            #elif joint_type.mesh.select.gallstate>=0:
-            #    index = joint_type.mesh.select.gallstate
-            #    if index<len(joint_type.gals):
-            #        joint_type.mesh = Geometries(joint_type,hfs=joint_type.gals[index].height_fields)
-            #        joint_type.gals = []
+            #elif joint.mesh.select.gallstate>=0:
+            #    index = joint.mesh.select.gallstate
+            #    if index<len(joint.gals):
+            #        joint.mesh = Geometries(joint,hfs=joint.gals[index].height_fields)
+            #        joint.gals = []
             #        view_opt.gallery=False
-            #        joint_type.gallary_start_index = -20
-            #        joint_type.combine_and_buffer_indices()
+            #        joint.gallary_start_index = -20
+            #        joint.combine_and_buffer_indices()
             else: self.click_time = time.time()
         elif e.button() == qtc.Qt.RightButton:
             self.display.view.start_rotation_xy(self.parent.scaling*e.x(),self.parent.scaling*e.y())

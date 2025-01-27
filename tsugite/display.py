@@ -233,7 +233,7 @@ class Display:
                                 pick_n = pick_n+self.type.dim
                                 if mouse_pixel[0]==mouse_pixel[2]: pick_n = 5
                             val = 255-mouse_pixel[non_zeros[0][0]]                            
-                            #i = int(0.5+val*(2+2*self.joint_type.dim*self.joint_type.dim)/255)-1
+                            #i = int(0.5+val*(2+2*self.joint.dim*self.joint.dim)/255)-1
                             step_size = 128/(self.type.dim**2+1)
                             i=round(val/step_size)-1
                             if i>=0:
@@ -298,16 +298,16 @@ class Display:
         GL.glPushAttrib(GL.GL_ENABLE_BIT)
         # draw faces of additional part
         #glUniform3f(5, 1.0, 1.0, 1.0) # white
-        #for n in range(self.joint_type.noc):
-        #    G0 = [self.joint_type.suggestions[index].indices_fall[n]]
-        #    G1 = self.joint_type.mesh.indices_fall
+        #for n in range(self.joint.noc):
+        #    G0 = [self.joint.suggestions[index].indices_fall[n]]
+        #    G1 = self.joint.mesh.indices_fall
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw faces of subtracted part
         #glUniform3f(5, 1.0, 0.5, 0.5) # pink/red
-        #for n in range(self.joint_type.noc):
-        #    G0 = [self.joint_type.mesh.indices_fall[n]]
-        #    G1 = self.joint_type.suggestions[index].indices_fall
+        #for n in range(self.joint.noc):
+        #    G0 = [self.joint.mesh.indices_fall[n]]
+        #    G1 = self.joint.suggestions[index].indices_fall
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw outlines
