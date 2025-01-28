@@ -307,10 +307,13 @@ class GLWidget(qgl.QGLWidget):
         GL.glStencilFunc(GL.GL_ALWAYS,1,1)
         GL.glStencilOp(GL.GL_REPLACE,GL.GL_REPLACE,GL.GL_REPLACE)
         GL.glDepthRange (0.0, 0.9975)
+
+        translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
         for geo in show_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
             GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves_show[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
@@ -321,7 +324,7 @@ class GLWidget(qgl.QGLWidget):
         for geo in screen_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
             GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
         GL.glDisable(GL.GL_STENCIL_TEST)
@@ -330,7 +333,7 @@ class GLWidget(qgl.QGLWidget):
         for geo in show_geos:
             if geo==None: continue
             if self.view.hidden[geo.n]: continue
-            translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
             GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves_show[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
@@ -619,12 +622,6 @@ class GLWidget(qgl.QGLWidget):
                 if self.joint.mesh.eval.fab_direction_ok[n]:
                     GL.glUniform3f(5,cols[n][0],cols[n][1],cols[n][2])
                     self.draw_geometries([self.joint.mesh.indices_milling_path[n]])
-
-    def resizeEvent(self, event):
-        print(' resizeEvent')
-        # self.width = w
-        # self.height = h
-        # self.resize(self.width, self.height)
 
     def mousePressEvent(self, e):
         if e.button() == qtc.Qt.LeftButton:
