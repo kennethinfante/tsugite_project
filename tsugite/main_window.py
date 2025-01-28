@@ -183,12 +183,12 @@ class MainWindow(qtw.QMainWindow):
 
     @pyqtSlot()
     def open_close_joint(self):
-        self.glWidget.display.view.open_joint = not self.glWidget.display.view.open_joint
+        self.glWidget.view.open_joint = not self.glWidget.view.open_joint
 
     @pyqtSlot()
     def set_feedback_view(self):
         feedback_shown = self.chk_show_feedback.checkState()
-        self.glWidget.display.view.show_feedback = feedback_shown
+        self.glWidget.view.show_feedback = feedback_shown
 
     @pyqtSlot()
     def change_sliding_axis(self):
@@ -216,7 +216,7 @@ class MainWindow(qtw.QMainWindow):
     @pyqtSlot()
     def set_timber_X(self):
         val = self.spb_xdim.value()
-        mp = self.glWidget.display.view.show_milling_path
+        mp = self.glWidget.view.show_milling_path
 
         # why this block only present in X voxel_res?
         if mp:
@@ -232,7 +232,7 @@ class MainWindow(qtw.QMainWindow):
     @pyqtSlot()
     def set_timber_Y(self):
         val = self.spb_ydim.value()
-        mp = self.glWidget.display.view.show_milling_path
+        mp = self.glWidget.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
             self.glWidget.joint.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
@@ -244,7 +244,7 @@ class MainWindow(qtw.QMainWindow):
     @pyqtSlot()
     def set_timber_Z(self):
         val = self.spb_zdim.value()
-        mp = self.glWidget.display.view.show_milling_path
+        mp = self.glWidget.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
             self.glWidget.joint.update_timber_width_and_height([0, 1, 2], val, milling_path=mp)
@@ -255,7 +255,7 @@ class MainWindow(qtw.QMainWindow):
 
     @pyqtSlot()
     def set_all_timber_same(self):
-        mp = self.glWidget.display.view.show_milling_path
+        mp = self.glWidget.view.show_milling_path
 
         if self.chk_timber_dim_cubic.isChecked():
             val = self.glWidget.joint.real_tim_dims[0]
@@ -281,7 +281,7 @@ class MainWindow(qtw.QMainWindow):
         self.glWidget.joint.fab.vdiam = self.glWidget.joint.fab.diameter / self.glWidget.joint.ratio
         self.glWidget.joint.fab.vradius = self.glWidget.joint.fab.radius / self.glWidget.joint.ratio
 
-        if self.glWidget.display.view.show_milling_path:
+        if self.glWidget.view.show_milling_path:
             self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
             self.glWidget.joint.combine_and_buffer_indices(milling_path=True)
 
@@ -296,7 +296,7 @@ class MainWindow(qtw.QMainWindow):
         self.glWidget.joint.fab.vradius = self.glWidget.joint.fab.radius / self.glWidget.joint.ratio
         self.glWidget.joint.fab.vtolerances = self.glWidget.joint.fab.tolerances / self.glWidget.joint.ratio
 
-        if self.glWidget.display.view.show_milling_path:
+        if self.glWidget.view.show_milling_path:
             self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
             self.glWidget.joint.combine_and_buffer_indices(milling_path=True)
 
@@ -328,15 +328,15 @@ class MainWindow(qtw.QMainWindow):
 
     @pyqtSlot()
     def set_milling_path_view(self):
-        self.glWidget.display.view.show_milling_path = not self.glWidget.display.view.show_milling_path
-        milling_path_showed = self.glWidget.display.view.show_milling_path
+        self.glWidget.view.show_milling_path = not self.glWidget.view.show_milling_path
+        milling_path_showed = self.glWidget.view.show_milling_path
         self.glWidget.joint.create_and_buffer_vertices(milling_path=milling_path_showed)
         self.glWidget.joint.combine_and_buffer_indices(milling_path=milling_path_showed)
 
     @pyqtSlot()
     def export_gcode(self):
-        if not self.glWidget.display.view.show_milling_path:
-            self.glWidget.display.view.show_milling_path = True
+        if not self.glWidget.view.show_milling_path:
+            self.glWidget.view.show_milling_path = True
             self.glWidget.joint.create_and_buffer_vertices(milling_path=True)
             self.glWidget.joint.combine_and_buffer_indices(milling_path=True)
         self.glWidget.joint.fab.export_gcode(filename_tsu=self.filename)
@@ -361,7 +361,7 @@ class MainWindow(qtw.QMainWindow):
     def new_file(self):
         self.filename = MainWindow.get_untitled_filename("Untitled", "tsu", "_")
         self.setWindowTitle(self.filename.split("/")[-1] + " - " + self.title)
-        self.glWidget.display.view.show_milling_path = False
+        self.glWidget.view.show_milling_path = False
         self.glWidget.joint.reset()
         self.set_ui_values()
         self.show_all_timbers()
@@ -390,7 +390,7 @@ class MainWindow(qtw.QMainWindow):
 
     @pyqtSlot()
     def show_hide_hidden_lines(self):
-        self.glWidget.display.view.show_hidden_lines = self.act_hidden.isChecked()
+        self.glWidget.view.show_hidden_lines = self.act_hidden.isChecked()
 
     @pyqtSlot()
     def show_hide_timbers(self):
@@ -403,7 +403,7 @@ class MainWindow(qtw.QMainWindow):
 
         for i, action in enumerate(actions):
             timber_is_checked = action.isChecked()
-            self.glWidget.display.view.hidden[i] = not timber_is_checked
+            self.glWidget.view.hidden[i] = not timber_is_checked
 
     @pyqtSlot()
     def show_all_timbers(self):
@@ -416,22 +416,22 @@ class MainWindow(qtw.QMainWindow):
 
         for i, action in enumerate(actions):
             timber_is_checked = action.isChecked()
-            self.glWidget.display.view.hidden[i] = False
+            self.glWidget.view.hidden[i] = False
 
     @pyqtSlot()
     def set_standard_rotation(self):
-        self.glWidget.display.view.xrot = 0.8
-        self.glWidget.display.view.yrot = 0.4
+        self.glWidget.view.xrot = 0.8
+        self.glWidget.view.yrot = 0.4
 
     @pyqtSlot()
     def set_closest_plane_rotation(self):
-        xrot = self.glWidget.display.view.xrot
-        yrot = self.glWidget.display.view.yrot
+        xrot = self.glWidget.view.xrot
+        yrot = self.glWidget.view.yrot
         nang = 0.5 * math.pi
         xrot = round(xrot / nang, 0) * nang
         yrot = round(yrot / nang, 0) * nang
-        self.glWidget.display.view.xrot = xrot
-        self.glWidget.display.view.yrot = yrot
+        self.glWidget.view.xrot = xrot
+        self.glWidget.view.yrot = yrot
 
     def set_ui_values(self):
         self.cmb_sliding_axis.setCurrentIndex(self.glWidget.joint.sliding_axis)
