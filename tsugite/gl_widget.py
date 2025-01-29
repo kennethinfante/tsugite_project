@@ -502,14 +502,14 @@ class GLWidget(qgl.QGLWidget):
         GL.glLineStipple(3, 0xAAAA) #dashed line
         GL.glEnable(GL.GL_LINE_STIPPLE)
         if hidden and self.view.show_hidden_lines:
-            for n in range(mesh.parent.noc):
+            for n in range(mesh.pjoint.noc):
                 G0 = [mesh.indices_lns[n]]
                 G1 = [mesh.indices_fall[n]]
                 self.draw_geometries_with_excluded_area(G0,G1)
         GL.glPopAttrib()
 
         ############################ Draw visible lines #############################
-        for n in range(mesh.parent.noc):
+        for n in range(mesh.pjoint.noc):
             if not mesh.mainmesh or (mesh.eval.interlocks[n] and self.view.show_feedback) or not self.view.show_feedback:
                 GL.glUniform3f(5,0.0,0.0,0.0) # black
                 GL.glLineWidth(lw)
@@ -523,7 +523,7 @@ class GLWidget(qgl.QGLWidget):
 
         if mesh.mainmesh:
             ################ When joint is fully open, draw dahsed lines ################
-            if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio==1+0.5*(mesh.parent.noc-2):
+            if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio==1+0.5*(mesh.pjoint.noc-2):
                 GL.glUniform3f(5,0.0,0.0,0.0) # black
                 GL.glPushAttrib(GL.GL_ENABLE_BIT)
                 GL.glLineWidth(2)
@@ -549,7 +549,7 @@ class GLWidget(qgl.QGLWidget):
         # 1. Draw hidden geometry
         col = [1.0, 0.8, 0.7]  # light red orange
         GL.glUniform3f(5, col[0], col[1], col[2])
-        for n in range(self.joint.mesh.parent.noc):
+        for n in range(self.joint.mesh.pjoint.noc):
             if not self.joint.mesh.eval.connected[n]:
                 self.draw_geometries([self.joint.mesh.indices_not_fcon[n]])
 
@@ -578,7 +578,7 @@ class GLWidget(qgl.QGLWidget):
         # 1. Draw hidden geometry
         GL.glUniform3f(5, 1.0, 0.2, 0.0) # red orange
         GL.glLineWidth(8)
-        for n in range(self.joint.mesh.parent.noc):
+        for n in range(self.joint.mesh.pjoint.noc):
             if self.joint.mesh.eval.checker[n]:
                 self.draw_geometries([self.joint.mesh.indices_chess_lines[n]])
         GL.glUniform3f(5, 0.0, 0.0, 0.0) # back to black

@@ -38,11 +38,11 @@ class Buffer:
             # 6 bytes to avoid buffer overflow
             cnt = 6*len(self.parent.vertices)
 
-            # print("parent", sys.getsizeof(self.parent.vertices[10]))
-            # print("parent dtype", self.parent.vertices.dtype)
-            # print("len", len(self.parent.vertices)) #3512
+            # print("pjoint", sys.getsizeof(self.pjoint.vertices[10]))
+            # print("pjoint dtype", self.pjoint.vertices.dtype)
+            # print("len", len(self.pjoint.vertices)) #3512
             # print("6 * len", cnt) #21072
-            # print("nbytes", self.parent.vertices.nbytes) #14048, because 4 bytes each (32 bits/8),
+            # print("nbytes", self.pjoint.vertices.nbytes) #14048, because 4 bytes each (32 bits/8),
 
             # STREAM - The data store contents will be modified once and used at most a few times.
             # STATIC - The data store contents will be modified once and used many times.
