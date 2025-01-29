@@ -4,24 +4,6 @@ import numpy as np
 
 import utils as Utils
 
-class RegionVertex:
-    def __init__(self,ind,abs_ind,neighbors,neighbor_values,dia=False,minus_one_neighbor=False):
-        self.ind = ind
-        self.i = ind[0]
-        self.j = ind[1]
-        self.neighbors = neighbors
-        self.flat_neighbors = self.neighbors.flatten()
-        self.region_count = np.sum(self.flat_neighbors==0)
-        self.block_count = np.sum(self.flat_neighbors==1)
-        self.free_count = np.sum(self.flat_neighbors==2)
-        ##
-        self.minus_one_neighbor=minus_one_neighbor
-        ##
-        self.dia = dia
-        ##
-        self.neighbor_values = np.array(neighbor_values)
-        self.flat_neighbor_values = self.neighbor_values.flatten()
-
 class RoughPixel:
     def __init__(self,ind,mat,pad_loc,dim,n):
         self.ind = ind

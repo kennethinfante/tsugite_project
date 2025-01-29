@@ -84,7 +84,6 @@ class GLWidget(qgl.QGLWidget):
         self.wstep = int(0.5+w/5)
         self.hstep = int(0.5+h/4)
 
-
     def paintGL(self):
         self.clear()
 

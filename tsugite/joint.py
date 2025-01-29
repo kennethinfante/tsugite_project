@@ -11,35 +11,10 @@ from fabrication import *
 from geometries import Geometries
 from misc import FixedSides
 
+from utils import RegionVertex
 import utils as Utils
 
 # this remains here for now because it is using other classes
-def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
-    # also duplicate vertices on diagonal
-    reg_verts = []
-    for i in range(lay_mat.shape[0]+1):
-        for j in range(lay_mat.shape[1]+1):
-            ind = [i,j]
-            neigbors,neighbor_values = Utils.get_neighbors_in_out(ind,reg_inds,lay_mat,org_lay_mat,n)
-            neigbors = np.array(neigbors)
-            abs_ind = ind.copy()
-            ind[0] -= pad_loc[0][0]
-            ind[1] -= pad_loc[1][0]
-            if np.any(neigbors.flatten()==0) and not np.all(neigbors.flatten()==0): # some but not all region neighbors
-                dia1 = neigbors[0][1]==neigbors[1][0]
-                dia2 = neigbors[0][0]==neigbors[1][1]
-                if np.sum(neigbors.flatten()==0)==2 and  np.sum(neigbors.flatten()==1)==2 and dia1 and dia2: # diagonal detected
-                    other_indices = np.argwhere(neigbors==0)
-                    for oind in other_indices:
-                        oneigbors = copy.deepcopy(neigbors)
-                        oneigbors[tuple(oind)] = 1
-                        oneigbors = np.array(oneigbors)
-                        reg_verts.append(RegionVertex(ind,abs_ind,oneigbors,neighbor_values,dia=True))
-                else: # normal situation
-                    if Utils.any_minus_one_neighbor(ind,lay_mat): mon = True
-                    else: mon = False
-                    reg_verts.append(RegionVertex(ind,abs_ind,neigbors,neighbor_values,minus_one_neighbor=mon))
-    return reg_verts
 
 class Joint:
     def __init__(self, pwidget, fs=[], sax=2, dim=3, ang=0.0, td=[44.0, 44.0, 44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
@@ -584,7 +559,7 @@ class Joint:
                 for reg_ind in reg_inds: lay_mat[tuple(reg_ind)]=n #OK
 
                 # Make a list of all edge vertices of the outline of the region
-                reg_verts = get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n) #OK
+                reg_verts = Utils.get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n) #OK
 
                 # Order the vertices to create an outline
                 for isl_num in range(10):
@@ -598,7 +573,7 @@ class Joint:
                     reg_ord_verts,reg_verts,closed = Utils.get_sublist_of_ordered_verts(reg_verts) #OK
 
                     # Make outline of ordered vertices (for dedugging only!!!!!!!)
-                    #if len(reg_ord_verts)>1: outline = get_outline(joint_self,reg_ord_verts,lay_num,n)
+                    # if len(reg_ord_verts)>1: outline = Utils.get_outline(joint_self,reg_ord_verts,lay_num,n)
 
                     # Offset vertices according to boundary condition (and remove if redundant)
                     outline,corner_artifacts = self._offset_verts(neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,reg_ord_verts,lay_num,n) #<----needs to be updated for oblique angles!!!!!<---

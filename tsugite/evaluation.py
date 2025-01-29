@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-from fabrication import RegionVertex
+from utils import RegionVertex
 from misc import FixedSide
 
 import utils as Utils

@@ -6,6 +6,24 @@ import copy
 
 from misc import FixedSide
 
+class RegionVertex:
+    def __init__(self,ind,abs_ind,neighbors,neighbor_values,dia=False,minus_one_neighbor=False):
+        self.ind = ind
+        self.i = ind[0]
+        self.j = ind[1]
+        self.neighbors = neighbors
+        self.flat_neighbors = self.neighbors.flatten()
+        self.region_count = np.sum(self.flat_neighbors==0)
+        self.block_count = np.sum(self.flat_neighbors==1)
+        self.free_count = np.sum(self.flat_neighbors==2)
+        ##
+        self.minus_one_neighbor=minus_one_neighbor
+        ##
+        self.dia = dia
+        ##
+        self.neighbor_values = np.array(neighbor_values)
+        self.flat_neighbor_values = self.neighbor_values.flatten()
+
 def normalize(v):
     norm = np.linalg.norm(v)
     if norm == 0: return v
@@ -211,6 +229,19 @@ def get_sublist_of_ordered_verts(verts):
                         closed=True
 
     return ord_verts, verts, closed
+
+def get_outline(type,verts,lay_num,n):
+    fdir = type.mesh.fab_directions[n]
+    outline = []
+    for rv in verts:
+        ind = rv.ind.copy()
+        ind.insert(type.sax,(type.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
+        add = [0,0,0]
+        add[type.sax] = 1-fdir
+        i_pt = get_index(ind,add,type.dim)
+        pt = get_vertex(i_pt,type.jverts[n],type.vertex_no_info)
+        outline.append(MillVertex(pt))
+    return outline
 
 def set_vector_length(vec,new_norm):
     norm = np.linalg.norm(vec)
@@ -567,6 +598,112 @@ def is_connected_to_fixed_side(indices,mat,fixed_sides):
                 connected = is_connected_to_fixed_side(new_indices,mat,fixed_sides)
     return connected
 
+def _get_region_outline(reg_inds, lay_mat, fixed_neighbors, n):
+    # also duplicate vertices on diagonal
+    reg_verts = []
+    for i in range(lay_mat.shape[0]+1):
+        for j in range(lay_mat.shape[1]+1):
+            ind = [i,j]
+            neigbors,neighbor_values = _get_neighbors_2d(ind, reg_inds, lay_mat, n)
+            neigbors = np.array(neigbors)
+            if np.any(neigbors.flatten()==0) and not np.all(neigbors.flatten()==0): # some but not all region neighbors
+                dia1 = neigbors[0][1]==neigbors[1][0]
+                dia2 = neigbors[0][0]==neigbors[1][1]
+                if np.sum(neigbors.flatten()==0)==2 and  np.sum(neigbors.flatten()==1)==2 and dia1 and dia2: # diagonal detected
+                    other_indices = np.argwhere(neigbors==0)
+                    for oind in other_indices:
+                        oneigbors = copy.deepcopy(neigbors)
+                        oneigbors[tuple(oind)] = 1
+                        oneigbors = np.array(oneigbors)
+                        reg_verts.append(RegionVertex(ind,ind,oneigbors,neighbor_values,dia=True))
+                else: # normal situation
+                    reg_verts.append(RegionVertex(ind,ind,neigbors,neighbor_values))
+    return reg_verts
+
+def _get_neighbors_2d(ind, reg_inds, lay_mat, n):
+    # 0 = in region
+    # 1 = outside region, block
+    # 2 = outside region, free
+    in_out = []
+    values = []
+    for add0 in range(-1,1,1):
+        temp = []
+        temp2 = []
+        for add1 in range(-1,1,1):
+
+            # Define neighbor index to test
+            nind = [ind[0]+add0,ind[1]+add1]
+
+            # FIND TYPE
+            type = -1
+            val = None
+            # Check if this index is in the list of region-included indices
+            for rind in reg_inds:
+                if rind[0]==nind[0] and rind[1]==nind[1]:
+                    type = 0 # in region
+                    break
+            if type!=0:
+                # If there are out of bound indices they are free
+                if np.any(np.array(nind)<0) or nind[0]>=lay_mat.shape[0] or nind[1]>=lay_mat.shape[1]:
+                    type = 1 # free
+                    val =-1
+                elif lay_mat[tuple(nind)]<0:
+                    type = 1 # free
+                else: type = 1 # blocked
+
+            if val==None:
+                val=lay_mat[tuple(nind)]
+
+            temp.append(type)
+            temp2.append(val)
+        in_out.append(temp)
+        values.append(temp2)
+    return in_out, values
+
+
+
+def _is_connected_to_fixed_side_2d(inds, fixed_sides, ax, dim):
+    connected = False
+    for side in fixed_sides:
+        fax2d = [0,0,0]
+        fax2d[side.ax] = 1
+        fax2d.pop(ax)
+        fax2d = fax2d.index(1)
+        for ind in inds:
+            if ind[fax2d]==side.dir*(dim-1):
+                connected = True
+                break
+        if connected: break
+    return connected
+
+def _get_same_neighbors_2d(mat2, inds, val):
+    new_inds = list(inds)
+    for ind in inds:
+        for ax in range(2):
+            for dir in range(-1,2,2):
+                ind2 = ind.copy()
+                ind2[ax] += dir
+                if ind2[ax]>=0 and ind2[ax]<mat2.shape[ax]:
+                    val2 = mat2[tuple(ind2)]
+                    if val2!=val: continue
+                    unique = True
+                    for ind3 in new_inds:
+                        if ind2[0]==ind3[0] and ind2[1]==ind3[1]:
+                            unique = False
+                            break
+                    if unique: new_inds.append(ind2)
+    if len(new_inds)>len(inds):
+        new_inds = _get_same_neighbors_2d(mat2, new_inds, val)
+    return new_inds
+
+def _layer_mat(mat3d, ax, dim, lay_num):
+    mat2d = np.ndarray(shape=(dim,dim), dtype=int)
+    for i in range(dim):
+        for j in range(dim):
+            ind = [i,j]
+            ind.insert(ax,lay_num)
+            mat2d[i][j]=int(mat3d[tuple(ind)])
+    return mat2d
 
 def get_breakable_voxels(mat,fixed_sides,sax,n):
     breakable = False
@@ -586,7 +723,7 @@ def get_breakable_voxels(mat,fixed_sides,sax,n):
             for lay_num in range(dim):
                 temp = []
 
-                lay_mat = layer_mat(mat,pax,dim,lay_num)
+                lay_mat = _layer_mat(mat, pax, dim, lay_num)
 
                 for reg_num in range(dim*dim): # region number
 
@@ -594,10 +731,10 @@ def get_breakable_voxels(mat,fixed_sides,sax,n):
                     inds = np.argwhere((lay_mat!=-1) & (lay_mat==n))
                     if len(inds)==0: break
 
-                    reg_inds = get_same_neighbors_2d(lay_mat,[inds[0]],n)
+                    reg_inds = _get_same_neighbors_2d(lay_mat, [inds[0]], n)
 
                     # Check if any item in this region is connected to a fixed side
-                    fixed = is_connected_to_fixed_side_2d(reg_inds,fixed_sides,pax,dim)
+                    fixed = _is_connected_to_fixed_side_2d(reg_inds, fixed_sides, pax, dim)
 
                     if not fixed: temp.append(reg_inds)
 
@@ -609,7 +746,7 @@ def get_breakable_voxels(mat,fixed_sides,sax,n):
 
             for lay_num in range(dim):
 
-                lay_mat = layer_mat(mat,pax,dim,lay_num)
+                lay_mat = _layer_mat(mat, pax, dim, lay_num)
 
                 for reg_inds in potentially_fragile_reg_inds[lay_num]:
 
@@ -654,7 +791,7 @@ def get_breakable_voxels(mat,fixed_sides,sax,n):
                             voxel_indices.append(ind3d)
 
                         # Get region outline
-                        outline = get_region_outline(reg_inds,lay_mat,fixed_neighbors,n)
+                        outline = _get_region_outline(reg_inds, lay_mat, fixed_neighbors, n)
 
                         # Order region outline
                         outline = get_ordered_outline(outline)
@@ -908,3 +1045,30 @@ def is_potentially_connected(mat,dim,noc,level):
                         #print("Not potentially bridgning")
                         break
     return potconn
+
+def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
+    # also duplicate vertices on diagonal
+    reg_verts = []
+    for i in range(lay_mat.shape[0]+1):
+        for j in range(lay_mat.shape[1]+1):
+            ind = [i,j]
+            neigbors,neighbor_values = get_neighbors_in_out(ind,reg_inds,lay_mat,org_lay_mat,n)
+            neigbors = np.array(neigbors)
+            abs_ind = ind.copy()
+            ind[0] -= pad_loc[0][0]
+            ind[1] -= pad_loc[1][0]
+            if np.any(neigbors.flatten()==0) and not np.all(neigbors.flatten()==0): # some but not all region neighbors
+                dia1 = neigbors[0][1]==neigbors[1][0]
+                dia2 = neigbors[0][0]==neigbors[1][1]
+                if np.sum(neigbors.flatten()==0)==2 and  np.sum(neigbors.flatten()==1)==2 and dia1 and dia2: # diagonal detected
+                    other_indices = np.argwhere(neigbors==0)
+                    for oind in other_indices:
+                        oneigbors = copy.deepcopy(neigbors)
+                        oneigbors[tuple(oind)] = 1
+                        oneigbors = np.array(oneigbors)
+                        reg_verts.append(RegionVertex(ind,abs_ind,oneigbors,neighbor_values,dia=True))
+                else: # normal situation
+                    if any_minus_one_neighbor(ind,lay_mat): mon = True
+                    else: mon = False
+                    reg_verts.append(RegionVertex(ind,abs_ind,neigbors,neighbor_values,minus_one_neighbor=mon))
+    return reg_verts
