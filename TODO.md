@@ -45,6 +45,7 @@ https://www.gauge.sh/blog/how-to-visualize-your-python-projects-dependency-graph
 $ pip install tach
 $ cd tsugite
 $ tach mod    # follow the instructions
+$ tach sync
 $ tach show   # will generate dot file
 $ dot -Tpng tach_module_graph.dot -o ../img/tsugite_graph.png
 
