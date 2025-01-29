@@ -13,8 +13,8 @@ class ElementProperties:
         self.n = n
 
 class Buffer:
-    def __init__(self,parent):
-        self.parent = parent
+    def __init__(self, pjoint):
+        self.pjoint = pjoint
         self.VBO = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.VBO)
 
@@ -36,7 +36,7 @@ class Buffer:
     def buffer_vertices(self):
         try:
             # 6 bytes to avoid buffer overflow
-            cnt = 6*len(self.parent.vertices)
+            cnt = 6*len(self.pjoint.vertices)
 
             # print("pjoint", sys.getsizeof(self.pjoint.vertices[10]))
             # print("pjoint dtype", self.pjoint.vertices.dtype)
@@ -47,7 +47,7 @@ class Buffer:
             # STREAM - The data store contents will be modified once and used at most a few times.
             # STATIC - The data store contents will be modified once and used many times.
             # DYNAMIC - The data store contents will be modified repeatedly and used many times.
-            GL.glBufferData(GL.GL_ARRAY_BUFFER, cnt, self.parent.vertices, GL.GL_DYNAMIC_DRAW)
+            GL.glBufferData(GL.GL_ARRAY_BUFFER, cnt, self.pjoint.vertices, GL.GL_DYNAMIC_DRAW)
         except:
             print("--------------------------ERROR IN ARRAY BUFFER WRAPPER -------------------------------------")
 
@@ -77,5 +77,5 @@ class Buffer:
 
     def buffer_indices(self):
         # 4 bytes each number
-        cnt = 4*len(self.parent.indices)
-        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, cnt, self.parent.indices, GL.GL_DYNAMIC_DRAW)
+        cnt = 4*len(self.pjoint.indices)
+        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, cnt, self.pjoint.indices, GL.GL_DYNAMIC_DRAW)

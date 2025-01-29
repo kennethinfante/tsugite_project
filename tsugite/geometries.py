@@ -13,9 +13,9 @@ from misc import FixedSide
 import utils as Utils
 
 class Geometries:
-    def __init__(self, joint, mainmesh=True, hfs=[]):
+    def __init__(self, pjoint, mainmesh=True, hfs=[]):
         self.mainmesh = mainmesh
-        self.pjoint = joint
+        self.pjoint = pjoint
         self.fab_directions = [0,1] #Initiate list of fabrication directions
         for i in range(1, self.pjoint.noc - 1): self.fab_directions.insert(1, 1)
         if len(hfs)==0: self.height_fields = Utils.get_random_height_fields(self.pjoint.dim, self.pjoint.noc) #Initiate a random joint geometry

@@ -42,8 +42,8 @@ def get_region_outline_vertices(reg_inds,lay_mat,org_lay_mat,pad_loc,n):
     return reg_verts
 
 class Joint:
-    def __init__(self,parent,fs=[],sax=2,dim=3,ang=0.0, td=[44.0,44.0,44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
-        self.parent=parent
+    def __init__(self, pwidget, fs=[], sax=2, dim=3, ang=0.0, td=[44.0, 44.0, 44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
+        self.pwidget=pwidget
         self.sax = sax
         self.fixed = FixedSides(self)
         self.noc = len(self.fixed.sides) #number of components

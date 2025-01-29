@@ -104,17 +104,17 @@ class MillVertex:
             self.arc_ctr = np.array(self.arc_ctr)
 
 class Fabrication:
-    def __init__(self,parent,tol=0.15,dia=6.00,ext="gcode",align_ax=0,interp=True, spe=400, spi=6000):
-        self.parent = parent
+    def __init__(self,pjoint,tol=0.15,dia=6.00,ext="gcode",align_ax=0,interp=True, spe=400, spi=6000):
+        self.pjoint = pjoint
         self.real_dia = dia #milling bit radius in mm
         self.tol = tol #0.10 #tolerance in mm
         self.rad = 0.5*self.real_dia-self.tol
         self.dia = 2*self.rad
         self.unit_scale = 1.0
         #if ext=='sbp': self.unit_scale=1/25.4 #inches
-        self.vdia = self.dia/self.parent.ratio
-        self.vrad = self.rad/self.parent.ratio
-        self.vtol = self.tol/self.parent.ratio
+        self.vdia = self.dia/self.pjoint.ratio
+        self.vrad = self.rad/self.pjoint.ratio
+        self.vtol = self.tol/self.pjoint.ratio
         self.dep = 1.5 #milling depth in mm
         self.align_ax = align_ax
         self.ext = ext
@@ -132,18 +132,18 @@ class Fabrication:
     def export_gcode(self,filename_tsu=os.getcwd()+os.sep+"joint.tsu"):
         print(self.ext)
         # make sure that the z axis of the gcode is facing up
-        fax = self.parent.sax
+        fax = self.pjoint.sax
         coords = [0,1]
         coords.insert(fax,2)
         #
         d = 5 # =precision / no of decimals to write
         names = ["A","B","C","D","E","F"]
-        for n in range(self.parent.noc):
-            fdir = self.parent.mesh.fab_directions[n]
-            comp_ax = self.parent.fixed.sides[n][0].ax
-            comp_dir = self.parent.fixed.sides[n][0].dir # component direction
-            comp_vec = self.parent.pos_vecs[comp_ax]
-            if comp_dir==0 and comp_ax!=self.parent.sax: comp_vec=-comp_vec
+        for n in range(self.pjoint.noc):
+            fdir = self.pjoint.mesh.fab_directions[n]
+            comp_ax = self.pjoint.fixed.sides[n][0].ax
+            comp_dir = self.pjoint.fixed.sides[n][0].dir # component direction
+            comp_vec = self.pjoint.pos_vecs[comp_ax]
+            if comp_dir==0 and comp_ax!=self.pjoint.sax: comp_vec=-comp_vec
             comp_vec = np.array([comp_vec[coords[0]],comp_vec[coords[1]],comp_vec[coords[2]]])
             comp_vec = comp_vec/np.linalg.norm(comp_vec) #unitize
             zax = np.array([0,0,1])
@@ -183,10 +183,10 @@ class Fabrication:
                 print("Unknown extension:", self.ext)
 
             ###content
-            for i,mv in enumerate(self.parent.gcodeverts[n]):
-                mv.scale_and_swap(fax,fdir,self.parent.ratio,self.unit_scale,self.parent.real_tim_dims,coords,d,n)
+            for i,mv in enumerate(self.pjoint.gcodeverts[n]):
+                mv.scale_and_swap(fax, fdir, self.pjoint.ratio, self.unit_scale, self.pjoint.real_tim_dims, coords, d, n)
                 if comp_ax!=fax: mv.rotate(rot_ang,d)
-                if i>0: pmv = self.parent.gcodeverts[n][i-1] #pmv=previous mill vertex
+                if i>0: pmv = self.pjoint.gcodeverts[n][i - 1] #pmv=previous mill vertex
                 # check segment angle
                 arc = False
                 clockwise = False

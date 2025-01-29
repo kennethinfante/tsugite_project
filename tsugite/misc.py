@@ -1,8 +1,8 @@
 import numpy as np
 
 class FixedSides:
-    def __init__(self,parent,side_str=None,fs=None):
-        self.parent = parent
+    def __init__(self,pjoint,side_str=None,fs=None):
+        self.pjoint = pjoint
         if side_str!=None: self.sides_from_string(side_str)
         elif fs!=None: self.sides=fs
         else: self.sides=[[FixedSide(2,0)],[FixedSide(2,1)]]
@@ -34,12 +34,12 @@ class FixedSides:
                 if not blocked: self.unblocked.append(FixedSide(ax,dir))
 
         # List unblocked ORIENTATIONS ??????????????
-        self.parent.rot=True
+        self.pjoint.rot=True
         if self.sides!=None:
             for sides in self.sides:
                 # if one or more component axes are aligned with the sliding axes (sax), rotation cannot be performed ?????????
-                if sides[0].ax==self.parent.sax:
-                    self.parent.rot=False
+                if sides[0].ax==self.pjoint.sax:
+                    self.pjoint.rot=False
                     break
 
 class FixedSide:
