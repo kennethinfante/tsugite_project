@@ -103,6 +103,9 @@ class Display:
         if (self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or (not self.view.open_joint and self.view.open_ratio > 0):
             self.view.set_joint_opening_distance(self.joint.noc)
 
+        # there's only one myColor var so it is safe to make it an attribute
+        self.myColor = GL.glGetUniformLocation(self.current_program, 'myColor')
+
     def bind_view_mat_to_shader_transform_mat(self):
         rot_x = pyrr.Matrix44.from_x_rotation(self.view.xrot)
         rot_y = pyrr.Matrix44.from_y_rotation(self.view.yrot)
@@ -217,7 +220,7 @@ class Display:
                 col = np.zeros(3, dtype=np.float64)
                 col[n%3] = 1.0
                 if n>2: col[(n+1) % self.joint.dim] = 1.0
-                GL.glUniform3f(5, col[0], col[1], col[2])
+                GL.glUniform3f(self.myColor, col[0], col[1], col[2])
                 self.draw_geometries([self.joint.mesh.indices_fpick_not_top[n]], clear_depth_buffer=False)
                 if n==0 or n==self.joint.noc-1: mos = 1
                 else: mos = 2
@@ -226,7 +229,7 @@ class Display:
                     # Draw top faces
                     for i in range(self.joint.dim * self.joint.dim):
                         col -= col_step
-                        GL.glUniform3f(5, col[0], col[1], col[2])
+                        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
                         top = ElementProperties(GL.GL_QUADS, 4, self.joint.mesh.indices_fpick_top[n].start_index + mos * 4 * i + 4 * m, n)
                         self.draw_geometries([top],clear_depth_buffer=False)
 
@@ -290,7 +293,7 @@ class Display:
         # Draw base face (hovered)
         if self.joint.mesh.select.state==0:
             GL.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
-            GL.glUniform3f(5, 0.2, 0.2, 0.2) #dark grey
+            GL.glUniform3f(self.myColor, 0.2, 0.2, 0.2) #dark grey
             G1 = self.joint.mesh.indices_fpick_not_top
             for face in self.joint.mesh.select.faces:
                 if self.joint.mesh.select.n==0 or self.joint.mesh.select.n==self.joint.noc-1: mos = 1
@@ -315,21 +318,21 @@ class Display:
     def difference_suggestion(self,index):
         GL.glPushAttrib(GL.GL_ENABLE_BIT)
         # draw faces of additional part
-        #glUniform3f(5, 1.0, 1.0, 1.0) # white
-        #for n in range(self.joint.noc):
+        # glUniform3f(self.myColor, 1.0, 1.0, 1.0) # white
+        # for n in range(self.joint.noc):
         #    G0 = [self.joint.suggestions[index].indices_fall[n]]
         #    G1 = self.joint.mesh.indices_fall
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw faces of subtracted part
-        #glUniform3f(5, 1.0, 0.5, 0.5) # pink/red
-        #for n in range(self.joint.noc):
+        # glUniform3f(self.myColor, 1.0, 0.5, 0.5) # pink/red
+        # for n in range(self.joint.noc):
         #    G0 = [self.joint.mesh.indices_fall[n]]
         #    G1 = self.joint.suggestions[index].indices_fall
         #    self.draw_geometries_with_excluded_area(G0,G1)
 
         # draw outlines
-        GL.glUniform3f(5, 0.0, 0.0, 0.0) # black
+        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # black
         GL.glLineWidth(3)
         GL.glEnable(GL.GL_LINE_STIPPLE)
         GL.glLineStipple(2, 0xAAAA)
@@ -355,7 +358,7 @@ class Display:
 
         ############################# Draw hidden lines #############################
         GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
-        GL.glUniform3f(5,0.0,0.0,0.0) # black
+        GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
         GL.glPushAttrib(GL.GL_ENABLE_BIT)
         GL.glLineWidth(1)
         GL.glLineStipple(3, 0xAAAA) #dashed line
@@ -370,10 +373,10 @@ class Display:
         ############################ Draw visible lines #############################
         for n in range(mesh.pjoint.noc):
             if not mesh.mainmesh or (mesh.eval.interlocks[n] and self.view.show_feedback) or not self.view.show_feedback:
-                GL.glUniform3f(5,0.0,0.0,0.0) # black
+                GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
                 GL.glLineWidth(lw)
             else:
-                GL.glUniform3f(5,1.0,0.0,0.0) # red
+                GL.glUniform3f(self.myColor,1.0,0.0,0.0) # red
                 GL.glLineWidth(lw+1)
             G0 = [mesh.indices_lns[n]]
             G1 = mesh.indices_fall
@@ -383,7 +386,7 @@ class Display:
         if mesh.mainmesh:
             ################ When joint is fully open, draw dahsed lines ################
             if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio==1+0.5*(mesh.pjoint.noc-2):
-                GL.glUniform3f(5,0.0,0.0,0.0) # black
+                GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
                 GL.glPushAttrib(GL.GL_ENABLE_BIT)
                 GL.glLineWidth(2)
                 GL.glLineStipple(1, 0x00FF)
@@ -395,7 +398,7 @@ class Display:
 
     def unfabricatable(self):
         col = [1.0, 0.8, 0.5] # orange
-        GL.glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
         for n in range(self.joint.noc):
             if not self.joint.mesh.eval.fab_direction_ok[n]:
                 G0 = [self.joint.mesh.indices_fall[n]]
@@ -407,14 +410,14 @@ class Display:
     def unconnected(self):
         # 1. Draw hidden geometry
         col = [1.0, 0.8, 0.7]  # light red orange
-        GL.glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
         for n in range(self.joint.mesh.pjoint.noc):
             if not self.joint.mesh.eval.connected[n]:
                 self.draw_geometries([self.joint.mesh.indices_not_fcon[n]])
 
         # 1. Draw visible geometry
         col = [1.0, 0.2, 0.0] # red orange
-        GL.glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
         G0 = self.joint.mesh.indices_not_fcon
         G1 = self.joint.mesh.indices_fcon
         self.draw_geometries_with_excluded_area(G0,G1)
@@ -426,7 +429,7 @@ class Display:
                 for m in range(2): # browse the two parts
                     # a) Unbridge part 1
                     col = self.view.unbridge_colors[n][m]
-                    GL.glUniform3f(5, col[0], col[1], col[2])
+                    GL.glUniform3f(self.myColor, col[0], col[1], col[2])
                     G0 = [self.joint.mesh.indices_not_fbridge[n][m]]
                     G1 = [self.joint.mesh.indices_not_fbridge[n][1 - m],
                           self.joint.mesh.indices_fall[1 - n],
@@ -435,20 +438,20 @@ class Display:
 
     def checker(self):
         # 1. Draw hidden geometry
-        GL.glUniform3f(5, 1.0, 0.2, 0.0) # red orange
+        GL.glUniform3f(self.myColor, 1.0, 0.2, 0.0) # red orange
         GL.glLineWidth(8)
         for n in range(self.joint.mesh.pjoint.noc):
             if self.joint.mesh.eval.checker[n]:
                 self.draw_geometries([self.joint.mesh.indices_chess_lines[n]])
-        GL.glUniform3f(5, 0.0, 0.0, 0.0) # back to black
+        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # back to black
 
     def arrows(self):
         #glClear(GL_DEPTH_BUFFER_BIT)
-        GL.glUniform3f(5, 0.0, 0.0, 0.0)
+        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)
         ############################## Direction arrows ################################
         for n in range(self.joint.noc):
-            if (self.joint.mesh.eval.interlocks[n]): GL.glUniform3f(5, 0.0, 0.0, 0.0) # black
-            else: GL.glUniform3f(5,1.0,0.0,0.0) # red
+            if (self.joint.mesh.eval.interlocks[n]): GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # black
+            else: GL.glUniform3f(self.myColor,1.0,0.0,0.0) # red
             GL.glLineWidth(3)
             G1 = self.joint.mesh.indices_fall
             G0 = self.joint.mesh.indices_arrows[n]
@@ -463,13 +466,13 @@ class Display:
     def nondurable(self):
         # 1. Draw hidden geometry
         col = [1.0, 1.0, 0.8] # super light yellow
-        GL.glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
         for n in range(self.joint.noc):
             self.draw_geometries_with_excluded_area([self.joint.mesh.indices_fbrk[n]], [self.joint.mesh.indices_not_fbrk[n]])
 
         # Draw visible geometry
         col = [1.0, 1.0, 0.4] # light yellow
-        GL.glUniform3f(5, col[0], col[1], col[2])
+        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
         self.draw_geometries_with_excluded_area(self.joint.mesh.indices_fbrk, self.joint.mesh.indices_not_fbrk)
 
     def milling_paths(self):
@@ -479,7 +482,7 @@ class Display:
             GL.glLineWidth(3)
             for n in range(self.joint.noc):
                 if self.joint.mesh.eval.fab_direction_ok[n]:
-                    GL.glUniform3f(5,cols[n][0],cols[n][1],cols[n][2])
+                    GL.glUniform3f(self.myColor,cols[n][0],cols[n][1],cols[n][2])
                     self.draw_geometries([self.joint.mesh.indices_milling_path[n]])
 
     def resizeEvent(self, event):

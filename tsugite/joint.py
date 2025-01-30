@@ -17,7 +17,8 @@ import utils as Utils
 # this remains here for now because it is using other classes
 
 class Joint:
-    def __init__(self, pwidget, fs=[], sax=2, dim=3, ang=0.0, td=[44.0, 44.0, 44.0], fspe=400, fspi=6000, fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
+    def __init__(self, pwidget, fs=[], sax=2, dim=3, ang=0.0, td=[44.0, 44.0, 44.0], fspe=400, fspi=6000,
+                 fabtol=0.15, fabdia=6.00, align_ax=0, fabext="gcode", incremental=False, hfs=[], finterp=True):
         self.pwidget=pwidget
         self.sax = sax
         self.fixed = FixedSides(self)
