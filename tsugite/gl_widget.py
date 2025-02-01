@@ -14,7 +14,12 @@ from display import Display
 
 class GLWidget(qgl.QGLWidget):
     def __init__(self, main_window=None, *args):
-        super().__init__(main_window, *args)
+        fmt = qgl.QGLFormat()
+        fmt.setVersion(4, 1)
+        fmt.setProfile(qgl.QGLFormat.CoreProfile)
+        fmt.setSampleBuffers(True)
+
+        super().__init__(fmt, main_window, *args)
 
         self.parent = main_window
         # self.setMinimumSize(800, 800)
@@ -43,6 +48,10 @@ class GLWidget(qgl.QGLWidget):
         # the shapes are basically behind the white background
         # if you enabled face culling, they will not show
         # GL.glEnable(GL.GL_CULL_FACE)
+
+        # get version numbers
+        self.major = GL.glGetInteger(GL.GL_MAJOR_VERSION)
+        self.minor = GL.glGetInteger(GL.GL_MINOR_VERSION)
 
     def clear(self):
         # color it white for better visibility
@@ -74,6 +83,7 @@ class GLWidget(qgl.QGLWidget):
 
         # joint and display objects are related to OpenGL hence initialized here
         # instead of the __init__
+
         self.joint = Joint(self, fs=[[[2, 0]], [[2, 1]]], sax=sax, dim=dim, ang=ang, td=[dx, dy, dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
         self.display = Display(self, self.joint)
 

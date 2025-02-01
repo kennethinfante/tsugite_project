@@ -17,6 +17,9 @@ class Display:
         self.create_color_shaders()
         self.create_texture_shaders()
 
+        self.major = self.pwidget.major
+        self.minor = self.pwidget.minor
+
     def create_color_shaders(self):
         """
         Note values explicity attrib and uniform locations are only availabl ein GL 3.3 and 4.3 respectively
@@ -24,7 +27,7 @@ class Display:
         """
 
         vertex_shader = """
-        #version 150
+        #version %d%d0
         #extension GL_ARB_explicit_attrib_location : require
         #extension GL_ARB_explicit_uniform_location : require
         layout(location = 0) in vec3 position;
@@ -44,7 +47,7 @@ class Display:
         """
 
         fragment_shader = """
-        #version 150
+        #version %d%d0
         in vec3 newColor;
         in vec2 outTexCoords;
         out vec4 outColor;
@@ -55,12 +58,13 @@ class Display:
         }
         """
         # Compiling the shaders
-        self.shader_col = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
-                                                  GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
+        self.shader_col = GLSH.compileProgram(
+                    GLSH.compileShader(vertex_shader % (self.major, self.minor), GL.GL_VERTEX_SHADER),
+                    GLSH.compileShader(fragment_shader % (self.major, self.minor), GL.GL_FRAGMENT_SHADER))
 
     def create_texture_shaders(self):
         vertex_shader = """
-        #version 150
+        #version %d%d0
         #extension GL_ARB_explicit_attrib_location : require
         #extension GL_ARB_explicit_uniform_location : require
         layout(location = 0) in vec3 position;
@@ -79,7 +83,7 @@ class Display:
         """
 
         fragment_shader = """
-        #version 150
+        #version %d%d0
         in vec3 newColor;
         in vec2 outTexCoords;
         out vec4 outColor;
@@ -92,8 +96,9 @@ class Display:
 
 
         # Compiling the shaders
-        self.shader_tex = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
-                                                  GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
+        self.shader_tex = GLSH.compileProgram(
+                    GLSH.compileShader(vertex_shader % (self.major, self.minor), GL.GL_VERTEX_SHADER),
+                    GLSH.compileShader(fragment_shader % (self.major, self.minor), GL.GL_FRAGMENT_SHADER))
 
     def update(self):
         self.current_program = self.shader_col
