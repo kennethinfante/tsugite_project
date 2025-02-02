@@ -16,7 +16,8 @@ class GLWidget(qgl.QGLWidget):
     def __init__(self, main_window=None, *args):
         fmt = qgl.QGLFormat()
         fmt.setVersion(4, 1)
-        # this is needed because of the GL_QUADS
+        # CompatibilityProfile is needed because of the GL_QUADS
+        # however, this reverts the OpenGL version to 210 and GLSL to 120
         fmt.setProfile(qgl.QGLFormat.CompatibilityProfile)
         fmt.setSampleBuffers(True)
 
@@ -51,6 +52,7 @@ class GLWidget(qgl.QGLWidget):
         # GL.glEnable(GL.GL_CULL_FACE)
 
         # get version numbers
+        # glGetInteger will only work under the CoreProfile in Mac
         self.major = GL.glGetInteger(GL.GL_MAJOR_VERSION)
         self.minor = GL.glGetInteger(GL.GL_MINOR_VERSION)
 
