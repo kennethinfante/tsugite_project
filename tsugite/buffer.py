@@ -15,12 +15,21 @@ class ElementProperties:
 class Buffer:
     def __init__(self, pjoint):
         self.pjoint = pjoint
+
+        # A VBO is a buffer of memory which the gpu can access. That's all it is.
+        # A VAO is an object that stores vertex bindings. When you call glVertexAttribPointer and friends
+        # to describe your vertex format that format information gets stored into the currently
+        # bound VAO. And when you draw it will use the vertex bindings in the currently bound VAO.
+
+        self.vao_ref = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(self.vao_ref)
+
         self.VBO = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.VBO)
 
         self.EBO = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.EBO)
-        
+
         self.vertex_no_info = 8
 
         image = Image.open("textures/end_grain.jpg")
@@ -41,7 +50,6 @@ class Buffer:
             # print("pjoint", sys.getsizeof(self.pjoint.vertices[10]))
             # print("pjoint dtype", self.pjoint.vertices.dtype)
             # print("len", len(self.pjoint.vertices)) #3512
-            # print("6 * len", cnt) #21072
             # print("nbytes", self.pjoint.vertices.nbytes) #14048, because 4 bytes each (32 bits/8),
 
             # STREAM - The data store contents will be modified once and used at most a few times.

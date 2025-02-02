@@ -16,7 +16,8 @@ class GLWidget(qgl.QGLWidget):
     def __init__(self, main_window=None, *args):
         fmt = qgl.QGLFormat()
         fmt.setVersion(4, 1)
-        fmt.setProfile(qgl.QGLFormat.CoreProfile)
+        # this is needed because of the GL_QUADS
+        fmt.setProfile(qgl.QGLFormat.CompatibilityProfile)
         fmt.setSampleBuffers(True)
 
         super().__init__(fmt, main_window, *args)
@@ -52,11 +53,6 @@ class GLWidget(qgl.QGLWidget):
         # get version numbers
         self.major = GL.glGetInteger(GL.GL_MAJOR_VERSION)
         self.minor = GL.glGetInteger(GL.GL_MINOR_VERSION)
-
-    def clear(self):
-        # color it white for better visibility
-        GL.glClearColor(255, 255, 255, 1)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
 
     def initializeGL(self):
         self.print_system_info()
@@ -95,7 +91,7 @@ class GLWidget(qgl.QGLWidget):
         self.hstep = int(0.5+h/4)
 
     def paintGL(self):
-        self.clear()
+        self.display.clear_gl()
 
         # technically not needed because it is part of fixed pipeline
         # https://stackoverflow.com/questions/21112570/opengl-changing-from-fixed-functions-to-programmable-pipeline

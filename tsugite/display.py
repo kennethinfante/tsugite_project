@@ -14,11 +14,13 @@ class Display:
         self.pwidget = pwidget
         self.joint = joint
         self.view = ViewSettings()
-        self.create_color_shaders()
-        self.create_texture_shaders()
 
         self.major = self.pwidget.major
         self.minor = self.pwidget.minor
+
+        self.create_color_shaders()
+        self.create_texture_shaders()
+
 
     def create_color_shaders(self):
         """
@@ -100,6 +102,11 @@ class Display:
                     GLSH.compileShader(vertex_shader % (self.major, self.minor), GL.GL_VERTEX_SHADER),
                     GLSH.compileShader(fragment_shader % (self.major, self.minor), GL.GL_FRAGMENT_SHADER))
 
+    def clear_gl(self):
+        # color it white for better visibility
+        GL.glClearColor(255, 255, 255, 1)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+
     def update(self):
         self.current_program = self.shader_col
         GL.glUseProgram(self.current_program)
@@ -132,6 +139,7 @@ class Display:
         self.bind_view_mat_to_shader_transform_mat()
 
     def draw_geometries(self, geos,clear_depth_buffer=True, translation_vec=np.array([0,0,0])):
+
         # Define translation matrices for opening
         move_vec = [0,0,0]
         move_vec[self.joint.sax] = self.view.open_ratio * self.joint.component_size
@@ -150,7 +158,7 @@ class Display:
             if self.view.hidden[geo.n]: continue
 
             GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
-            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(int(4*geo.start_index)))
 
     def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
         # Define translation matrices for opening
@@ -303,8 +311,19 @@ class Display:
             for face in self.joint.mesh.select.faces:
                 if self.joint.mesh.select.n==0 or self.joint.mesh.select.n==self.joint.noc-1: mos = 1
                 else: mos = 2
+                print("array: ", self.joint.mesh.indices_fpick_top)
+                print("array len: ", len(self.joint.mesh.indices_fpick_top))
+                print("index: ", self.joint.mesh.select.n)
                 index = int(self.joint.dim * face[0] + face[1])
-                top = ElementProperties(GL.GL_QUADS, 4, self.joint.mesh.indices_fpick_top[self.joint.mesh.select.n].start_index + mos * 4 * index + (mos - 1) * 4 * self.joint.mesh.select.dir, self.joint.mesh.select.n)
+
+                try:
+                    start_index = (self.joint.mesh.indices_fpick_top[self.joint.mesh.select.n].start_index +
+                                   (mos * 4 * index) + (mos - 1) * 4 * self.joint.mesh.select.dir)
+                except IndexError:
+                    start_index = (self.joint.mesh.indices_fpick_top[-1].start_index +
+                                   (mos * 4 * index) + (mos - 1) * 4 * self.joint.mesh.select.dir)
+
+                top = ElementProperties(GL.GL_QUADS, 4, start_index, self.joint.mesh.select.n)
                 #top = ElementProperties(GL_QUADS, 4, mesh.indices_fpick_top[mesh.select.n].start_index+4*index, mesh.select.n)
                 self.draw_geometries_with_excluded_area([top],G1)
         # Draw pulled face
