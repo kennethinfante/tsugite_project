@@ -9,6 +9,7 @@ import numpy as np
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
+from PyQt5.QtWidgets import QApplication
 
 # needed for inspecting np array
 np.set_printoptions(threshold=np.inf)
@@ -44,9 +45,19 @@ class MovieSplashScreen(qtw.QSplashScreen):
   
 
 #deal with dpi
-qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
-qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
+
 app = qtw.QApplication(sys.argv)
+
+screen = app.primaryScreen()
+size = screen.size()
+print('Size: %d x %d' % (size.width(), size.height()))
+ldpi = screen.logicalDotsPerInch()
+print('Logical DPI: %s' % ldpi)
+
+if ldpi >= 144:
+    qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
+    qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
+
 movie = qtg.QMovie("images/tsugite_loading_3d.gif")
 
 splash = MovieSplashScreen(movie)
