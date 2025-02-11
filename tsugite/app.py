@@ -44,18 +44,14 @@ class MovieSplashScreen(qtw.QSplashScreen):
         return self.movie.scaledSize()
   
 
-#deal with dpi
+# deal with dpi - must be set before app is created
+# win32 for windows
+
+if sys.platform == "darwin":
+    qtw.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
+    qtw.QApplication.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
+
 app = qtw.QApplication(sys.argv)
-
-screen = app.primaryScreen()
-size = screen.size()
-print('Screen Size: %d x %d' % (size.width(), size.height()))
-ldpi = int(screen.logicalDotsPerInch())
-print('Logical DPI: %d' % ldpi)
-
-if ldpi >= 144:
-    app.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True) #enable highdpi scaling
-    app.setAttribute(qtc.Qt.AA_UseHighDpiPixmaps, True) #use highdpi icons
 
 movie = qtg.QMovie("images/tsugite_loading_3d.gif")
 
