@@ -9,7 +9,7 @@ import PyQt5.QtCore as qtc
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import pyqtSlot
 
-from gl_widget import GLWidget
+from .gl_widget import GLWidget
 
 
 class MainWindow(qtw.QMainWindow):
@@ -24,7 +24,7 @@ class MainWindow(qtw.QMainWindow):
         self.title = "Tsugite"
         self.filename = MainWindow.get_untitled_filename("Untitled","tsu","_")
         self.setWindowTitle(self.filename.split(os.sep)[-1]+" - "+self.title)
-        self.setWindowIcon(qtg.QIcon("images/tsugite_icon.png"))
+        self.setWindowIcon(qtg.QIcon("../images/tsugite_icon.png"))
 
         # glWidget is a child of main_window
         self.glWidget = GLWidget(self)
@@ -85,7 +85,7 @@ class MainWindow(qtw.QMainWindow):
 
         self.btn_clear = self.findChild(qtw.QPushButton, "btn_clear")
         self.btn_clear.clicked.connect(self.clear_geometry)
-        
+
         # gallery
         # ---Fabrication
         self.spb_milling_diam = self.findChild(qtw.QDoubleSpinBox, "spb_milling_diam")
@@ -123,7 +123,7 @@ class MainWindow(qtw.QMainWindow):
 
         self.rdo_sbp = self.findChild(qtw.QRadioButton, "rdo_sbp")
         self.rdo_sbp.toggled.connect(self.set_sbp_as_standard)
-        
+
         # ---MENU
         # ---File
         self.act_new = self.findChild(qtw.QAction, "act_new")

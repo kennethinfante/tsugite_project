@@ -2,19 +2,17 @@
 
 import sys
 import time
-from math import tan, pi
 
 import numpy as np
 
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
-from PyQt5.QtWidgets import QApplication
 
 # needed for inspecting np array
 np.set_printoptions(threshold=np.inf)
 
-from main_window import MainWindow
+from ui.main_window import MainWindow
 
 class MovieSplashScreen(qtw.QSplashScreen):
 
@@ -22,19 +20,19 @@ class MovieSplashScreen(qtw.QSplashScreen):
 
         movie.jumpToFrame(0)
         pixmap =qtg.QPixmap(movie.frameRect().size())
-   
+
         qtw.QSplashScreen.__init__(self, pixmap)
         self.movie = movie
         self.movie.frameChanged.connect(self.repaint)
-    
+
     def showEvent(self, event):
         self.movie.start()
-    
+
     def hideEvent(self, event):
         self.movie.stop()
-    
+
     def paintEvent(self, event):
-    
+
         painter = qtg.QPainter(self)
         pixmap = self.movie.currentPixmap()
         self.setMask(pixmap.mask())
@@ -42,7 +40,7 @@ class MovieSplashScreen(qtw.QSplashScreen):
 
     def sizeHint(self):
         return self.movie.scaledSize()
-  
+
 
 # deal with dpi - must be set before app is created
 # win32 for windows

@@ -1,14 +1,12 @@
 import random
-import copy
 import os
 
 import numpy as np
 import OpenGL.GL as GL  # imports start with GL
 
-from selection import Selection
+from ui.selection import Selection
 from evaluation import Evaluation
 from buffer import ElementProperties
-from misc import FixedSide
 
 import utils as Utils
 
@@ -432,7 +430,7 @@ class Geometries:
         all_indices = np.concatenate([all_indices, indices])
         # Return
         return indices_prop, all_indices
-    
+
     def _milling_path_indices(self,all_indices,count,start,n):
         indices = []
         for i in range(count):
