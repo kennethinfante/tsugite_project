@@ -1,17 +1,12 @@
-import math
 import copy
-import os
 import random
-
-import numpy as np
 
 from buffer import Buffer
 from evaluation import Evaluation
 from fabrication import *
 from geometries import Geometries
-from misc import FixedSides
+from model.fixed_side import FixedSides
 
-from utils import RegionVertex
 import utils as Utils
 
 # this remains here for now because it is using other classes

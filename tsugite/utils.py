@@ -2,9 +2,9 @@ import numpy as np
 import math
 import random
 import copy
-from typing import List, Tuple, Union, Optional, Any, Dict, Set, Sequence, TypeVar, cast
+from typing import List, Tuple, Optional, Any
 
-from misc import FixedSide
+from model.fixed_side import FixedSide
 
 class RegionVertex:
     def __init__(self, ind: List[int], abs_ind: List[int], neighbors: np.ndarray,
