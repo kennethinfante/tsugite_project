@@ -1088,15 +1088,37 @@ class Display:
             self.joint.mesh.indices_not_fbrk
         )
 
+    # def milling_paths(self):
+    #     if len(self.joint.mesh.indices_milling_path)==0: self.view.show_milling_path = False
+    #     if self.view.show_milling_path:
+    #         cols = [[1.0,0,0],[0,1.0,0],[0,0,1.0],[1.0,1.0,0],[0.0,1.0,1.0],[1.0,0,1.0]]
+    #         GL.glLineWidth(3)
+    #         for n in range(self.joint.noc):
+    #             if self.joint.mesh.eval.fab_direction_ok[n]:
+    #                 GL.glUniform3f(self.myColor,cols[n][0],cols[n][1],cols[n][2])
+    #                 self.draw_geometries([self.joint.mesh.indices_milling_path[n]])
+
     def milling_paths(self):
-        if len(self.joint.mesh.indices_milling_path)==0: self.view.show_milling_path = False
+        """
+        Draw milling paths for fabricatable components.
+        """
+        if len(self.joint.mesh.indices_milling_path) == 0:
+            self.view.show_milling_path = False
+            return
+
         if self.view.show_milling_path:
-            cols = [[1.0,0,0],[0,1.0,0],[0,0,1.0],[1.0,1.0,0],[0.0,1.0,1.0],[1.0,0,1.0]]
-            GL.glLineWidth(3)
-            for n in range(self.joint.noc):
-                if self.joint.mesh.eval.fab_direction_ok[n]:
-                    GL.glUniform3f(self.myColor,cols[n][0],cols[n][1],cols[n][2])
-                    self.draw_geometries([self.joint.mesh.indices_milling_path[n]])
+            self._draw_component_milling_paths()
+
+    def _draw_component_milling_paths(self):
+        """Draw milling paths for each fabricatable component."""
+        cols = [[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0],
+                [1.0, 1.0, 0], [0.0, 1.0, 1.0], [1.0, 0, 1.0]]
+        GL.glLineWidth(3)
+
+        for n in range(self.joint.noc):
+            if self.joint.mesh.eval.fab_direction_ok[n]:
+                GL.glUniform3f(self.myColor, cols[n][0], cols[n][1], cols[n][2])
+                self.draw_geometries([self.joint.mesh.indices_milling_path[n]])
 
     def resizeEvent(self, event):
         print(' resizeEvent')
