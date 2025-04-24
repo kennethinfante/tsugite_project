@@ -733,49 +733,118 @@ class Display:
 
             GL.glPopAttrib()
 
-    def joint_geometry(self,mesh=None,lw=3,hidden=True,zoom=False):
+    # def joint_geometry(self,mesh=None,lw=3,hidden=True,zoom=False):
+    #
+    #     if mesh==None: mesh = self.joint.mesh
+    #
+    #     ############################# Draw hidden lines #############################
+    #     GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+    #     GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
+    #     GL.glPushAttrib(GL.GL_ENABLE_BIT)
+    #     GL.glLineWidth(1)
+    #     GL.glLineStipple(3, 0xAAAA) #dashed line
+    #     GL.glEnable(GL.GL_LINE_STIPPLE)
+    #     if hidden and self.view.show_hidden_lines:
+    #         for n in range(mesh.pjoint.noc):
+    #             G0 = [mesh.indices_lns[n]]
+    #             G1 = [mesh.indices_fall[n]]
+    #             self.draw_geometries_with_excluded_area(G0,G1)
+    #     GL.glPopAttrib()
+    #
+    #     ############################ Draw visible lines #############################
+    #     for n in range(mesh.pjoint.noc):
+    #         if not mesh.mainmesh or (mesh.eval.interlocks[n] and self.view.show_feedback) or not self.view.show_feedback:
+    #             GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
+    #             GL.glLineWidth(lw)
+    #         else:
+    #             GL.glUniform3f(self.myColor,1.0,0.0,0.0) # red
+    #             GL.glLineWidth(lw+1)
+    #         G0 = [mesh.indices_lns[n]]
+    #         G1 = mesh.indices_fall
+    #         self.draw_geometries_with_excluded_area(G0,G1)
+    #
+    #
+    #     if mesh.mainmesh:
+    #         ################ When joint is fully open, draw dahsed lines ################
+    #         if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio==1+0.5*(mesh.pjoint.noc-2):
+    #             GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
+    #             GL.glPushAttrib(GL.GL_ENABLE_BIT)
+    #             GL.glLineWidth(2)
+    #             GL.glLineStipple(1, 0x00FF)
+    #             GL.glEnable(GL.GL_LINE_STIPPLE)
+    #             G0 = mesh.indices_open_lines
+    #             G1 = mesh.indices_fall
+    #             self.draw_geometries_with_excluded_area(G0,G1)
+    #             GL.glPopAttrib()
 
-        if mesh==None: mesh = self.joint.mesh
+    def joint_geometry(self, mesh=None, lw=3, hidden=True, zoom=False):
+        """
+        Render the joint geometry with visible and hidden lines.
 
-        ############################# Draw hidden lines #############################
+        Args:
+            mesh: The mesh to render (defaults to joint.mesh)
+            lw: Line width for visible lines
+            hidden: Whether to show hidden lines
+            zoom: Whether to zoom in on the joint
+        """
+        if mesh is None:
+            mesh = self.joint.mesh
+
+        # Draw hidden lines if enabled
+        self._draw_hidden_lines(mesh, hidden)
+
+        # Draw visible lines for each component
+        self._draw_visible_lines(mesh, lw)
+
+        # Draw dashed lines when joint is fully open
+        if mesh.mainmesh:
+            self._draw_open_joint_lines(mesh, hidden)
+
+    def _draw_hidden_lines(self, mesh, hidden):
+        """Draw hidden lines of the joint with dashed style."""
         GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
-        GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
+        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
         GL.glPushAttrib(GL.GL_ENABLE_BIT)
         GL.glLineWidth(1)
-        GL.glLineStipple(3, 0xAAAA) #dashed line
+        GL.glLineStipple(3, 0xAAAA)  # dashed line
         GL.glEnable(GL.GL_LINE_STIPPLE)
+
         if hidden and self.view.show_hidden_lines:
             for n in range(mesh.pjoint.noc):
                 G0 = [mesh.indices_lns[n]]
                 G1 = [mesh.indices_fall[n]]
-                self.draw_geometries_with_excluded_area(G0,G1)
+                self.draw_geometries_with_excluded_area(G0, G1)
+
         GL.glPopAttrib()
 
-        ############################ Draw visible lines #############################
+    def _draw_visible_lines(self, mesh, lw):
+        """Draw visible lines of the joint."""
         for n in range(mesh.pjoint.noc):
             if not mesh.mainmesh or (mesh.eval.interlocks[n] and self.view.show_feedback) or not self.view.show_feedback:
-                GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
+                GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
                 GL.glLineWidth(lw)
             else:
-                GL.glUniform3f(self.myColor,1.0,0.0,0.0) # red
+                GL.glUniform3f(self.myColor, 1.0, 0.0, 0.0)  # red
                 GL.glLineWidth(lw+1)
+
             G0 = [mesh.indices_lns[n]]
             G1 = mesh.indices_fall
-            self.draw_geometries_with_excluded_area(G0,G1)
+            self.draw_geometries_with_excluded_area(G0, G1)
 
+    def _draw_open_joint_lines(self, mesh, hidden):
+        """Draw dashed lines when joint is fully open."""
+        if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio == 1 + 0.5 * (mesh.pjoint.noc - 2):
+            GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
+            GL.glPushAttrib(GL.GL_ENABLE_BIT)
+            GL.glLineWidth(2)
+            GL.glLineStipple(1, 0x00FF)
+            GL.glEnable(GL.GL_LINE_STIPPLE)
 
-        if mesh.mainmesh:
-            ################ When joint is fully open, draw dahsed lines ################
-            if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio==1+0.5*(mesh.pjoint.noc-2):
-                GL.glUniform3f(self.myColor,0.0,0.0,0.0) # black
-                GL.glPushAttrib(GL.GL_ENABLE_BIT)
-                GL.glLineWidth(2)
-                GL.glLineStipple(1, 0x00FF)
-                GL.glEnable(GL.GL_LINE_STIPPLE)
-                G0 = mesh.indices_open_lines
-                G1 = mesh.indices_fall
-                self.draw_geometries_with_excluded_area(G0,G1)
-                GL.glPopAttrib()
+            G0 = mesh.indices_open_lines
+            G1 = mesh.indices_fall
+            self.draw_geometries_with_excluded_area(G0, G1)
+
+            GL.glPopAttrib()
 
     def unfabricatable(self):
         col = [1.0, 0.8, 0.5] # orange
