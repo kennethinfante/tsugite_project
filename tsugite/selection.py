@@ -151,266 +151,320 @@ class Selection:
         self.state = -1
         self.new_fixed_sides_for_display = None
 
-    def move(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600): # actually move OR rotate
-        sax = self.pgeom.pjoint.sax
-        noc = self.pgeom.pjoint.noc
-        self.new_fixed_sides = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
-        self.new_fixed_sides_for_display = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
-        self.current_pos = np.array([mouse_pos[0],h-mouse_pos[1]])
-        ## Mouse vector
-        mouse_vec = np.array(self.current_pos-self.start_pos)
-        mouse_vec = mouse_vec.astype(float)
-        mouse_vec[0] = 2*mouse_vec[0]/w
-        mouse_vec[1] = 2*mouse_vec[1]/h
-        ## Check that the move distance is above some threshold
-        move_dist = np.linalg.norm(mouse_vec)
-        if move_dist>0.01:
-            ## Get component direction vector
-            comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax # component axis
-            comp_dir = self.pgeom.pjoint.fixed.sides[self.n][0].dir
-            comp_len = 2.5*(2*comp_dir-1)*self.pgeom.pjoint.component_size
-            comp_vec = comp_len * Utils.unitize(self.pgeom.pjoint.pos_vecs[comp_ax])
-            ## Flatten vector to screen
-            rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
-            rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
-            comp_vec = np.dot(comp_vec,rot_x*rot_y)
-            comp_vec = np.delete(comp_vec,2) # delete Z-value
-            ## Calculate angle between mouse vector and component vector
-            ang = Utils.angle_between_vectors1(mouse_vec, comp_vec, direction=True)
-            oax = None
-            absang = abs(ang)%180
-            if absang>45 and absang<135: # Timber rotation mode
-                # Check plane of rotating by checking which axis the vector is more aligned to
-                other_axes = [0,1,2]
-                other_axes.pop(comp_ax)
-                # The axis that is flatter to the scren will be processed
-                maxlen = 0
-                for i in range(len(other_axes)):
-                    other_vec = [0,0,0]
-                    other_vec[other_axes[i]]=1
-                    ## Flatten vector to screen
-                    other_vec = np.dot(other_vec,rot_x*rot_y)
-                    other_vec = np.delete(other_vec,2) # delete Z-value
-                    ## Check length
-                    other_length = np.linalg.norm(other_vec)
-                    if other_length>maxlen:
-                        maxlen = other_length
-                        oax = other_axes[i]
-                # check rotation direction
-                clockwise = True
-                if ang<0: clockwise = False
-                #screen_direction
-                lax = [0,1,2]
-                lax.remove(comp_ax)
-                lax.remove(oax)
-                lax = lax[0]
-                screen_dir = 1
-                screen_vec = self.pgeom.pjoint.pos_vecs[lax]
-                screen_vec = np.dot(screen_vec,rot_x*rot_y)
-                if screen_vec[2]<0: screen_dir=-1
-                ###
-                self.new_fixed_sides_for_display = []
-                for i in range(len(self.pgeom.pjoint.fixed.sides[self.n])):
-                    ndir = self.pgeom.pjoint.fixed.sides[self.n][i].dir
-                    ordered = False
-                    if comp_ax<oax and oax-comp_ax==1: ordered=True
-                    elif oax<comp_ax and comp_ax-oax==2: ordered=True
-                    if (clockwise and not ordered) or (not clockwise and ordered):
-                        ndir=1-ndir
-                    if screen_dir>0: ndir=1-ndir
-                    side = FixedSide(oax,ndir)
-                    self.new_fixed_sides_for_display.append(side)
-                    if side.ax==sax and side.dir==0 and self.n!=0: blocked=True; break
-                    if side.ax==sax and side.dir==1 and self.n!=noc-1: blocked=True; break
-            else: # Timber moveing mode
-                length_ratio = np.linalg.norm(mouse_vec)/np.linalg.norm(comp_vec)
-                side_num = len(self.pgeom.pjoint.fixed.sides[self.n])
-                if side_num==1 and absang>135: #currently L
-                    if length_ratio<0.5: # moved just a bit, L to T
-                        self.new_fixed_sides_for_display = [FixedSide(comp_ax,0),FixedSide(comp_ax,1)]
-                    elif length_ratio<2.0: # moved a lot, L to other L
-                        self.new_fixed_sides_for_display = [FixedSide(comp_ax,1-comp_dir)]
-                elif side_num==2: # currently T
-                    if absang>135: self.new_fixed_sides_for_display = [FixedSide(comp_ax,1)] # positive direction
-                    else: self.new_fixed_sides_for_display = [FixedSide(comp_ax,0)] # negative direction                            self.new_fixed_sides_for_display = [FixedSide(comp_ax,0)]
-            # check if the direction is blocked
-            blocked = False
-            for side in self.new_fixed_sides_for_display:
-                if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
-                    if side.unique(self.pgeom.pjoint.fixed.unblocked):
-                        blocked=True
-            if blocked:
-                all_same = True
-                for side in self.new_fixed_sides_for_display:
-                    if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
-                        all_same=False
-                if all_same: blocked = False
-            if not blocked: self.new_fixed_sides = self.new_fixed_sides_for_display
-        if not np.equal(self.pgeom.pjoint.fixed.sides[self.n], np.array(self.new_fixed_sides_for_display)).all():
-            self.pgeom.pjoint.combine_and_buffer_indices()# for move/rotate preview outline # can't you show this by tansformation instead?
-
-
-    # REFACTOR
-    # def move(self, mouse_pos, screen_xrot, screen_yrot, w=1600, h=1600):
+    # def move(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600): # actually move OR rotate
     #     sax = self.pgeom.pjoint.sax
     #     noc = self.pgeom.pjoint.noc
     #     self.new_fixed_sides = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
     #     self.new_fixed_sides_for_display = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
-    #
-    #     # Calculate mouse vector
-    #     self.current_pos = np.array([mouse_pos[0], h-mouse_pos[1]])
-    #     mouse_vec = self._calculate_mouse_vector(w, h)
-    #
-    #     # Check that the move distance is above some threshold
-    #     move_dist = np.linalg.norm(mouse_vec)
-    #     if move_dist <= 0.01:
-    #         return
-    #
-    #     # Get component direction vector
-    #     comp_ax, comp_dir, comp_vec = self._get_component_vector(screen_xrot, screen_yrot)
-    #
-    #     # Calculate angle between mouse vector and component vector
-    #     ang = Utils.angle_between_vectors1(mouse_vec, comp_vec, direction=True)
-    #     absang = abs(ang) % 180
-    #
-    #     # Determine if we're in rotation or movement mode
-    #     if absang > 45 and absang < 135:
-    #         self._handle_rotation_mode(comp_ax, ang, screen_xrot, screen_yrot)
-    #     else:
-    #         self._handle_movement_mode(comp_ax, comp_dir, absang, mouse_vec, comp_vec)
-    #
-    #     # Check if the direction is blocked
-    #     if not self._is_movement_blocked():
-    #         self.new_fixed_sides = self.new_fixed_sides_for_display
-    #
-    #     # Update display if needed
-    #     if not np.equal(self.pgeom.pjoint.fixed.sides[self.n], np.array(self.new_fixed_sides_for_display)).all():
-    #         self.pgeom.pjoint.combine_and_buffer_indices()
-    #
-    # def _calculate_mouse_vector(self, w, h):
-    #     mouse_vec = np.array(self.current_pos - self.start_pos)
+    #     self.current_pos = np.array([mouse_pos[0],h-mouse_pos[1]])
+    #     ## Mouse vector
+    #     mouse_vec = np.array(self.current_pos-self.start_pos)
     #     mouse_vec = mouse_vec.astype(float)
-    #     mouse_vec[0] = 2 * mouse_vec[0] / w
-    #     mouse_vec[1] = 2 * mouse_vec[1] / h
-    #     return mouse_vec
-    #
-    # def _get_component_vector(self, screen_xrot, screen_yrot):
-    #     comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax  # component axis
-    #     comp_dir = self.pgeom.pjoint.fixed.sides[self.n][0].dir
-    #     comp_len = 2.5 * (2 * comp_dir - 1) * self.pgeom.pjoint.component_size
-    #     comp_vec = comp_len * Utils.unitize(self.pgeom.pjoint.pos_vecs[comp_ax])
-    #
-    #     # Flatten vector to screen
-    #     rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
-    #     rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
-    #     comp_vec = np.dot(comp_vec, rot_x * rot_y)
-    #     comp_vec = np.delete(comp_vec, 2)  # delete Z-value
-    #
-    #     return comp_ax, comp_dir, comp_vec
-    #
-    # def _handle_rotation_mode(self, comp_ax, ang, screen_xrot, screen_yrot):
-    #     # Find rotation axis
-    #     oax = self._find_rotation_axis(comp_ax, screen_xrot, screen_yrot)
-    #
-    #     # Determine rotation direction
-    #     clockwise = ang >= 0
-    #
-    #     # Get screen direction
-    #     screen_dir = self._get_screen_direction(comp_ax, oax, screen_xrot, screen_yrot)
-    #
-    #     # Create new fixed sides for rotation
-    #     self.new_fixed_sides_for_display = []
-    #     for i in range(len(self.pgeom.pjoint.fixed.sides[self.n])):
-    #         ndir = self.pgeom.pjoint.fixed.sides[self.n][i].dir
-    #         ordered = self._is_ordered_axes(comp_ax, oax)
-    #
-    #         if (clockwise and not ordered) or (not clockwise and ordered):
-    #             ndir = 1 - ndir
-    #         if screen_dir > 0:
-    #             ndir = 1 - ndir
-    #
-    #         side = FixedSide(oax, ndir)
-    #         self.new_fixed_sides_for_display.append(side)
-    #
-    # def _find_rotation_axis(self, comp_ax, screen_xrot, screen_yrot):
-    #     other_axes = [0, 1, 2]
-    #     other_axes.pop(comp_ax)
-    #
-    #     # The axis that is flatter to the screen will be processed
-    #     maxlen = 0
-    #     oax = None
-    #     rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
-    #     rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
-    #
-    #     for i in range(len(other_axes)):
-    #         other_vec = [0, 0, 0]
-    #         other_vec[other_axes[i]] = 1
-    #
-    #         # Flatten vector to screen
-    #         other_vec = np.dot(other_vec, rot_x * rot_y)
-    #         other_vec = np.delete(other_vec, 2)  # delete Z-value
-    #
-    #         # Check length
-    #         other_length = np.linalg.norm(other_vec)
-    #         if other_length > maxlen:
-    #             maxlen = other_length
-    #             oax = other_axes[i]
-    #
-    #     return oax
-    #
-    # def _is_ordered_axes(self, comp_ax, oax):
-    #     ordered = False
-    #     if comp_ax < oax and oax - comp_ax == 1:
-    #         ordered = True
-    #     elif oax < comp_ax and comp_ax - oax == 2:
-    #         ordered = True
-    #     return ordered
-    #
-    # def _get_screen_direction(self, comp_ax, oax, screen_xrot, screen_yrot):
-    #     lax = [0, 1, 2]
-    #     lax.remove(comp_ax)
-    #     lax.remove(oax)
-    #     lax = lax[0]
-    #
-    #     screen_dir = 1
-    #     screen_vec = self.pgeom.pjoint.pos_vecs[lax]
-    #     rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
-    #     rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
-    #     screen_vec = np.dot(screen_vec, rot_x * rot_y)
-    #
-    #     if screen_vec[2] < 0:
-    #         screen_dir = -1
-    #
-    #     return screen_dir
-    #
-    # def _handle_movement_mode(self, comp_ax, comp_dir, absang, mouse_vec, comp_vec):
-    #     length_ratio = np.linalg.norm(mouse_vec) / np.linalg.norm(comp_vec)
-    #     side_num = len(self.pgeom.pjoint.fixed.sides[self.n])
-    #
-    #     if side_num == 1 and absang > 135:  # currently L
-    #         if length_ratio < 0.5:  # moved just a bit, L to T
-    #             self.new_fixed_sides_for_display = [FixedSide(comp_ax, 0), FixedSide(comp_ax, 1)]
-    #         elif length_ratio < 2.0:  # moved a lot, L to other L
-    #             self.new_fixed_sides_for_display = [FixedSide(comp_ax, 1 - comp_dir)]
-    #     elif side_num == 2:  # currently T
-    #         if absang > 135:
-    #             self.new_fixed_sides_for_display = [FixedSide(comp_ax, 1)]  # positive direction
-    #         else:
-    #             self.new_fixed_sides_for_display = [FixedSide(comp_ax, 0)]  # negative direction
-    #
-    # def _is_movement_blocked(self):
-    #     blocked = False
-    #     for side in self.new_fixed_sides_for_display:
-    #         if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
-    #             if side.unique(self.pgeom.pjoint.fixed.unblocked):
-    #                 blocked = True
-    #
-    #     if blocked:
-    #         all_same = True
+    #     mouse_vec[0] = 2*mouse_vec[0]/w
+    #     mouse_vec[1] = 2*mouse_vec[1]/h
+    #     ## Check that the move distance is above some threshold
+    #     move_dist = np.linalg.norm(mouse_vec)
+    #     if move_dist>0.01:
+    #         ## Get component direction vector
+    #         comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax # component axis
+    #         comp_dir = self.pgeom.pjoint.fixed.sides[self.n][0].dir
+    #         comp_len = 2.5*(2*comp_dir-1)*self.pgeom.pjoint.component_size
+    #         comp_vec = comp_len * Utils.unitize(self.pgeom.pjoint.pos_vecs[comp_ax])
+    #         ## Flatten vector to screen
+    #         rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
+    #         rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
+    #         comp_vec = np.dot(comp_vec,rot_x*rot_y)
+    #         comp_vec = np.delete(comp_vec,2) # delete Z-value
+    #         ## Calculate angle between mouse vector and component vector
+    #         ang = Utils.angle_between_vectors1(mouse_vec, comp_vec, direction=True)
+    #         oax = None
+    #         absang = abs(ang)%180
+    #         if absang>45 and absang<135: # Timber rotation mode
+    #             # Check plane of rotating by checking which axis the vector is more aligned to
+    #             other_axes = [0,1,2]
+    #             other_axes.pop(comp_ax)
+    #             # The axis that is flatter to the scren will be processed
+    #             maxlen = 0
+    #             for i in range(len(other_axes)):
+    #                 other_vec = [0,0,0]
+    #                 other_vec[other_axes[i]]=1
+    #                 ## Flatten vector to screen
+    #                 other_vec = np.dot(other_vec,rot_x*rot_y)
+    #                 other_vec = np.delete(other_vec,2) # delete Z-value
+    #                 ## Check length
+    #                 other_length = np.linalg.norm(other_vec)
+    #                 if other_length>maxlen:
+    #                     maxlen = other_length
+    #                     oax = other_axes[i]
+    #             # check rotation direction
+    #             clockwise = True
+    #             if ang<0: clockwise = False
+    #             #screen_direction
+    #             lax = [0,1,2]
+    #             lax.remove(comp_ax)
+    #             lax.remove(oax)
+    #             lax = lax[0]
+    #             screen_dir = 1
+    #             screen_vec = self.pgeom.pjoint.pos_vecs[lax]
+    #             screen_vec = np.dot(screen_vec,rot_x*rot_y)
+    #             if screen_vec[2]<0: screen_dir=-1
+    #             ###
+    #             self.new_fixed_sides_for_display = []
+    #             for i in range(len(self.pgeom.pjoint.fixed.sides[self.n])):
+    #                 ndir = self.pgeom.pjoint.fixed.sides[self.n][i].dir
+    #                 ordered = False
+    #                 if comp_ax<oax and oax-comp_ax==1: ordered=True
+    #                 elif oax<comp_ax and comp_ax-oax==2: ordered=True
+    #                 if (clockwise and not ordered) or (not clockwise and ordered):
+    #                     ndir=1-ndir
+    #                 if screen_dir>0: ndir=1-ndir
+    #                 side = FixedSide(oax,ndir)
+    #                 self.new_fixed_sides_for_display.append(side)
+    #                 if side.ax==sax and side.dir==0 and self.n!=0: blocked=True; break
+    #                 if side.ax==sax and side.dir==1 and self.n!=noc-1: blocked=True; break
+    #         else: # Timber moveing mode
+    #             length_ratio = np.linalg.norm(mouse_vec)/np.linalg.norm(comp_vec)
+    #             side_num = len(self.pgeom.pjoint.fixed.sides[self.n])
+    #             if side_num==1 and absang>135: #currently L
+    #                 if length_ratio<0.5: # moved just a bit, L to T
+    #                     self.new_fixed_sides_for_display = [FixedSide(comp_ax,0),FixedSide(comp_ax,1)]
+    #                 elif length_ratio<2.0: # moved a lot, L to other L
+    #                     self.new_fixed_sides_for_display = [FixedSide(comp_ax,1-comp_dir)]
+    #             elif side_num==2: # currently T
+    #                 if absang>135: self.new_fixed_sides_for_display = [FixedSide(comp_ax,1)] # positive direction
+    #                 else: self.new_fixed_sides_for_display = [FixedSide(comp_ax,0)] # negative direction                            self.new_fixed_sides_for_display = [FixedSide(comp_ax,0)]
+    #         # check if the direction is blocked
+    #         blocked = False
     #         for side in self.new_fixed_sides_for_display:
     #             if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
-    #                 all_same = False
-    #         if all_same:
-    #             blocked = False
-    #
-    #     return blocked
+    #                 if side.unique(self.pgeom.pjoint.fixed.unblocked):
+    #                     blocked=True
+    #         if blocked:
+    #             all_same = True
+    #             for side in self.new_fixed_sides_for_display:
+    #                 if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
+    #                     all_same=False
+    #             if all_same: blocked = False
+    #         if not blocked: self.new_fixed_sides = self.new_fixed_sides_for_display
+    #     if not np.equal(self.pgeom.pjoint.fixed.sides[self.n], np.array(self.new_fixed_sides_for_display)).all():
+    #         self.pgeom.pjoint.combine_and_buffer_indices()# for move/rotate preview outline # can't you show this by tansformation instead?
+
+    def move(self, mouse_pos, screen_xrot, screen_yrot, w=1600, h=1600):
+        """Handle component movement or rotation based on mouse position."""
+        # Initialize component data
+        sax = self.pgeom.pjoint.sax
+        noc = self.pgeom.pjoint.noc
+        self.new_fixed_sides = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
+        self.new_fixed_sides_for_display = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
+
+        # Calculate mouse movement
+        self.current_pos = np.array([mouse_pos[0], h - mouse_pos[1]])
+        mouse_vec = self._calculate_mouse_vector(w, h)
+
+        # Only process if movement is significant
+        move_dist = np.linalg.norm(mouse_vec)
+        if move_dist > 0.01:
+            # Get component direction data
+            comp_ax, comp_dir, comp_vec = self._get_component_vector(screen_xrot, screen_yrot)
+
+            # Calculate angle between mouse vector and component vector
+            ang = Utils.angle_between_vectors1(mouse_vec, comp_vec, direction=True)
+            absang = abs(ang) % 180
+
+            # Determine if we're rotating or moving
+            if self._is_rotation_mode(absang):
+                self._handle_rotation(ang, comp_ax, screen_xrot, screen_yrot, sax)
+            else:
+                self._handle_movement(absang, comp_ax, comp_dir, comp_vec, mouse_vec)
+
+            # Check if the new position is blocked
+            if not self._is_position_blocked():
+                self.new_fixed_sides = self.new_fixed_sides_for_display
+
+        # Update display if needed
+        self._update_display_if_changed()
+
+    def _calculate_mouse_vector(self, w, h):
+        """Calculate normalized mouse movement vector."""
+        mouse_vec = np.array(self.current_pos - self.start_pos)
+        mouse_vec = mouse_vec.astype(float)
+        mouse_vec[0] = 2 * mouse_vec[0] / w
+        mouse_vec[1] = 2 * mouse_vec[1] / h
+        return mouse_vec
+
+    def _get_component_vector(self, screen_xrot, screen_yrot):
+        """Get component axis, direction and screen-space vector."""
+        comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax  # component axis
+        comp_dir = self.pgeom.pjoint.fixed.sides[self.n][0].dir
+        comp_len = 2.5 * (2 * comp_dir - 1) * self.pgeom.pjoint.component_size
+        comp_vec = comp_len * Utils.unitize(self.pgeom.pjoint.pos_vecs[comp_ax])
+
+        # Flatten vector to screen
+        rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
+        rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
+        comp_vec = np.dot(comp_vec, rot_x * rot_y)
+        comp_vec = np.delete(comp_vec, 2)  # delete Z-value
+
+        return comp_ax, comp_dir, comp_vec
+
+    def _is_rotation_mode(self, absang):
+        """Determine if we're in rotation mode based on angle."""
+        return 45 < absang < 135
+
+    def _handle_rotation(self, ang, comp_ax, screen_xrot, screen_yrot, sax):
+        """Handle timber rotation logic."""
+        # Find rotation axis (the axis most aligned with screen)
+        oax = self._find_rotation_axis(comp_ax, screen_xrot, screen_yrot)
+
+        # Determine rotation direction
+        clockwise = ang >= 0
+
+        # Get screen direction for correct rotation visualization
+        screen_dir = self._get_screen_direction(comp_ax, oax, screen_xrot, screen_yrot)
+
+        # Calculate new fixed sides based on rotation
+        self.new_fixed_sides_for_display = self._calculate_rotated_sides(
+            comp_ax, oax, clockwise, screen_dir, sax
+        )
+
+    def _find_rotation_axis(self, comp_ax, screen_xrot, screen_yrot):
+        """Find the axis to rotate around (the one most aligned with screen)."""
+        other_axes = [0, 1, 2]
+        other_axes.pop(comp_ax)
+
+        rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
+        rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
+
+        # The axis that is flatter to the screen will be processed
+        maxlen = 0
+        oax = None
+
+        for i in range(len(other_axes)):
+            other_vec = [0, 0, 0]
+            other_vec[other_axes[i]] = 1
+
+            # Flatten vector to screen
+            other_vec = np.dot(other_vec, rot_x * rot_y)
+            other_vec = np.delete(other_vec, 2)  # delete Z-value
+
+            # Check length
+            other_length = np.linalg.norm(other_vec)
+            if other_length > maxlen:
+                maxlen = other_length
+                oax = other_axes[i]
+
+        return oax
+
+    def _get_screen_direction(self, comp_ax, oax, screen_xrot, screen_yrot):
+        """Get screen direction for correct rotation visualization."""
+        lax = [0, 1, 2]
+        lax.remove(comp_ax)
+        lax.remove(oax)
+        lax = lax[0]
+
+        rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
+        rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
+
+        screen_dir = 1
+        screen_vec = self.pgeom.pjoint.pos_vecs[lax]
+        screen_vec = np.dot(screen_vec, rot_x * rot_y)
+
+        if screen_vec[2] < 0:
+            screen_dir = -1
+
+        return screen_dir
+
+    def _calculate_rotated_sides(self, comp_ax, oax, clockwise, screen_dir, sax):
+        """Calculate new fixed sides after rotation."""
+        new_sides = []
+        blocked = False
+        noc = self.pgeom.pjoint.noc
+
+        for i in range(len(self.pgeom.pjoint.fixed.sides[self.n])):
+            ndir = self.pgeom.pjoint.fixed.sides[self.n][i].dir
+
+            # Determine if axes are in ordered sequence
+            ordered = False
+            if comp_ax < oax and oax - comp_ax == 1:
+                ordered = True
+            elif oax < comp_ax and comp_ax - oax == 2:
+                ordered = True
+
+            # Adjust direction based on rotation
+            if (clockwise and not ordered) or (not clockwise and ordered):
+                ndir = 1 - ndir
+
+            # Adjust for screen direction
+            if screen_dir > 0:
+                ndir = 1 - ndir
+
+            side = FixedSide(oax, ndir)
+            new_sides.append(side)
+
+            # Check if rotation is blocked by sliding axis constraints
+            if side.ax == sax and side.dir == 0 and self.n != 0:
+                blocked = True
+                break
+            if side.ax == sax and side.dir == 1 and self.n != noc - 1:
+                blocked = True
+                break
+
+        return new_sides if not blocked else self.pgeom.pjoint.fixed.sides[self.n]
+
+    def _handle_movement(self, absang, comp_ax, comp_dir, comp_vec, mouse_vec):
+        """Handle timber movement logic."""
+        length_ratio = np.linalg.norm(mouse_vec) / np.linalg.norm(comp_vec)
+        side_num = len(self.pgeom.pjoint.fixed.sides[self.n])
+
+        if side_num == 1 and absang > 135:  # Currently L
+            self._handle_L_movement(comp_ax, comp_dir, length_ratio)
+        elif side_num == 2:  # Currently T
+            self._handle_T_movement(comp_ax, absang)
+
+    def _handle_L_movement(self, comp_ax, comp_dir, length_ratio):
+        """Handle movement for L-shaped configuration."""
+        if length_ratio < 0.5:  # Moved just a bit, L to T
+            self.new_fixed_sides_for_display = [
+                FixedSide(comp_ax, 0),
+                FixedSide(comp_ax, 1)
+            ]
+        elif length_ratio < 2.0:  # Moved a lot, L to other L
+            self.new_fixed_sides_for_display = [
+                FixedSide(comp_ax, 1 - comp_dir)
+            ]
+
+    def _handle_T_movement(self, comp_ax, absang):
+        """Handle movement for T-shaped configuration."""
+        if absang > 135:
+            self.new_fixed_sides_for_display = [FixedSide(comp_ax, 1)]  # Positive direction
+        else:
+            self.new_fixed_sides_for_display = [FixedSide(comp_ax, 0)]  # Negative direction
+
+    def _is_position_blocked(self):
+        """Check if the new position is blocked."""
+        blocked = False
+
+        for side in self.new_fixed_sides_for_display:
+            if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
+                if side.unique(self.pgeom.pjoint.fixed.unblocked):
+                    blocked = True
+
+        # If all sides are the same, it's not blocked
+        if blocked:
+            all_same = True
+            for side in self.new_fixed_sides_for_display:
+                if side.unique(self.pgeom.pjoint.fixed.sides[self.n]):
+                    all_same = False
+            if all_same:
+                blocked = False
+
+        return blocked
+
+    def _update_display_if_changed(self):
+        """Update display if fixed sides have changed."""
+        if not np.equal(
+            self.pgeom.pjoint.fixed.sides[self.n],
+            np.array(self.new_fixed_sides_for_display)
+        ).all():
+            # Update buffer for move/rotate preview outline
+            self.pgeom.pjoint.combine_and_buffer_indices()

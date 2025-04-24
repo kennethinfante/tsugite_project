@@ -1527,218 +1527,224 @@ class Joint:
             self.m_start.append(mst)
             mst += int(len(self.mverts[n])/8)
 
-    def create_joint_vertices(self, ax):
-        vertices = []
-        r = g = b = 0.0
-        # Create vectors - one for each of the 3 axis
-        vx = np.array([1.0,0,0])*self.voxel_sizes[0]
-        vy = np.array([0,1.0,0])*self.voxel_sizes[1]
-        vz = np.array([0,0,1.0])*self.voxel_sizes[2]
-        self.pos_vecs = [vx,vy,vz]
-        # If it is possible to rotate the geometry, rotate position vectors
-        if self.rot:
-            non_sax = [0,1,2]
-            non_sax.remove(self.sax)
-            for i,ax in enumerate(non_sax):
-                theta = math.radians(0.5*self.ang)
-                if i%2==1: theta = -theta
-                self.pos_vecs[ax] = Utils.rotate_vector_around_axis(self.pos_vecs[ax],self.pos_vecs[self.sax],theta)
-                self.pos_vecs[ax] = self.pos_vecs[ax]/math.cos(math.radians(abs(self.ang)))
-        # Add all vertices of the dim*dim*dim voxel cube
-        for i in range(self.dim+1):
-            for j in range(self.dim+1):
-                for k in range(self.dim+1):
-                    # position coordinates
-                    ivec = (i-0.5*self.dim)*self.pos_vecs[0]
-                    jvec = (j-0.5*self.dim)*self.pos_vecs[1]
-                    kvec = (k-0.5*self.dim)*self.pos_vecs[2]
-                    pos = ivec+jvec+kvec
-                    x,y,z = pos
-                    # texture coordinates
-                    tex_coords = [i,j,k] ##################################################################
-                    tex_coords.pop(ax)
-                    tx = tex_coords[0]/self.dim
-                    ty = tex_coords[1]/self.dim
-                    # extend list of vertices
-                    vertices.extend([x,y,z,r,g,b,tx,ty])
-        # Calculate extra length for angled components
-        extra_len=0
-        if self.ang!=0.0 and self.rot:
-            extra_len = 0.1*self.component_size*math.tan(math.radians(abs(self.ang)))
-        # Add component base vertices
-        for ax in range(3):
-            if ax==self.sax: extra_l=0
-            else: extra_l=extra_len
-            for dir in range(-1,2,2):
-                for step in range(3):
-                    if step==0: step=1
-                    else: step+=0.5+extra_len
-                    axvec = dir*step*(self.component_size+extra_l)*self.pos_vecs[ax]/np.linalg.norm(self.pos_vecs[ax])
-                    for x in range(2):
-                        for y in range(2):
-                            other_vecs = copy.deepcopy(self.pos_vecs)
-                            other_vecs.pop(ax)
-                            if ax!=self.sax and self.rot and step!=0.5:
-                                #cvec = copy.deep(self.pos_vecs[ax])
-                                xvec = (x-0.5)*self.dim*other_vecs[0]#+cvec
-                                yvec = (y-0.5)*self.dim*other_vecs[1]#-cvec
-                            else:
-                                xvec = (x-0.5)*self.dim*other_vecs[0]
-                                yvec = (y-0.5)*self.dim*other_vecs[1]
-                            pos = axvec+xvec+yvec
-                            # texture coordinates
-                            tex_coords = [x,y]
-                            tx = tex_coords[0]
-                            ty = tex_coords[1]
-                            # extend list of vertices
-                            vertices.extend([pos[0],pos[1],pos[2],r,g,b,tx,ty])
-        # Format
-        vertices = np.array(vertices, dtype = np.float32) #converts to correct format
-        return vertices
-
-    # REFACTOR
     # def create_joint_vertices(self, ax):
-    #     """Create vertices for joint visualization."""
     #     vertices = []
-    #
-    #     # Initialize position vectors
-    #     self._initialize_position_vectors()
-    #
-    #     # Add cube vertices
-    #     vertices = self._add_cube_vertices(vertices)
-    #
-    #     # Add component base vertices
-    #     vertices = self._add_component_base_vertices(vertices, ax)
-    #
-    #     # Format and return
-    #     return np.array(vertices, dtype=np.float32)
-    #
-    # def _initialize_position_vectors(self):
-    #     """Initialize position vectors for the three axes."""
+    #     r = g = b = 0.0
     #     # Create vectors - one for each of the 3 axis
-    #     vx = np.array([1.0, 0, 0]) * self.voxel_sizes[0]
-    #     vy = np.array([0, 1.0, 0]) * self.voxel_sizes[1]
-    #     vz = np.array([0, 0, 1.0]) * self.voxel_sizes[2]
-    #     self.pos_vecs = [vx, vy, vz]
-    #
-    #     # Rotate position vectors if needed
+    #     vx = np.array([1.0,0,0])*self.voxel_sizes[0]
+    #     vy = np.array([0,1.0,0])*self.voxel_sizes[1]
+    #     vz = np.array([0,0,1.0])*self.voxel_sizes[2]
+    #     self.pos_vecs = [vx,vy,vz]
+    #     # If it is possible to rotate the geometry, rotate position vectors
     #     if self.rot:
-    #         self._rotate_position_vectors()
-    #
-    # def _rotate_position_vectors(self):
-    #     """Rotate position vectors if rotation is enabled."""
-    #     non_sax = [0, 1, 2]
-    #     non_sax.remove(self.sax)
-    #
-    #     for i, ax in enumerate(non_sax):
-    #         theta = math.radians(0.5 * self.ang)
-    #         if i % 2 == 1:
-    #             theta = -theta
-    #
-    #         self.pos_vecs[ax] = Utils.rotate_vector_around_axis(
-    #             self.pos_vecs[ax], self.pos_vecs[self.sax], theta
-    #         )
-    #         self.pos_vecs[ax] = self.pos_vecs[ax] / math.cos(math.radians(abs(self.ang)))
-    #
-    # def _add_cube_vertices(self, vertices):
-    #     """Add vertices for the voxel cube."""
-    #     r = g = b = 0.0
-    #
+    #         non_sax = [0,1,2]
+    #         non_sax.remove(self.sax)
+    #         for i,ax in enumerate(non_sax):
+    #             theta = math.radians(0.5*self.ang)
+    #             if i%2==1: theta = -theta
+    #             self.pos_vecs[ax] = Utils.rotate_vector_around_axis(self.pos_vecs[ax],self.pos_vecs[self.sax],theta)
+    #             self.pos_vecs[ax] = self.pos_vecs[ax]/math.cos(math.radians(abs(self.ang)))
     #     # Add all vertices of the dim*dim*dim voxel cube
-    #     for i in range(self.dim + 1):
-    #         for j in range(self.dim + 1):
-    #             for k in range(self.dim + 1):
-    #                 # Calculate position
-    #                 ivec = (i - 0.5 * self.dim) * self.pos_vecs[0]
-    #                 jvec = (j - 0.5 * self.dim) * self.pos_vecs[1]
-    #                 kvec = (k - 0.5 * self.dim) * self.pos_vecs[2]
-    #                 pos = ivec + jvec + kvec
-    #                 x, y, z = pos
-    #
-    #                 # Calculate texture coordinates
-    #                 tx, ty = self._calculate_texture_coordinates([i, j, k])
-    #
-    #                 # Add vertex
-    #                 vertices.extend([x, y, z, r, g, b, tx, ty])
-    #
-    #     return vertices
-    #
-    # def _calculate_texture_coordinates(self, coords, ax=None):
-    #     """Calculate texture coordinates for a vertex."""
-    #     if ax is None:
-    #         ax = self.sax
-    #
-    #     tex_coords = coords.copy()
-    #     tex_coords.pop(ax)
-    #     tx = tex_coords[0] / self.dim
-    #     ty = tex_coords[1] / self.dim
-    #
-    #     return tx, ty
-    #
-    # def _add_component_base_vertices(self, vertices, ax):
-    #     """Add vertices for component bases."""
-    #     r = g = b = 0.0
-    #
+    #     for i in range(self.dim+1):
+    #         for j in range(self.dim+1):
+    #             for k in range(self.dim+1):
+    #                 # position coordinates
+    #                 ivec = (i-0.5*self.dim)*self.pos_vecs[0]
+    #                 jvec = (j-0.5*self.dim)*self.pos_vecs[1]
+    #                 kvec = (k-0.5*self.dim)*self.pos_vecs[2]
+    #                 pos = ivec+jvec+kvec
+    #                 x,y,z = pos
+    #                 # texture coordinates
+    #                 tex_coords = [i,j,k] ##################################################################
+    #                 tex_coords.pop(ax)
+    #                 tx = tex_coords[0]/self.dim
+    #                 ty = tex_coords[1]/self.dim
+    #                 # extend list of vertices
+    #                 vertices.extend([x,y,z,r,g,b,tx,ty])
     #     # Calculate extra length for angled components
-    #     extra_len = self._calculate_extra_length()
-    #
+    #     extra_len=0
+    #     if self.ang!=0.0 and self.rot:
+    #         extra_len = 0.1*self.component_size*math.tan(math.radians(abs(self.ang)))
     #     # Add component base vertices
     #     for ax in range(3):
-    #         extra_l = extra_len if ax != self.sax and self.rot else 0
-    #
-    #         for dir in range(-1, 2, 2):
-    #             for step in self._get_step_values():
-    #                 # Calculate step size
-    #                 step_size = self._calculate_step_size(step, extra_l)
-    #
-    #                 # Calculate axis vector
-    #                 axvec = dir * step_size * self.pos_vecs[ax] / np.linalg.norm(self.pos_vecs[ax])
-    #
-    #                 # Add vertices for each corner
+    #         if ax==self.sax: extra_l=0
+    #         else: extra_l=extra_len
+    #         for dir in range(-1,2,2):
+    #             for step in range(3):
+    #                 if step==0: step=1
+    #                 else: step+=0.5+extra_len
+    #                 axvec = dir*step*(self.component_size+extra_l)*self.pos_vecs[ax]/np.linalg.norm(self.pos_vecs[ax])
     #                 for x in range(2):
     #                     for y in range(2):
-    #                         # Calculate position
-    #                         pos = self._calculate_component_position(ax, axvec, x, y, step)
-    #
-    #                         # Calculate texture coordinates
-    #                         tx, ty = x, y
-    #
-    #                         # Add vertex
-    #                         vertices.extend([pos[0], pos[1], pos[2], r, g, b, tx, ty])
-    #
+    #                         other_vecs = copy.deepcopy(self.pos_vecs)
+    #                         other_vecs.pop(ax)
+    #                         if ax!=self.sax and self.rot and step!=0.5:
+    #                             #cvec = copy.deep(self.pos_vecs[ax])
+    #                             xvec = (x-0.5)*self.dim*other_vecs[0]#+cvec
+    #                             yvec = (y-0.5)*self.dim*other_vecs[1]#-cvec
+    #                         else:
+    #                             xvec = (x-0.5)*self.dim*other_vecs[0]
+    #                             yvec = (y-0.5)*self.dim*other_vecs[1]
+    #                         pos = axvec+xvec+yvec
+    #                         # texture coordinates
+    #                         tex_coords = [x,y]
+    #                         tx = tex_coords[0]
+    #                         ty = tex_coords[1]
+    #                         # extend list of vertices
+    #                         vertices.extend([pos[0],pos[1],pos[2],r,g,b,tx,ty])
+    #     # Format
+    #     vertices = np.array(vertices, dtype = np.float32) #converts to correct format
     #     return vertices
-    #
-    # def _calculate_extra_length(self):
-    #     """Calculate extra length for angled components."""
-    #     if self.ang != 0.0 and self.rot:
-    #         return 0.1 * self.component_size * math.tan(math.radians(abs(self.ang)))
-    #     return 0
-    #
-    # def _get_step_values(self):
-    #     """Get step values for component base vertices."""
-    #     return [1, 2.5, 3.5]  # Adjusted for clarity from the original logic
-    #
-    # def _calculate_step_size(self, step, extra_l):
-    #     """Calculate step size based on step value and extra length."""
-    #     if step == 1:
-    #         return step
-    #     else:
-    #         return step + 0.5 + extra_l
-    #
-    # def _calculate_component_position(self, ax, axvec, x, y, step):
-    #     """Calculate position for a component base vertex."""
-    #     other_vecs = copy.deepcopy(self.pos_vecs)
-    #     other_vecs.pop(ax)
-    #
-    #     # Apply special handling for non-sliding axis components with rotation
-    #     if ax != self.sax and self.rot and step != 1:
-    #         xvec = (x - 0.5) * self.dim * other_vecs[0]
-    #         yvec = (y - 0.5) * self.dim * other_vecs[1]
-    #     else:
-    #         xvec = (x - 0.5) * self.dim * other_vecs[0]
-    #         yvec = (y - 0.5) * self.dim * other_vecs[1]
-    #
-    #     return axvec + xvec + yvec
+
+    def create_joint_vertices(self, ax):
+        """Create vertices for joint visualization along a specific axis."""
+        vertices = []
+
+        # Initialize position vectors and colors
+        self._initialize_position_vectors()
+
+        # Create voxel cube vertices
+        self._add_voxel_cube_vertices(vertices, ax)
+
+        # Calculate extra length for angled components
+        extra_len = self._calculate_extra_length()
+
+        # Add component base vertices
+        self._add_component_base_vertices(vertices, ax, extra_len)
+
+        # Format and return vertices
+        return np.array(vertices, dtype=np.float32)
+
+    def _initialize_position_vectors(self):
+        """Initialize position vectors for each axis."""
+        # Create vectors - one for each of the 3 axis
+        vx = np.array([1.0, 0, 0]) * self.voxel_sizes[0]
+        vy = np.array([0, 1.0, 0]) * self.voxel_sizes[1]
+        vz = np.array([0, 0, 1.0]) * self.voxel_sizes[2]
+        self.pos_vecs = [vx, vy, vz]
+
+        # If it is possible to rotate the geometry, rotate position vectors
+        if self.rot:
+            self._rotate_position_vectors()
+
+    def _rotate_position_vectors(self):
+        """Rotate position vectors if rotation is enabled."""
+        non_sax = [0, 1, 2]
+        non_sax.remove(self.sax)
+
+        for i, ax in enumerate(non_sax):
+            theta = math.radians(0.5 * self.ang)
+            if i % 2 == 1:
+                theta = -theta
+
+            self.pos_vecs[ax] = Utils.rotate_vector_around_axis(
+                self.pos_vecs[ax],
+                self.pos_vecs[self.sax],
+                theta
+            )
+
+            self.pos_vecs[ax] = self.pos_vecs[ax] / math.cos(math.radians(abs(self.ang)))
+
+    def _add_voxel_cube_vertices(self, vertices, ax):
+        """Add vertices for the voxel cube."""
+        r = g = b = 0.0  # Default color
+
+        for i in range(self.dim + 1):
+            for j in range(self.dim + 1):
+                for k in range(self.dim + 1):
+                    # Calculate position coordinates
+                    pos = self._calculate_voxel_position(i, j, k)
+                    x, y, z = pos
+
+                    # Calculate texture coordinates
+                    tx, ty = self._calculate_texture_coordinates(i, j, k, ax)
+
+                    # Add vertex to list
+                    vertices.extend([x, y, z, r, g, b, tx, ty])
+
+    def _calculate_voxel_position(self, i, j, k):
+        """Calculate position for a voxel vertex."""
+        ivec = (i - 0.5 * self.dim) * self.pos_vecs[0]
+        jvec = (j - 0.5 * self.dim) * self.pos_vecs[1]
+        kvec = (k - 0.5 * self.dim) * self.pos_vecs[2]
+        return ivec + jvec + kvec
+
+    def _calculate_texture_coordinates(self, i, j, k, ax):
+        """Calculate texture coordinates for a vertex."""
+        tex_coords = [i, j, k]
+        tex_coords.pop(ax)
+        tx = tex_coords[0] / self.dim
+        ty = tex_coords[1] / self.dim
+        return tx, ty
+
+    def _calculate_extra_length(self):
+        """Calculate extra length needed for angled components."""
+        if self.ang != 0.0 and self.rot:
+            return 0.1 * self.component_size * math.tan(math.radians(abs(self.ang)))
+        return 0
+
+    def _add_component_base_vertices(self, vertices, ax, extra_len):
+        """Add vertices for component bases."""
+        r = g = b = 0.0  # Default color
+
+        for axis in range(3):
+            # Determine extra length for this axis
+            extra_l = extra_len if axis != self.sax else 0
+
+            # Add vertices for both directions along this axis
+            for dir in range(-1, 2, 2):
+                self._add_component_direction_vertices(
+                    vertices, axis, dir, extra_l, r, g, b
+                )
+
+    def _add_component_direction_vertices(self, vertices, axis, dir, extra_l, r, g, b):
+        """Add vertices for a specific component direction."""
+        # Add vertices for different steps along the axis
+        for step in range(3):
+            if step == 0:
+                step_value = 1
+            else:
+                step_value = step + 0.5 + extra_l
+
+            # Calculate axis vector
+            axvec = self._calculate_axis_vector(axis, dir, step_value, extra_l)
+
+            # Add vertices for the four corners
+            for x in range(2):
+                for y in range(2):
+                    pos, tx, ty = self._calculate_component_vertex(
+                        axis, axvec, x, y, step_value
+                    )
+
+                    # Add vertex to list
+                    vertices.extend([pos[0], pos[1], pos[2], r, g, b, tx, ty])
+
+    def _calculate_axis_vector(self, axis, dir, step, extra_l):
+        """Calculate vector along an axis for component base."""
+        axis_length = dir * step * (self.component_size + extra_l)
+        unit_vector = self.pos_vecs[axis] / np.linalg.norm(self.pos_vecs[axis])
+        return axis_length * unit_vector
+
+    def _calculate_component_vertex(self, axis, axvec, x, y, step):
+        """Calculate position and texture coordinates for component vertex."""
+        # Get other axes
+        other_vecs = copy.deepcopy(self.pos_vecs)
+        other_vecs.pop(axis)
+
+        # Calculate position
+        if axis != self.sax and self.rot and step != 0.5:
+            xvec = (x - 0.5) * self.dim * other_vecs[0]
+            yvec = (y - 0.5) * self.dim * other_vecs[1]
+        else:
+            xvec = (x - 0.5) * self.dim * other_vecs[0]
+            yvec = (y - 0.5) * self.dim * other_vecs[1]
+
+        pos = axvec + xvec + yvec
+
+        # Calculate texture coordinates
+        tx, ty = x, y
+
+        return pos, tx, ty
 
     def combine_and_buffer_indices(self, milling_path=False):
         self.update_suggestions()
