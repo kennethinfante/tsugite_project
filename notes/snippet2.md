@@ -965,6 +965,7 @@ In the selection.py how do I import math_utils properly
 The import error in your `selection.py` file is due to an incorrect relative import syntax. Let me show you how to fix it:
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\ui\selection.py**
+
 ```python
 import copy
 import math
@@ -972,7 +973,7 @@ import math
 import numpy as np
 import pyrr
 
-from tsugite.model.fixed_side import FixedSide  # Updated import path
+from tsugite.fixed_side import FixedSide  # Updated import path
 
 # Remove these problematic imports
 # import utils as Utils
@@ -1074,6 +1075,7 @@ How do I fix the imports in selection.py
 Based on your project structure, here's how to properly fix the imports in your `selection.py` file:
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\ui\selection.py**
+
 ```python
 import copy
 import math
@@ -1081,15 +1083,15 @@ import math
 import numpy as np
 import pyrr
 
-from tsugite.model.fixed_side import FixedSide
+from tsugite.fixed_side import FixedSide
 from tsugite.utils.math_utils import unitize, angle_between_vectors1
 from tsugite.model.region_processing import get_same_height_neighbors
 
 
 class Selection:
     def __init__(self, pgeom):
-        self.state = -1 #-1: nothing, 0: hovered, 1: adding, 2: pulling, 10: timber hovered, 12: timber pulled
-        self.sugg_state = -1 #-1: nothing, 0: hovering first, 1: hovering secong, and so on.
+        self.state = -1  # -1: nothing, 0: hovered, 1: adding, 2: pulling, 10: timber hovered, 12: timber pulled
+        self.sugg_state = -1  # -1: nothing, 0: hovering first, 1: hovering secong, and so on.
         self.gallstate = -1
         self.pgeom = pgeom
         self.n = self.x = self.y = None
@@ -1097,47 +1099,48 @@ class Selection:
         self.shift = False
         self.faces = []
         self.new_fixed_sides_for_display = None
-        self.val=0
+        self.val = 0
 
-    def update_pick(self,x,y,n,dir):
+    def update_pick(self, x, y, n, dir):
         self.n = n
         self.x = x
         self.y = y
         self.dir = dir
-        if self.x!=None and self.y!=None:
+        if self.x != None and self.y != None:
             if self.shift:
                 self.faces = get_same_height_neighbors(self.pgeom.height_fields[n - dir], [np.array([self.x, self.y])])
-            else: self.faces = [np.array([self.x,self.y])]
+            else:
+                self.faces = [np.array([self.x, self.y])]
 
     # ... other methods remain the same ...
 
-    def move(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600): # actually move OR rotate
+    def move(self, mouse_pos, screen_xrot, screen_yrot, w=1600, h=1600):  # actually move OR rotate
         sax = self.pgeom.pjoint.sax
         noc = self.pgeom.pjoint.noc
         self.new_fixed_sides = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
         self.new_fixed_sides_for_display = copy.deepcopy(self.pgeom.pjoint.fixed.sides[self.n])
-        self.current_pos = np.array([mouse_pos[0],h-mouse_pos[1]])
+        self.current_pos = np.array([mouse_pos[0], h - mouse_pos[1]])
         ## Mouse vector
-        mouse_vec = np.array(self.current_pos-self.start_pos)
+        mouse_vec = np.array(self.current_pos - self.start_pos)
         mouse_vec = mouse_vec.astype(float)
-        mouse_vec[0] = 2*mouse_vec[0]/w
-        mouse_vec[1] = 2*mouse_vec[1]/h
+        mouse_vec[0] = 2 * mouse_vec[0] / w
+        mouse_vec[1] = 2 * mouse_vec[1] / h
         ## Check that the move distance is above some threshold
         move_dist = np.linalg.norm(mouse_vec)
-        if move_dist>0.01:
+        if move_dist > 0.01:
             ## Get component direction vector
-            comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax # component axis
+            comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax  # component axis
             comp_dir = self.pgeom.pjoint.fixed.sides[self.n][0].dir
-            comp_len = 2.5*(2*comp_dir-1)*self.pgeom.pjoint.component_size
+            comp_len = 2.5 * (2 * comp_dir - 1) * self.pgeom.pjoint.component_size
             comp_vec = comp_len * unitize(self.pgeom.pjoint.pos_vecs[comp_ax])
             ## Flatten vector to screen
             rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
             rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
-            comp_vec = np.dot(comp_vec,rot_x*rot_y)
-            comp_vec = np.delete(comp_vec,2) # delete Z-value
+            comp_vec = np.dot(comp_vec, rot_x * rot_y)
+            comp_vec = np.delete(comp_vec, 2)  # delete Z-value
             ## Calculate angle between mouse vector and component vector
             ang = angle_between_vectors1(mouse_vec, comp_vec, direction=True)
-            
+
             # ... rest of the method remains the same ...
 ```
 
@@ -1272,6 +1275,7 @@ When you use relative imports like `from .model.fixed_side import FixedSide`, Py
 Since you're working within a package structure, you should use absolute imports that start from the package root:
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\ui\selection.py**
+
 ```python
 import copy
 import math
@@ -1282,7 +1286,7 @@ import pyrr
 # Change this:
 # from .model.fixed_side import FixedSide
 # To this:
-from tsugite.model.fixed_side import FixedSide
+from tsugite.fixed_side import FixedSide
 
 # Change this:
 # from .utils.math_utils import *
@@ -1294,7 +1298,7 @@ from tsugite.model.region_processing import get_same_height_neighbors
 
 
 class Selection:
-    # Rest of the class remains the same
+# Rest of the class remains the same
 ```
 
 ## Additional Changes Needed

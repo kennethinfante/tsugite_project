@@ -3,9 +3,9 @@ from numpy import ndarray, linalg
 import math
 import random
 import copy
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Any
 
-from model.fixed_side import FixedSide
+from fixed_side import FixedSide
 from fabrication import MillVertex
 
 class RegionVertex:

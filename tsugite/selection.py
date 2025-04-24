@@ -4,7 +4,7 @@ import math
 import numpy as np
 import pyrr
 
-from model.fixed_side import FixedSide
+from fixed_side import FixedSide
 
 import utils as Utils
 

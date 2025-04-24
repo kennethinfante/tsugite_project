@@ -12,7 +12,7 @@ import PyQt5.QtCore as qtc
 # needed for inspecting np array
 np.set_printoptions(threshold=np.inf)
 
-from ui.main_window import MainWindow
+from main_window import MainWindow
 
 class MovieSplashScreen(qtw.QSplashScreen):
 

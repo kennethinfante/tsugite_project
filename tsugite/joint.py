@@ -5,7 +5,7 @@ from buffer import Buffer
 from evaluation import Evaluation
 from fabrication import *
 from geometries import Geometries
-from model.fixed_side import FixedSides
+from fixed_side import FixedSides
 
 import utils as Utils
 

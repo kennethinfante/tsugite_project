@@ -4,7 +4,7 @@ import os
 import numpy as np
 import OpenGL.GL as GL  # imports start with GL
 
-from ui.selection import Selection
+from selection import Selection
 from evaluation import Evaluation
 from buffer import ElementProperties
 

@@ -9,7 +9,7 @@ import PyQt5.QtCore as qtc
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import pyqtSlot
 
-from .gl_widget import GLWidget
+from gl_widget import GLWidget
 
 
 class MainWindow(qtw.QMainWindow):
@@ -24,7 +24,7 @@ class MainWindow(qtw.QMainWindow):
         self.title = "Tsugite"
         self.filename = MainWindow.get_untitled_filename("Untitled","tsu","_")
         self.setWindowTitle(self.filename.split(os.sep)[-1]+" - "+self.title)
-        self.setWindowIcon(qtg.QIcon("../images/tsugite_icon.png"))
+        self.setWindowIcon(qtg.QIcon("images/tsugite_icon.png"))
 
         # glWidget is a child of main_window
         self.glWidget = GLWidget(self)
