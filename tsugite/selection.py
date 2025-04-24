@@ -21,25 +21,52 @@ class Selection:
         self.new_fixed_sides_for_display = None
         self.val=0
 
-    def update_pick(self,x,y,n,dir):
+    # def update_pick(self,x,y,n,dir):
+    #     self.n = n
+    #     self.x = x
+    #     self.y = y
+    #     self.dir = dir
+    #     if self.x!=None and self.y!=None:
+    #         if self.shift:
+    #             self.faces = Utils.get_same_height_neighbors(self.pgeom.height_fields[n - dir], [np.array([self.x, self.y])])
+    #         else: self.faces = [np.array([self.x,self.y])]
+    #
+    # def start_pull(self,mouse_pos):
+    #     self.state=2
+    #     self.start_pos = np.array([mouse_pos[0],-mouse_pos[1]])
+    #     self.start_height = self.pgeom.height_fields[self.n - self.dir][self.x][self.y]
+    #     self.pgeom.pjoint.combine_and_buffer_indices() # for selection area
+    #
+    # def end_pull(self):
+    #     if self.val!=0: self.pgeom.edit_height_fields(self.faces, self.current_height, self.n, self.dir)
+    #     self.state=-1
+    #     self.refresh = True
+
+    def update_pick(self, x, y, n, dir):
         self.n = n
         self.x = x
         self.y = y
         self.dir = dir
-        if self.x!=None and self.y!=None:
-            if self.shift:
-                self.faces = Utils.get_same_height_neighbors(self.pgeom.height_fields[n - dir], [np.array([self.x, self.y])])
-            else: self.faces = [np.array([self.x,self.y])]
 
-    def start_pull(self,mouse_pos):
-        self.state=2
-        self.start_pos = np.array([mouse_pos[0],-mouse_pos[1]])
+        if self.x is not None and self.y is not None:
+            if self.shift:
+                self.faces = Utils.get_same_height_neighbors(
+                    self.pgeom.height_fields[n - dir],
+                    [np.array([self.x, self.y])]
+                )
+            else:
+                self.faces = [np.array([self.x, self.y])]
+
+    def start_pull(self, mouse_pos):
+        self.state = 2
+        self.start_pos = np.array([mouse_pos[0], -mouse_pos[1]])
         self.start_height = self.pgeom.height_fields[self.n - self.dir][self.x][self.y]
-        self.pgeom.pjoint.combine_and_buffer_indices() # for selection area
+        self.pgeom.pjoint.combine_and_buffer_indices()  # for selection area
 
     def end_pull(self):
-        if self.val!=0: self.pgeom.edit_height_fields(self.faces, self.current_height, self.n, self.dir)
-        self.state=-1
+        if self.val != 0:
+            self.pgeom.edit_height_fields(self.faces, self.current_height, self.n, self.dir)
+        self.state = -1
         self.refresh = True
 
     # def edit(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600):
@@ -112,16 +139,16 @@ class Selection:
             val = -self.start_height
         return val
 
-    def start_move(self,mouse_pos, h=1600):
-        self.state=12
-        self.start_pos = np.array([mouse_pos[0],h-mouse_pos[1]])
+    def start_move(self, mouse_pos, h=1600):
+        self.state = 12
+        self.start_pos = np.array([mouse_pos[0], h - mouse_pos[1]])
         self.new_fixed_sides = self.pgeom.pjoint.fixed.sides[self.n]
         self.new_fixed_sides_for_display = self.pgeom.pjoint.fixed.sides[self.n]
-        self.pgeom.pjoint.combine_and_buffer_indices # for move preview outline
+        self.pgeom.pjoint.combine_and_buffer_indices()  # for move preview outline
 
     def end_move(self):
         self.pgeom.pjoint.update_component_position(self.new_fixed_sides, self.n)
-        self.state=-1
+        self.state = -1
         self.new_fixed_sides_for_display = None
 
     def move(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600): # actually move OR rotate
