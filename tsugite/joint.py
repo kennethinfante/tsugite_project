@@ -633,7 +633,7 @@ class Joint:
             pt = self._get_base_point_for_vertex(rv, lay_num, fdir, n)
 
             # Calculate offset vector based on boundary conditions
-            off_vec = self._calculate_offset_vector(rv)
+            off_vec = self._calculate_offset_vector(rv, neighbor_vectors)
 
             # Handle rounded corners
             if self._is_rounded_corner(rv, n):
@@ -877,7 +877,7 @@ class Joint:
         fdir, safe_height = self._calculate_layer_parameters(outline, lay_num, n, dep)
 
         # Handle start points in a separate method
-        verts, mverts = self._add_layer_start_points(outline, lay_num, fdir, safe_height, verts, mverts)
+        verts, mverts = self._add_layer_start_points(outline, lay_num, fdir, safe_height, dep, verts, mverts)
 
         # Handle z-layers in a separate method
         verts, mverts = self._add_z_layers(outline, lay_num, n, no_z, dep, fdir, verts, mverts)
@@ -893,7 +893,7 @@ class Joint:
         safe_height = outline[0].pt[self.sax] - (2*fdir-1) * (lay_num*self.voxel_sizes[self.sax] + 2*dep)
         return fdir, safe_height
 
-    def _add_layer_start_points(self, outline, lay_num, fdir, safe_height, verts, mverts):
+    def _add_layer_start_points(self, outline, lay_num, fdir, safe_height, dep, verts, mverts):
         """Add start points for the layer."""
         r = g = b = tx = ty = 0.0
 

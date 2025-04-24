@@ -111,129 +111,340 @@ class Fabrication:
         #print(self.ext,self.unit_scale)
 
 
-    def export_gcode(self,filename_tsu=os.getcwd()+os.sep+"joint.tsu"):
+    # def export_gcode(self,filename_tsu=os.getcwd()+os.sep+"joint.tsu"):
+    #     print(self.ext)
+    #     # make sure that the z axis of the gcode is facing up
+    #     fax = self.pjoint.sax
+    #     coords = [0,1]
+    #     coords.insert(fax,2)
+    #     #
+    #     d = 5 # =precision / no of decimals to write
+    #     names = ["A","B","C","D","E","F"]
+    #     for n in range(self.pjoint.noc):
+    #         fdir = self.pjoint.mesh.fab_directions[n]
+    #         comp_ax = self.pjoint.fixed.sides[n][0].ax
+    #         comp_dir = self.pjoint.fixed.sides[n][0].dir # component direction
+    #         comp_vec = self.pjoint.pos_vecs[comp_ax]
+    #         if comp_dir==0 and comp_ax!=self.pjoint.sax: comp_vec=-comp_vec
+    #         comp_vec = np.array([comp_vec[coords[0]],comp_vec[coords[1]],comp_vec[coords[2]]])
+    #         comp_vec = comp_vec/np.linalg.norm(comp_vec) #unitize
+    #         zax = np.array([0,0,1])
+    #         aax = [0,0,0]
+    #         aax[int(self.align_ax/2)] = 2*(self.align_ax%2)-1
+    #         #aax = rotate_vector_around_axis(aax, axis=zax, theta=math.radians(self.extra_rot_deg))
+    #         rot_ang = Utils.angle_between_vectors2(aax,comp_vec,normal_vector=zax)
+    #         if fdir==0: rot_ang=-rot_ang
+    #         #
+    #         file_name = filename_tsu[:-4] + "_"+names[n]+"."+self.ext
+    #         file = open(file_name,"w")
+    #         if self.ext=="gcode" or self.ext=="nc":
+    #             ###initialization .goce and .nc
+    #             file.write("%\n")
+    #             file.write("G90 (Absolute [G91 is incremental])\n")
+    #             file.write("G17 (set XY plane for circle path)\n")
+    #             file.write("G94 (set unit/minute)\n")
+    #             file.write("G21 (set unit[mm])\n")
+    #             spistr = str(int(self.spindlespeed))
+    #             file.write("S"+spistr+" (Spindle "+spistr+"rpm)\n")
+    #             file.write("M3 (spindle start)\n")
+    #             file.write("G54\n")
+    #             spestr=str(int(self.speed))
+    #             file.write("F"+spestr+" (Feed "+spestr+"mm/min)\n")
+    #         elif self.ext=="sbp":
+    #             file.write("'%\n")
+    #             #file.write("VN, 2\n")
+    #             file.write("SA\n") # Set to Absolute Distances
+    #             #file.write("TR 6000\n\n") #?
+    #             file.write("TR,18000\n") # from VUILD
+    #             file.write("C6\n")
+    #             file.write("PAUSE 2\n")
+    #             file.write("'\n")
+    #             #file.write("SO 1,1\n") #Set Output Switch ON
+    #             file.write("MS,6.67,6.67\n\n") # Move Speed Set
+    #         else:
+    #             print("Unknown extension:", self.ext)
+    #
+    #         ###content
+    #         for i,mv in enumerate(self.pjoint.gcodeverts[n]):
+    #             mv.scale_and_swap(fax, fdir, self.pjoint.ratio, self.unit_scale, self.pjoint.real_tim_dims, coords, d, n)
+    #             if comp_ax!=fax: mv.rotate(rot_ang,d)
+    #             if i>0: pmv = self.pjoint.gcodeverts[n][i - 1] #pmv=previous mill vertex
+    #             # check segment angle
+    #             arc = False
+    #             clockwise = False
+    #             if i>0 and Utils.connected_arc(mv,pmv):
+    #                 arc = True
+    #                 vec1 = mv.pt-mv.arc_ctr
+    #                 vec1 = vec1/np.linalg.norm(vec1)
+    #                 zvec = np.array([0,0,1])
+    #                 xvec = np.cross(vec1,zvec)
+    #                 vec2 = pmv.pt-mv.arc_ctr
+    #                 vec2 = vec2/np.linalg.norm(vec2)
+    #                 diff_ang = Utils.angle_between_vectors2(xvec,vec2)
+    #                 if diff_ang>0.5*math.pi: clockwise = True
+    #
+    #             #write to file
+    #             if self.ext=="gcode" or self.ext=="nc":
+    #                 if arc and self.interp:
+    #                     if clockwise: file.write("G2")
+    #                     else: file.write("G3")
+    #                     file.write(" R"+str(round(self.dia,d))+" X"+mv.xstr+" Y"+mv.ystr)
+    #                     if mv.z!=pmv.z: file.write(" Z"+mv.zstr)
+    #                     file.write("\n")
+    #                 elif arc and not self.interp:
+    #                     pts = Utils.arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
+    #                     for pt in pts:
+    #                         file.write("G1")
+    #                         file.write(" X"+str(round(pt[0],3))+" Y"+str(round(pt[1],3)))
+    #                         if mv.z!=pmv.z: file.write(" Z"+str(round(pt[2],3)))
+    #                         file.write("\n")
+    #                 elif i==0 or mv.x!=pmv.x or mv.y!=pmv.y or mv.z!=pmv.z:
+    #                     if mv.is_tra: file.write("G0")
+    #                     else: file.write("G1")
+    #                     if i==0 or mv.x!=pmv.x: file.write(" X"+mv.xstr)
+    #                     if i==0 or mv.y!=pmv.y: file.write(" Y"+mv.ystr)
+    #                     if i==0 or mv.z!=pmv.z: file.write(" Z"+mv.zstr)
+    #                     file.write("\n")
+    #
+    #             elif self.ext=="sbp":
+    #                 if arc and mv.z==pmv.z:
+    #                     file.write("CG,"+str(round(2*self.dia*self.unit_scale,d))+","+mv.xstr+","+mv.ystr+",,,T,")
+    #                     if clockwise: file.write("1\n")
+    #                     else: file.write("-1\n")
+    #                 elif arc and mv.z!=pmv.z:
+    #                     pts = Utils.arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
+    #                     for pt in pts:
+    #                         file.write("M3,"+str(round(pt[0],3))+","+str(round(pt[1],3))+","+str(round(pt[2],3))+"\n")
+    #                 elif i==0 or mv.x!=pmv.x or mv.y!=pmv.y or mv.z!=pmv.z:
+    #                     if mv.is_tra: file.write("J3,")
+    #                     else: file.write("M3,")
+    #                     if i==0 or mv.x!=pmv.x: file.write(mv.xstr+",")
+    #                     else: file.write(" ,")
+    #                     if i==0 or mv.y!=pmv.y: file.write(mv.ystr+",")
+    #                     else: file.write(" ,")
+    #                     if i==0 or mv.z!=pmv.z: file.write(mv.zstr+"\n")
+    #                     else: file.write(" \n")
+    #         #end
+    #         if self.ext=="gcode" or self.ext=="nc":
+    #             file.write("M5 (Spindle stop)\n")
+    #             file.write("M2 (end of program)\n")
+    #             file.write("M30 (delete sd file)\n")
+    #             file.write("%\n")
+    #         elif self.ext=="sbp":
+    #             file.write("SO 1,0\n")
+    #             file.write("END\n")
+    #             file.write("'%\n")
+    #
+    #         print("Exported",file_name)
+    #         file.close()
+
+    def export_gcode(self, filename_tsu=os.getcwd()+os.sep+"joint.tsu"):
+        """Export fabrication instructions to G-code or ShopBot files."""
         print(self.ext)
-        # make sure that the z axis of the gcode is facing up
+
+        # Calculate common parameters
         fax = self.pjoint.sax
-        coords = [0,1]
-        coords.insert(fax,2)
-        #
-        d = 5 # =precision / no of decimals to write
-        names = ["A","B","C","D","E","F"]
+        coords = [0, 1]
+        coords.insert(fax, 2)
+
+        d = 5  # precision / no of decimals to write
+        names = ["A", "B", "C", "D", "E", "F"]
+
+        # Process each component
         for n in range(self.pjoint.noc):
-            fdir = self.pjoint.mesh.fab_directions[n]
-            comp_ax = self.pjoint.fixed.sides[n][0].ax
-            comp_dir = self.pjoint.fixed.sides[n][0].dir # component direction
-            comp_vec = self.pjoint.pos_vecs[comp_ax]
-            if comp_dir==0 and comp_ax!=self.pjoint.sax: comp_vec=-comp_vec
-            comp_vec = np.array([comp_vec[coords[0]],comp_vec[coords[1]],comp_vec[coords[2]]])
-            comp_vec = comp_vec/np.linalg.norm(comp_vec) #unitize
-            zax = np.array([0,0,1])
-            aax = [0,0,0]
-            aax[int(self.align_ax/2)] = 2*(self.align_ax%2)-1
-            #aax = rotate_vector_around_axis(aax, axis=zax, theta=math.radians(self.extra_rot_deg))
-            rot_ang = Utils.angle_between_vectors2(aax,comp_vec,normal_vector=zax)
-            if fdir==0: rot_ang=-rot_ang
-            #
-            file_name = filename_tsu[:-4] + "_"+names[n]+"."+self.ext
-            file = open(file_name,"w")
-            if self.ext=="gcode" or self.ext=="nc":
-                ###initialization .goce and .nc
-                file.write("%\n")
-                file.write("G90 (Absolute [G91 is incremental])\n")
-                file.write("G17 (set XY plane for circle path)\n")
-                file.write("G94 (set unit/minute)\n")
-                file.write("G21 (set unit[mm])\n")
-                spistr = str(int(self.spindlespeed))
-                file.write("S"+spistr+" (Spindle "+spistr+"rpm)\n")
-                file.write("M3 (spindle start)\n")
-                file.write("G54\n")
-                spestr=str(int(self.speed))
-                file.write("F"+spestr+" (Feed "+spestr+"mm/min)\n")
-            elif self.ext=="sbp":
-                file.write("'%\n")
-                #file.write("VN, 2\n")
-                file.write("SA\n") # Set to Absolute Distances
-                #file.write("TR 6000\n\n") #?
-                file.write("TR,18000\n") # from VUILD
-                file.write("C6\n")
-                file.write("PAUSE 2\n")
-                file.write("'\n")
-                #file.write("SO 1,1\n") #Set Output Switch ON
-                file.write("MS,6.67,6.67\n\n") # Move Speed Set
+            # Calculate component parameters
+            comp_params = self._calculate_component_parameters(n, fax, coords)
+
+            # Create output file
+            file_name = filename_tsu[:-4] + "_" + names[n] + "." + self.ext
+            with open(file_name, "w") as file:
+                # Write file header
+                self._write_file_header(file)
+
+                # Write toolpath instructions
+                self._write_toolpath_instructions(file, n, fax, comp_params, coords, d)
+
+                # Write file footer
+                self._write_file_footer(file)
+
+            print("Exported", file_name)
+
+    def _calculate_component_parameters(self, n, fax, coords):
+        """Calculate parameters for a component."""
+        fdir = self.pjoint.mesh.fab_directions[n]
+        comp_ax = self.pjoint.fixed.sides[n][0].ax
+        comp_dir = self.pjoint.fixed.sides[n][0].dir  # component direction
+
+        # Calculate component vector
+        comp_vec = self.pjoint.pos_vecs[comp_ax]
+        if comp_dir == 0 and comp_ax != self.pjoint.sax:
+            comp_vec = -comp_vec
+        comp_vec = np.array([comp_vec[coords[0]], comp_vec[coords[1]], comp_vec[coords[2]]])
+        comp_vec = comp_vec / np.linalg.norm(comp_vec)  # unitize
+
+        # Calculate rotation angle
+        zax = np.array([0, 0, 1])
+        aax = [0, 0, 0]
+        aax[int(self.align_ax/2)] = 2*(self.align_ax%2)-1
+        rot_ang = Utils.angle_between_vectors2(aax, comp_vec, normal_vector=zax)
+        if fdir == 0:
+            rot_ang = -rot_ang
+
+        return {
+            'fdir': fdir,
+            'comp_ax': comp_ax,
+            'rot_ang': rot_ang
+        }
+
+    def _write_file_header(self, file):
+        """Write the header section of the output file."""
+        if self.ext == "gcode" or self.ext == "nc":
+            self._write_gcode_header(file)
+        elif self.ext == "sbp":
+            self._write_sbp_header(file)
+        else:
+            print("Unknown extension:", self.ext)
+
+    def _write_gcode_header(self, file):
+        """Write G-code file header."""
+        file.write("%\n")
+        file.write("G90 (Absolute [G91 is incremental])\n")
+        file.write("G17 (set XY plane for circle path)\n")
+        file.write("G94 (set unit/minute)\n")
+        file.write("G21 (set unit[mm])\n")
+        spistr = str(int(self.spindlespeed))
+        file.write("S" + spistr + " (Spindle " + spistr + "rpm)\n")
+        file.write("M3 (spindle start)\n")
+        file.write("G54\n")
+        spestr = str(int(self.speed))
+        file.write("F" + spestr + " (Feed " + spestr + "mm/min)\n")
+
+    def _write_sbp_header(self, file):
+        """Write ShopBot file header."""
+        file.write("'%\n")
+        file.write("SA\n")  # Set to Absolute Distances
+        file.write("TR,18000\n")  # from VUILD
+        file.write("C6\n")
+        file.write("PAUSE 2\n")
+        file.write("'\n")
+        file.write("MS,6.67,6.67\n\n")  # Move Speed Set
+
+    def _write_file_footer(self, file):
+        """Write the footer section of the output file."""
+        if self.ext == "gcode" or self.ext == "nc":
+            file.write("M5 (Spindle stop)\n")
+            file.write("M2 (end of program)\n")
+            file.write("M30 (delete sd file)\n")
+            file.write("%\n")
+        elif self.ext == "sbp":
+            file.write("SO 1,0\n")
+            file.write("END\n")
+            file.write("'%\n")
+
+    def _write_toolpath_instructions(self, file, n, fax, comp_params, coords, d):
+        """Write toolpath instructions to the file."""
+        for i, mv in enumerate(self.pjoint.gcodeverts[n]):
+            # Scale and transform the vertex
+            mv.scale_and_swap(fax, comp_params['fdir'], self.pjoint.ratio,
+                              self.unit_scale, self.pjoint.real_tim_dims, coords, d, n)
+
+            # Rotate if needed
+            if comp_params['comp_ax'] != fax:
+                mv.rotate(comp_params['rot_ang'], d)
+
+            # Get previous vertex if available
+            pmv = self.pjoint.gcodeverts[n][i - 1] if i > 0 else None
+
+            # Check if this is an arc segment
+            arc_params = self._check_for_arc(mv, pmv, i)
+
+            # Write the appropriate instruction
+            self._write_instruction(file, mv, pmv, i, arc_params)
+
+    def _check_for_arc(self, mv, pmv, i):
+        """Check if the current segment is an arc and determine its parameters."""
+        if i == 0 or pmv is None:
+            return {'is_arc': False}
+
+        if Utils.connected_arc(mv, pmv):
+            # Calculate arc direction
+            vec1 = mv.pt - mv.arc_ctr
+            vec1 = vec1 / np.linalg.norm(vec1)
+            zvec = np.array([0, 0, 1])
+            xvec = np.cross(vec1, zvec)
+            vec2 = pmv.pt - mv.arc_ctr
+            vec2 = vec2 / np.linalg.norm(vec2)
+            diff_ang = Utils.angle_between_vectors2(xvec, vec2)
+            clockwise = diff_ang > 0.5 * math.pi
+
+            return {
+                'is_arc': True,
+                'clockwise': clockwise
+            }
+
+        return {'is_arc': False}
+
+    def _write_instruction(self, file, mv, pmv, i, arc_params):
+        """Write a single instruction to the file."""
+        if self.ext == "gcode" or self.ext == "nc":
+            self._write_gcode_instruction(file, mv, pmv, i, arc_params)
+        elif self.ext == "sbp":
+            self._write_sbp_instruction(file, mv, pmv, i, arc_params)
+
+    def _write_gcode_instruction(self, file, mv, pmv, i, arc_params):
+        """Write a G-code instruction."""
+        if arc_params['is_arc'] and self.interp:
+            # Write interpolated arc
+            cmd = "G2" if arc_params['clockwise'] else "G3"
+            file.write(f"{cmd} R{round(self.dia, 5)} X{mv.xstr} Y{mv.ystr}")
+            if i > 0 and mv.z != pmv.z:
+                file.write(f" Z{mv.zstr}")
+            file.write("\n")
+        elif arc_params['is_arc'] and not self.interp:
+            # Write non-interpolated arc as a series of linear moves
+            pts = Utils.arc_points(pmv.pt, mv.pt, pmv.arc_ctr, mv.arc_ctr, 2, math.radians(1))
+            for pt in pts:
+                file.write(f"G1 X{round(pt[0], 3)} Y{round(pt[1], 3)}")
+                if i > 0 and mv.z != pmv.z:
+                    file.write(f" Z{round(pt[2], 3)}")
+                file.write("\n")
+        elif i == 0 or mv.x != pmv.x or mv.y != pmv.y or mv.z != pmv.z:
+            # Write linear move
+            cmd = "G0" if mv.is_tra else "G1"
+            file.write(cmd)
+            if i == 0 or mv.x != pmv.x:
+                file.write(f" X{mv.xstr}")
+            if i == 0 or mv.y != pmv.y:
+                file.write(f" Y{mv.ystr}")
+            if i == 0 or mv.z != pmv.z:
+                file.write(f" Z{mv.zstr}")
+            file.write("\n")
+
+    def _write_sbp_instruction(self, file, mv, pmv, i, arc_params):
+        """Write a ShopBot instruction."""
+        if arc_params['is_arc'] and mv.z == pmv.z:
+            # Write arc in same Z plane
+            file.write(f"CG,{round(2*self.dia*self.unit_scale, 5)},{mv.xstr},{mv.ystr},,,T,")
+            file.write("1\n" if arc_params['clockwise'] else "-1\n")
+        elif arc_params['is_arc'] and mv.z != pmv.z:
+            # Write arc with Z change as a series of linear moves
+            pts = Utils.arc_points(pmv.pt, mv.pt, pmv.arc_ctr, mv.arc_ctr, 2, math.radians(1))
+            for pt in pts:
+                file.write(f"M3,{round(pt[0], 3)},{round(pt[1], 3)},{round(pt[2], 3)}\n")
+        elif i == 0 or mv.x != pmv.x or mv.y != pmv.y or mv.z != pmv.z:
+            # Write linear move
+            cmd = "J3," if mv.is_tra else "M3,"
+            file.write(cmd)
+            if i == 0 or mv.x != pmv.x:
+                file.write(f"{mv.xstr},")
             else:
-                print("Unknown extension:", self.ext)
+                file.write(" ,")
+            if i == 0 or mv.y != pmv.y:
+                file.write(f"{mv.ystr},")
+            else:
+                file.write(" ,")
+            if i == 0 or mv.z != pmv.z:
+                file.write(f"{mv.zstr}\n")
+            else:
+                file.write(" \n")
 
-            ###content
-            for i,mv in enumerate(self.pjoint.gcodeverts[n]):
-                mv.scale_and_swap(fax, fdir, self.pjoint.ratio, self.unit_scale, self.pjoint.real_tim_dims, coords, d, n)
-                if comp_ax!=fax: mv.rotate(rot_ang,d)
-                if i>0: pmv = self.pjoint.gcodeverts[n][i - 1] #pmv=previous mill vertex
-                # check segment angle
-                arc = False
-                clockwise = False
-                if i>0 and Utils.connected_arc(mv,pmv):
-                    arc = True
-                    vec1 = mv.pt-mv.arc_ctr
-                    vec1 = vec1/np.linalg.norm(vec1)
-                    zvec = np.array([0,0,1])
-                    xvec = np.cross(vec1,zvec)
-                    vec2 = pmv.pt-mv.arc_ctr
-                    vec2 = vec2/np.linalg.norm(vec2)
-                    diff_ang = Utils.angle_between_vectors2(xvec,vec2)
-                    if diff_ang>0.5*math.pi: clockwise = True
-
-                #write to file
-                if self.ext=="gcode" or self.ext=="nc":
-                    if arc and self.interp:
-                        if clockwise: file.write("G2")
-                        else: file.write("G3")
-                        file.write(" R"+str(round(self.dia,d))+" X"+mv.xstr+" Y"+mv.ystr)
-                        if mv.z!=pmv.z: file.write(" Z"+mv.zstr)
-                        file.write("\n")
-                    elif arc and not self.interp:
-                        pts = Utils.arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
-                        for pt in pts:
-                            file.write("G1")
-                            file.write(" X"+str(round(pt[0],3))+" Y"+str(round(pt[1],3)))
-                            if mv.z!=pmv.z: file.write(" Z"+str(round(pt[2],3)))
-                            file.write("\n")
-                    elif i==0 or mv.x!=pmv.x or mv.y!=pmv.y or mv.z!=pmv.z:
-                        if mv.is_tra: file.write("G0")
-                        else: file.write("G1")
-                        if i==0 or mv.x!=pmv.x: file.write(" X"+mv.xstr)
-                        if i==0 or mv.y!=pmv.y: file.write(" Y"+mv.ystr)
-                        if i==0 or mv.z!=pmv.z: file.write(" Z"+mv.zstr)
-                        file.write("\n")
-
-                elif self.ext=="sbp":
-                    if arc and mv.z==pmv.z:
-                        file.write("CG,"+str(round(2*self.dia*self.unit_scale,d))+","+mv.xstr+","+mv.ystr+",,,T,")
-                        if clockwise: file.write("1\n")
-                        else: file.write("-1\n")
-                    elif arc and mv.z!=pmv.z:
-                        pts = Utils.arc_points(pmv.pt,mv.pt,pmv.arc_ctr,mv.arc_ctr,2,math.radians(1))
-                        for pt in pts:
-                            file.write("M3,"+str(round(pt[0],3))+","+str(round(pt[1],3))+","+str(round(pt[2],3))+"\n")
-                    elif i==0 or mv.x!=pmv.x or mv.y!=pmv.y or mv.z!=pmv.z:
-                        if mv.is_tra: file.write("J3,")
-                        else: file.write("M3,")
-                        if i==0 or mv.x!=pmv.x: file.write(mv.xstr+",")
-                        else: file.write(" ,")
-                        if i==0 or mv.y!=pmv.y: file.write(mv.ystr+",")
-                        else: file.write(" ,")
-                        if i==0 or mv.z!=pmv.z: file.write(mv.zstr+"\n")
-                        else: file.write(" \n")
-            #end
-            if self.ext=="gcode" or self.ext=="nc":
-                file.write("M5 (Spindle stop)\n")
-                file.write("M2 (end of program)\n")
-                file.write("M30 (delete sd file)\n")
-                file.write("%\n")
-            elif self.ext=="sbp":
-                file.write("SO 1,0\n")
-                file.write("END\n")
-                file.write("'%\n")
-
-            print("Exported",file_name)
-            file.close()
