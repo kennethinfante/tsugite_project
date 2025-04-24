@@ -5,31 +5,87 @@ import numpy as np
 import utils as Utils
 
 class RoughPixel:
-    def __init__(self,ind,mat,pad_loc,dim,n):
+    # def __init__(self,ind,mat,pad_loc,dim,n):
+    #     self.ind = ind
+    #     self.ind_abs = ind.copy()
+    #     self.ind_abs[0] -= pad_loc[0][0]
+    #     self.ind_abs[1] -= pad_loc[1][0]
+    #     self.outside = False
+    #     if self.ind_abs[0]<0 or self.ind_abs[0]>=dim:
+    #         self.outside = True
+    #     elif self.ind_abs[1]<0 or self.ind_abs[1]>=dim:
+    #         self.outside = True
+    #     self.neighbors = []
+    #     # Region or free=0
+    #     # Blocked=1
+    #     for ax in range(2):
+    #         temp = []
+    #         for dir in range(-1,2,2):
+    #             nind = self.ind.copy()
+    #             nind[ax] += dir
+    #             type = 0
+    #             if nind[0]>=0 and nind[0]<mat.shape[0] and nind[1]>=0 and nind[1]<mat.shape[1]:
+    #                 val = mat[tuple(nind)]
+    #                 if val==n: type = 1
+    #             temp.append(type)
+    #         self.neighbors.append(temp)
+    #     self.flat_neighbors = [x for sublist in self.neighbors for x in sublist]
+
+    def __init__(self, ind, mat, pad_loc, dim, n):
+        """Initialize a RoughPixel for rough milling path generation."""
+        # Store indices and calculate absolute indices
         self.ind = ind
-        self.ind_abs = ind.copy()
-        self.ind_abs[0] -= pad_loc[0][0]
-        self.ind_abs[1] -= pad_loc[1][0]
-        self.outside = False
-        if self.ind_abs[0]<0 or self.ind_abs[0]>=dim:
-            self.outside = True
-        elif self.ind_abs[1]<0 or self.ind_abs[1]>=dim:
-            self.outside = True
-        self.neighbors = []
-        # Region or free=0
-        # Blocked=1
+        self.ind_abs = self._calculate_absolute_indices(ind, pad_loc)
+
+        # Check if pixel is outside the valid region
+        self.outside = self._is_outside_region(dim)
+
+        # Calculate neighbor information
+        self.neighbors = self._calculate_neighbors(mat, n)
+        self.flat_neighbors = [x for sublist in self.neighbors for x in sublist]
+
+    def _calculate_absolute_indices(self, ind, pad_loc):
+        """Calculate absolute indices by removing padding."""
+        ind_abs = ind.copy()
+        ind_abs[0] -= pad_loc[0][0]
+        ind_abs[1] -= pad_loc[1][0]
+        return ind_abs
+
+    def _is_outside_region(self, dim):
+        """Check if pixel is outside the valid region."""
+        if self.ind_abs[0] < 0 or self.ind_abs[0] >= dim:
+            return True
+        elif self.ind_abs[1] < 0 or self.ind_abs[1] >= dim:
+            return True
+        return False
+
+    def _calculate_neighbors(self, mat, n):
+        """Calculate neighbor information for the pixel."""
+        neighbors = []
+
+        # Check neighbors in each axis direction
         for ax in range(2):
             temp = []
-            for dir in range(-1,2,2):
+            for dir in range(-1, 2, 2):
+                # Calculate neighbor index
                 nind = self.ind.copy()
                 nind[ax] += dir
-                type = 0
-                if nind[0]>=0 and nind[0]<mat.shape[0] and nind[1]>=0 and nind[1]<mat.shape[1]:
+
+                # Check if neighbor is valid and blocked
+                type = 0  # Default: region or free
+                if self._is_valid_index(nind, mat.shape):
                     val = mat[tuple(nind)]
-                    if val==n: type = 1
+                    if val == n:
+                        type = 1  # Blocked
+
                 temp.append(type)
-            self.neighbors.append(temp)
-        self.flat_neighbors = [x for sublist in self.neighbors for x in sublist]
+            neighbors.append(temp)
+
+        return neighbors
+
+    def _is_valid_index(self, ind, shape):
+        """Check if index is within matrix bounds."""
+        return (0 <= ind[0] < shape[0]) and (0 <= ind[1] < shape[1])
 
 class MillVertex:
     def __init__(self,pt,is_tra=False,is_arc=False,arc_ctr=np.array([0,0,0])):
