@@ -233,57 +233,137 @@ class Display:
 
         return moves
 
-    def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
-        # Define translation matrices for opening
-        move_vec = [0,0,0]
-        move_vec[self.joint.sax] = self.view.open_ratio * self.joint.component_size
-        move_vec = np.array(move_vec)
-        moves = []
-        moves_show = []
+    # def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
+    #     # Define translation matrices for opening
+    #     move_vec = [0,0,0]
+    #     move_vec[self.joint.sax] = self.view.open_ratio * self.joint.component_size
+    #     move_vec = np.array(move_vec)
+    #     moves = []
+    #     moves_show = []
+    #
+    #     for n in range(self.joint.noc):
+    #         tot_move_vec = (2 * n + 1 - self.joint.noc) / (self.joint.noc - 1) * move_vec
+    #         move_mat = pyrr.matrix44.create_from_translation(tot_move_vec)
+    #         moves.append(move_mat)
+    #         move_mat_show = pyrr.matrix44.create_from_translation(tot_move_vec+translation_vec)
+    #         moves_show.append(move_mat_show)
+    #     #
+    #     GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+    #     GL.glDisable(GL.GL_DEPTH_TEST)
+    #     GL.glColorMask(GL.GL_FALSE,GL.GL_FALSE,GL.GL_FALSE,GL.GL_FALSE)
+    #     GL.glEnable(GL.GL_STENCIL_TEST)
+    #     GL.glStencilFunc(GL.GL_ALWAYS,1,1)
+    #     GL.glStencilOp(GL.GL_REPLACE,GL.GL_REPLACE,GL.GL_REPLACE)
+    #     GL.glDepthRange (0.0, 0.9975)
+    #
+    #     translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+    #
+    #     for geo in show_geos:
+    #         if geo==None: continue
+    #         if self.view.hidden[geo.n]: continue
+    #         GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves_show[geo.n])
+    #         GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+    #
+    #     GL.glEnable(GL.GL_DEPTH_TEST)
+    #     GL.glStencilFunc(GL.GL_EQUAL,1,1)
+    #     GL.glStencilOp(GL.GL_KEEP,GL.GL_KEEP,GL.GL_KEEP)
+    #     GL.glDepthRange (0.0025, 1.0)
+    #
+    #     for geo in screen_geos:
+    #         if geo==None: continue
+    #         if self.view.hidden[geo.n]: continue
+    #         GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
+    #         GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+    #
+    #     GL.glDisable(GL.GL_STENCIL_TEST)
+    #     GL.glColorMask(GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE)
+    #     GL.glDepthRange (0.0, 0.9975)
+    #
+    #     for geo in show_geos:
+    #         if geo==None: continue
+    #         if self.view.hidden[geo.n]: continue
+    #         GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves_show[geo.n])
+    #         GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
 
-        for n in range(self.joint.noc):
-            tot_move_vec = (2 * n + 1 - self.joint.noc) / (self.joint.noc - 1) * move_vec
-            move_mat = pyrr.matrix44.create_from_translation(tot_move_vec)
-            moves.append(move_mat)
-            move_mat_show = pyrr.matrix44.create_from_translation(tot_move_vec+translation_vec)
-            moves_show.append(move_mat_show)
-        #
+    def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
+        """
+        Draw geometries with stencil-based exclusion of certain areas.
+        """
+        # Calculate movement matrices
+        moves = self._calculate_component_moves()
+        moves_show = self._calculate_component_moves(translation_vec)
+
+        # Setup stencil buffer for masking
+        self._setup_stencil_for_masking()
+
+        # Draw geometries that define the stencil mask
+        self._draw_stencil_mask_geometries(show_geos, moves_show)
+
+        # Draw geometries that are masked by the stencil
+        self._draw_masked_geometries(screen_geos, moves)
+
+        # Draw visible geometries on top
+        self._draw_visible_geometries(show_geos, moves_show)
+
+    def _setup_stencil_for_masking(self):
+        """
+        Setup OpenGL state for stencil masking.
+        """
         GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
         GL.glDisable(GL.GL_DEPTH_TEST)
-        GL.glColorMask(GL.GL_FALSE,GL.GL_FALSE,GL.GL_FALSE,GL.GL_FALSE)
+        GL.glColorMask(GL.GL_FALSE, GL.GL_FALSE, GL.GL_FALSE, GL.GL_FALSE)
         GL.glEnable(GL.GL_STENCIL_TEST)
-        GL.glStencilFunc(GL.GL_ALWAYS,1,1)
-        GL.glStencilOp(GL.GL_REPLACE,GL.GL_REPLACE,GL.GL_REPLACE)
-        GL.glDepthRange (0.0, 0.9975)
+        GL.glStencilFunc(GL.GL_ALWAYS, 1, 1)
+        GL.glStencilOp(GL.GL_REPLACE, GL.GL_REPLACE, GL.GL_REPLACE)
+        GL.glDepthRange(0.0, 0.9975)
+
+    def _draw_stencil_mask_geometries(self, geos, moves):
+        """
+        Draw geometries that define the stencil mask.
+        """
+        translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
+        for geo in geos:
+            if geo is None or self.view.hidden[geo.n]:
+                continue
+
+            GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT, buffer_offset(4*geo.start_index))
+
+    def _draw_masked_geometries(self, geos, moves):
+        """
+        Draw geometries that are masked by the stencil.
+        """
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glStencilFunc(GL.GL_EQUAL, 1, 1)
+        GL.glStencilOp(GL.GL_KEEP, GL.GL_KEEP, GL.GL_KEEP)
+        GL.glDepthRange(0.0025, 1.0)
 
         translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
 
-        for geo in show_geos:
-            if geo==None: continue
-            if self.view.hidden[geo.n]: continue
-            GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves_show[geo.n])
-            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+        for geo in geos:
+            if geo is None or self.view.hidden[geo.n]:
+                continue
 
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glStencilFunc(GL.GL_EQUAL,1,1)
-        GL.glStencilOp(GL.GL_KEEP,GL.GL_KEEP,GL.GL_KEEP)
-        GL.glDepthRange (0.0025, 1.0)
-
-        for geo in screen_geos:
-            if geo==None: continue
-            if self.view.hidden[geo.n]: continue
             GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
-            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT, buffer_offset(4*geo.start_index))
 
+    def _draw_visible_geometries(self, geos, moves):
+        """
+        Draw visible geometries on top.
+        """
         GL.glDisable(GL.GL_STENCIL_TEST)
-        GL.glColorMask(GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE,GL.GL_TRUE)
-        GL.glDepthRange (0.0, 0.9975)
+        GL.glColorMask(GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE)
+        GL.glDepthRange(0.0, 0.9975)
 
-        for geo in show_geos:
-            if geo==None: continue
-            if self.view.hidden[geo.n]: continue
-            GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves_show[geo.n])
-            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+        translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
+        for geo in geos:
+            if geo is None or self.view.hidden[geo.n]:
+                continue
+
+            GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT, buffer_offset(4*geo.start_index))
 
     def pick(self,xpos,ypos,height):
         if not self.view.gallery:
