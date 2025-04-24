@@ -884,20 +884,45 @@ class Display:
 
         self.draw_geometries_with_excluded_area(G0, G1)
 
+    # def unconnected(self):
+    #     # 1. Draw hidden geometry
+    #     col = [1.0, 0.8, 0.7]  # light red orange
+    #     GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #     for n in range(self.joint.mesh.pjoint.noc):
+    #         if not self.joint.mesh.eval.connected[n]:
+    #             self.draw_geometries([self.joint.mesh.indices_not_fcon[n]])
+    #
+    #     # 1. Draw visible geometry
+    #     col = [1.0, 0.2, 0.0] # red orange
+    #     GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #     G0 = self.joint.mesh.indices_not_fcon
+    #     G1 = self.joint.mesh.indices_fcon
+    #     self.draw_geometries_with_excluded_area(G0,G1)
+
     def unconnected(self):
-        # 1. Draw hidden geometry
+        """
+        Highlight components that are not properly connected.
+        """
+        self._draw_hidden_unconnected_geometry()
+        self._draw_visible_unconnected_geometry()
+
+    def _draw_hidden_unconnected_geometry(self):
+        """Draw hidden geometry for unconnected components."""
         col = [1.0, 0.8, 0.7]  # light red orange
         GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+
         for n in range(self.joint.mesh.pjoint.noc):
             if not self.joint.mesh.eval.connected[n]:
                 self.draw_geometries([self.joint.mesh.indices_not_fcon[n]])
 
-        # 1. Draw visible geometry
-        col = [1.0, 0.2, 0.0] # red orange
+    def _draw_visible_unconnected_geometry(self):
+        """Draw visible geometry for unconnected components."""
+        col = [1.0, 0.2, 0.0]  # red orange
         GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+
         G0 = self.joint.mesh.indices_not_fcon
         G1 = self.joint.mesh.indices_fcon
-        self.draw_geometries_with_excluded_area(G0,G1)
+        self.draw_geometries_with_excluded_area(G0, G1)
 
     def unbridged(self):
         # Draw colored faces when unbridged
