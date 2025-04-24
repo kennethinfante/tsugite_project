@@ -1258,19 +1258,48 @@ class Joint:
 
         return lay_mat, pad_loc, org_lay_mat
 
+    # def _process_regions_in_layer(self, lay_mat, org_lay_mat, pad_loc, lay_num, n, no_z, dep,
+    #                              neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+    #                              vertices, milling_vertices):
+    #     """Process all regions in the current layer."""
+    #     # Get/browse regions
+    #     for reg_num in range(self.dim * self.dim):
+    #         # Get indices of a region
+    #         inds = np.argwhere((lay_mat != -1) & (lay_mat != n))
+    #         if len(inds) == 0:
+    #             break
+    #
+    #         # Get all connected indices in the region
+    #         reg_inds = Utils.get_diff_neighbors(lay_mat, [inds[0]], n)
+    #
+    #         # Process edge paths for oblique joints
+    #         self._process_edge_paths(lay_num, n, no_z, dep, vertices, milling_vertices)
+    #
+    #         # Process rough milling paths
+    #         self._process_rough_milling(reg_inds, lay_mat, pad_loc, lay_num, n, no_z, dep,
+    #                                    vertices, milling_vertices)
+    #
+    #         # Mark processed region in the matrix
+    #         for reg_ind in reg_inds:
+    #             lay_mat[tuple(reg_ind)] = n
+    #
+    #         # Process region outlines
+    #         self._process_region_outlines(reg_inds, lay_mat, org_lay_mat, pad_loc, lay_num, n, no_z, dep,
+    #                                      neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+    #                                      vertices, milling_vertices)
+
     def _process_regions_in_layer(self, lay_mat, org_lay_mat, pad_loc, lay_num, n, no_z, dep,
                                  neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
                                  vertices, milling_vertices):
         """Process all regions in the current layer."""
         # Get/browse regions
         for reg_num in range(self.dim * self.dim):
-            # Get indices of a region
-            inds = np.argwhere((lay_mat != -1) & (lay_mat != n))
-            if len(inds) == 0:
+            # Find regions to process
+            region_data = self._find_next_region(lay_mat, n)
+            if not region_data['found']:
                 break
 
-            # Get all connected indices in the region
-            reg_inds = Utils.get_diff_neighbors(lay_mat, [inds[0]], n)
+            reg_inds = region_data['indices']
 
             # Process edge paths for oblique joints
             self._process_edge_paths(lay_num, n, no_z, dep, vertices, milling_vertices)
@@ -1287,6 +1316,17 @@ class Joint:
             self._process_region_outlines(reg_inds, lay_mat, org_lay_mat, pad_loc, lay_num, n, no_z, dep,
                                          neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
                                          vertices, milling_vertices)
+
+    def _find_next_region(self, lay_mat, n):
+        """Find the next region to process in the layer matrix."""
+        inds = np.argwhere((lay_mat != -1) & (lay_mat != n))
+        if len(inds) == 0:
+            return {'found': False, 'indices': []}
+
+        # Get all connected indices in the region
+        reg_inds = Utils.get_diff_neighbors(lay_mat, [inds[0]], n)
+        return {'found': True, 'indices': reg_inds}
+
 
     def _process_edge_paths(self, lay_num, n, no_z, dep, vertices, milling_vertices):
         """Process edge paths for oblique joints."""
