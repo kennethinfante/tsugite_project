@@ -1353,49 +1353,120 @@ class Joint:
                 vertices.extend(verts)
                 milling_vertices.extend(mverts)
 
+    # def _process_region_outlines(self, reg_inds, lay_mat, org_lay_mat, pad_loc, lay_num, n, no_z, dep,
+    #                             neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+    #                             vertices, milling_vertices):
+    #     """Process outlines of regions in the layer."""
+    #     # Get region outline vertices
+    #     reg_verts = Utils.get_region_outline_vertices(reg_inds, lay_mat, org_lay_mat, pad_loc, n)
+    #
+    #     # Process each island in the region (up to 10 islands)
+    #     for isl_num in range(10):
+    #         if len(reg_verts) == 0:
+    #             break
+    #
+    #         # Set starting vertex and get ordered vertices
+    #         reg_verts = Utils.set_starting_vert(reg_verts)
+    #         reg_ord_verts, reg_verts, closed = Utils.get_sublist_of_ordered_verts(reg_verts)
+    #
+    #         # Skip if not enough vertices
+    #         if len(reg_ord_verts) <= 1:
+    #             continue
+    #
+    #         # Offset vertices according to boundary conditions
+    #         outline, corner_artifacts = self._offset_verts(
+    #             neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+    #             reg_ord_verts, lay_num, n
+    #         )
+    #
+    #         # Skip if no outline
+    #         if len(outline) == 0:
+    #             continue
+    #
+    #         # Close the outline if needed and add vertices
+    #         if closed:
+    #             outline.append(MillVertex(outline[0].pt))
+    #
+    #         verts, mverts = self._get_layered_vertices(outline, n, lay_num, no_z, dep)
+    #         vertices.extend(verts)
+    #         milling_vertices.extend(mverts)
+    #
+    #         # Process corner artifacts
+    #         for artifact in corner_artifacts:
+    #             verts, mverts = self._get_layered_vertices(artifact, n, lay_num, no_z, dep)
+    #             vertices.extend(verts)
+    #             milling_vertices.extend(mverts)
+
     def _process_region_outlines(self, reg_inds, lay_mat, org_lay_mat, pad_loc, lay_num, n, no_z, dep,
-                                neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
-                                vertices, milling_vertices):
+                            neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+                            vertices, milling_vertices):
         """Process outlines of regions in the layer."""
         # Get region outline vertices
         reg_verts = Utils.get_region_outline_vertices(reg_inds, lay_mat, org_lay_mat, pad_loc, n)
 
         # Process each island in the region (up to 10 islands)
         for isl_num in range(10):
+            # Check if we're done with all vertices
             if len(reg_verts) == 0:
                 break
 
-            # Set starting vertex and get ordered vertices
-            reg_verts = Utils.set_starting_vert(reg_verts)
-            reg_ord_verts, reg_verts, closed = Utils.get_sublist_of_ordered_verts(reg_verts)
-
-            # Skip if not enough vertices
-            if len(reg_ord_verts) <= 1:
-                continue
-
-            # Offset vertices according to boundary conditions
-            outline, corner_artifacts = self._offset_verts(
+            # Process a single island
+            island_result = self._process_single_island(
+                reg_verts, lay_num, n, no_z, dep,
                 neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
-                reg_ord_verts, lay_num, n
+                vertices, milling_vertices
             )
 
-            # Skip if no outline
-            if len(outline) == 0:
-                continue
+            # Update remaining vertices
+            reg_verts = island_result['remaining_verts']
 
-            # Close the outline if needed and add vertices
-            if closed:
-                outline.append(MillVertex(outline[0].pt))
+    def _process_single_island(self, reg_verts, lay_num, n, no_z, dep,
+                              neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+                              vertices, milling_vertices):
+        """Process a single island in the region."""
+        # Set starting vertex and get ordered vertices
+        reg_verts = Utils.set_starting_vert(reg_verts)
+        reg_ord_verts, remaining_verts, closed = Utils.get_sublist_of_ordered_verts(reg_verts)
 
-            verts, mverts = self._get_layered_vertices(outline, n, lay_num, no_z, dep)
+        # Skip if not enough vertices
+        if len(reg_ord_verts) <= 1:
+            return {'remaining_verts': remaining_verts}
+
+        # Offset vertices according to boundary conditions
+        outline, corner_artifacts = self._offset_verts(
+            neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b,
+            reg_ord_verts, lay_num, n
+        )
+
+        # Skip if no outline
+        if len(outline) == 0:
+            return {'remaining_verts': remaining_verts}
+
+        # Process outline and artifacts
+        self._process_outline_and_artifacts(
+            outline, corner_artifacts, closed, lay_num, n, no_z, dep,
+            vertices, milling_vertices
+        )
+
+        return {'remaining_verts': remaining_verts}
+
+    def _process_outline_and_artifacts(self, outline, corner_artifacts, closed, lay_num, n, no_z, dep,
+                                      vertices, milling_vertices):
+        """Process outline and corner artifacts."""
+        # Close the outline if needed
+        if closed:
+            outline.append(MillVertex(outline[0].pt))
+
+        # Add vertices for the outline
+        verts, mverts = self._get_layered_vertices(outline, n, lay_num, no_z, dep)
+        vertices.extend(verts)
+        milling_vertices.extend(mverts)
+
+        # Process corner artifacts
+        for artifact in corner_artifacts:
+            verts, mverts = self._get_layered_vertices(artifact, n, lay_num, no_z, dep)
             vertices.extend(verts)
             milling_vertices.extend(mverts)
-
-            # Process corner artifacts
-            for artifact in corner_artifacts:
-                verts, mverts = self._get_layered_vertices(artifact, n, lay_num, no_z, dep)
-                vertices.extend(verts)
-                milling_vertices.extend(mverts)
 
     def create_and_buffer_vertices(self, milling_path=False):
         """Create and buffer vertices for joint visualization and milling paths."""
