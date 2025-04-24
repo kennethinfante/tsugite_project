@@ -134,39 +134,104 @@ class Display:
         transform_ref = GL.glGetUniformLocation(self.current_program, 'transform')
         GL.glUniformMatrix4fv(transform_ref, 1, GL.GL_FALSE, rot_x * rot_y)
 
+    # def end_grains(self):
+    #     self.current_program = self.shader_tex
+    #     GL.glUseProgram(self.current_program)
+    #     self.bind_view_mat_to_shader_transform_mat()
+    #
+    #     G0 = self.joint.mesh.indices_fend
+    #     G1 = self.joint.mesh.indices_not_fend
+    #     self.draw_geometries_with_excluded_area(G0,G1)
+    #
+    #     self.current_program = self.shader_col
+    #     GL.glUseProgram(self.current_program)
+    #     self.bind_view_mat_to_shader_transform_mat()
+
     def end_grains(self):
+        """
+        Render end grain textures.
+        """
+        self._switch_to_texture_shader()
+
+        G0 = self.joint.mesh.indices_fend
+        G1 = self.joint.mesh.indices_not_fend
+        self.draw_geometries_with_excluded_area(G0, G1)
+
+        self._switch_to_color_shader()
+
+    def _switch_to_texture_shader(self):
+        """
+        Switch to texture shader program.
+        """
         self.current_program = self.shader_tex
         GL.glUseProgram(self.current_program)
         self.bind_view_mat_to_shader_transform_mat()
 
-        G0 = self.joint.mesh.indices_fend
-        G1 = self.joint.mesh.indices_not_fend
-        self.draw_geometries_with_excluded_area(G0,G1)
-
+    def _switch_to_color_shader(self):
+        """
+        Switch to color shader program.
+        """
         self.current_program = self.shader_col
         GL.glUseProgram(self.current_program)
         self.bind_view_mat_to_shader_transform_mat()
 
-    def draw_geometries(self, geos,clear_depth_buffer=True, translation_vec=np.array([0,0,0])):
-        # Define translation matrices for opening
+
+    # def draw_geometries(self, geos,clear_depth_buffer=True, translation_vec=np.array([0,0,0])):
+    #     # Define translation matrices for opening
+    #     move_vec = [0,0,0]
+    #     move_vec[self.joint.sax] = self.view.open_ratio * self.joint.component_size
+    #     move_vec = np.array(move_vec)
+    #     moves = []
+    #     for n in range(self.joint.noc):
+    #         tot_move_vec = (2 * n + 1 - self.joint.noc) / (self.joint.noc - 1) * move_vec
+    #         move_mat = pyrr.matrix44.create_from_translation(tot_move_vec+translation_vec)
+    #         moves.append(move_mat)
+    #     if clear_depth_buffer: GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+    #
+    #     translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+    #
+    #     for geo in geos:
+    #         if geo==None: continue
+    #         if self.view.hidden[geo.n]: continue
+    #
+    #         GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
+    #         GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+
+    def draw_geometries(self, geos, clear_depth_buffer=True, translation_vec=np.array([0,0,0])):
+        """
+        Draw geometries with component translations.
+        """
+        # Calculate movement matrices for each component
+        moves = self._calculate_component_moves(translation_vec)
+
+        if clear_depth_buffer:
+            GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+
+        translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
+
+        # Draw each geometry
+        for geo in geos:
+            if geo is None or self.view.hidden[geo.n]:
+                continue
+
+            GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
+            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT, buffer_offset(4*geo.start_index))
+
+    def _calculate_component_moves(self, translation_vec=np.array([0,0,0])):
+        """
+        Calculate movement matrices for each component based on joint opening.
+        """
         move_vec = [0,0,0]
         move_vec[self.joint.sax] = self.view.open_ratio * self.joint.component_size
         move_vec = np.array(move_vec)
         moves = []
+
         for n in range(self.joint.noc):
             tot_move_vec = (2 * n + 1 - self.joint.noc) / (self.joint.noc - 1) * move_vec
-            move_mat = pyrr.matrix44.create_from_translation(tot_move_vec+translation_vec)
+            move_mat = pyrr.matrix44.create_from_translation(tot_move_vec + translation_vec)
             moves.append(move_mat)
-        if clear_depth_buffer: GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
 
-        translate_ref = GL.glGetUniformLocation(self.current_program, 'translate')
-
-        for geo in geos:
-            if geo==None: continue
-            if self.view.hidden[geo.n]: continue
-
-            GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
-            GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT,  buffer_offset(4*geo.start_index))
+        return moves
 
     def draw_geometries_with_excluded_area(self, show_geos, screen_geos, translation_vec=np.array([0,0,0])):
         # Define translation matrices for opening
