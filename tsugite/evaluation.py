@@ -179,14 +179,14 @@ class Evaluation:
         self.voxel_matrix_unconnected = None
 
         # Separate unconnected voxels
-        self.seperate_unconnected(voxel_matrix, joint_.fixed.sides, joint_.dim)
+        self.separate_unconnected(voxel_matrix, joint_.fixed.sides, joint_.dim)
 
         # Check bridging for each component
         voxel_matrix_connected_with_sides = Utils.add_fixed_sides(self.voxel_matrix_connected, joint_.fixed.sides)
         for n in range(joint_.noc):
             self.bridged[n] = Utils.is_connected(voxel_matrix_connected_with_sides, n)
             if not self.bridged[n]:
-                voxel_matrix_unbridged_1, voxel_matrix_unbridged_2 = self.seperate_unbridged(
+                voxel_matrix_unbridged_1, voxel_matrix_unbridged_2 = self.separate_unbridged(
                     voxel_matrix, joint_.fixed.sides, joint_.dim, n
                 )
                 self.voxel_matrices_unbridged[n] = [voxel_matrix_unbridged_1, voxel_matrix_unbridged_2]
@@ -277,7 +277,7 @@ class Evaluation:
             self.breakable_voxel_inds.append(brk_vinds)
 
         # Separate breakable and non-breakable voxels
-        self.non_breakable_voxmat, self.breakable_voxmat = self.seperate_voxel_matrix(
+        self.non_breakable_voxmat, self.breakable_voxmat = self.separate_voxel_matrix(
             voxel_matrix, self.breakable_voxel_inds
         )
 
@@ -290,46 +290,121 @@ class Evaluation:
         else:
             self.valid = True
 
-    def seperate_unconnected(self,voxel_matrix,fixed_sides,dim):
-        connected_mat = np.zeros((dim,dim,dim))-1
-        unconnected_mat = np.zeros((dim,dim,dim))-1
+    def separate_unconnected(self, voxel_matrix, fixed_sides, dim):
+        """
+        Separate voxels into connected and unconnected matrices based on their connection to fixed sides.
+
+        Args:
+            voxel_matrix: The original voxel matrix
+            fixed_sides: The fixed sides for each component
+            dim: The dimension of the voxel matrix
+        """
+        # Initialize matrices with -1 (empty space)
+        connected_mat = np.zeros((dim, dim, dim)) - 1
+        unconnected_mat = np.zeros((dim, dim, dim)) - 1
+
+        # Iterate through all voxels
         for i in range(dim):
             for j in range(dim):
                 for k in range(dim):
-                    connected = False
-                    ind = [i,j,k]
+                    ind = [i, j, k]
                     val = voxel_matrix[tuple(ind)]
-                    connected = Utils.is_connected_to_fixed_side(np.array([ind]),voxel_matrix,fixed_sides[int(val)])
-                    if connected: connected_mat[tuple(ind)] = val
-                    else: unconnected_mat[tuple(ind)] = val
+
+                    # Skip empty voxels (value < 0)
+                    if val < 0:
+                        continue
+
+                    # Check if voxel is connected to its fixed side
+                    connected = Utils.is_connected_to_fixed_side(
+                        np.array([ind]), voxel_matrix, fixed_sides[int(val)]
+                    )
+
+                    # Assign voxel to appropriate matrix
+                    if connected:
+                        connected_mat[tuple(ind)] = val
+                    else:
+                        unconnected_mat[tuple(ind)] = val
+
+        # Store the results
         self.voxel_matrix_connected = connected_mat
         self.voxel_matrix_unconnected = unconnected_mat
 
-    def seperate_voxel_matrix(self,voxmat,inds):
+    def separate_voxel_matrix(self, voxmat, inds):
+        """
+        Separate a voxel matrix into two matrices based on specified indices.
+
+        Args:
+            voxmat: The original voxel matrix
+            inds: List of indices to separate
+
+        Returns:
+            voxmat_a: Matrix with specified indices removed
+            voxmat_b: Matrix with only the specified indices
+        """
         dim = len(voxmat)
+
+        # Create a deep copy for the first matrix
         voxmat_a = copy.deepcopy(voxmat)
-        voxmat_b = np.zeros((dim,dim,dim))-1
+
+        # Initialize the second matrix with -1 (empty space)
+        voxmat_b = np.zeros((dim, dim, dim)) - 1
+
+        # Move voxels from matrix A to matrix B based on indices
         for n in range(len(inds)):
             for ind in inds[n]:
                 ind = tuple(ind)
                 val = voxmat[ind]
+
+                # Remove from matrix A and add to matrix B
                 voxmat_a[ind] = -1
                 voxmat_b[ind] = val
-        return voxmat_a,voxmat_b
 
-    def seperate_unbridged(self,voxel_matrix,fixed_sides,dim,n):
-        unbridged_1 = np.zeros((dim,dim,dim))-1
-        unbridged_2 = np.zeros((dim,dim,dim))-1
+        return voxmat_a, voxmat_b
+
+    def separate_unbridged(self, voxel_matrix, fixed_sides, dim, n):
+        """
+        Separate voxels of a specific component into two matrices based on their connection
+        to each of the two fixed sides.
+
+        Args:
+            voxel_matrix: The original voxel matrix
+            fixed_sides: The fixed sides for each component
+            dim: The dimension of the voxel matrix
+            n: The component number to process
+
+        Returns:
+            unbridged_1: Matrix with voxels connected to the first fixed side
+            unbridged_2: Matrix with voxels connected to the second fixed side
+        """
+        # Initialize matrices with -1 (empty space)
+        unbridged_1 = np.zeros((dim, dim, dim)) - 1
+        unbridged_2 = np.zeros((dim, dim, dim)) - 1
+
+        # Iterate through all voxels
         for i in range(dim):
             for j in range(dim):
                 for k in range(dim):
-                    ind = [i,j,k]
+                    ind = [i, j, k]
                     val = voxel_matrix[tuple(ind)]
-                    if val!=n: continue
-                    conn_1 = Utils.is_connected_to_fixed_side(np.array([ind]),voxel_matrix,[fixed_sides[n][0]])
-                    conn_2 = Utils.is_connected_to_fixed_side(np.array([ind]),voxel_matrix,[fixed_sides[n][1]])
-                    if conn_1: unbridged_1[tuple(ind)] = val
-                    if conn_2: unbridged_2[tuple(ind)] = val
+
+                    # Skip voxels that don't belong to the specified component
+                    if val != n:
+                        continue
+
+                    # Check connection to each fixed side
+                    conn_1 = Utils.is_connected_to_fixed_side(
+                        np.array([ind]), voxel_matrix, [fixed_sides[n][0]]
+                    )
+                    conn_2 = Utils.is_connected_to_fixed_side(
+                        np.array([ind]), voxel_matrix, [fixed_sides[n][1]]
+                    )
+
+                    # Assign voxel to appropriate matrix
+                    if conn_1:
+                        unbridged_1[tuple(ind)] = val
+                    if conn_2:
+                        unbridged_2[tuple(ind)] = val
+
         return unbridged_1, unbridged_2
 
 # class EvaluationOne:
