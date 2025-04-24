@@ -599,43 +599,63 @@ class Joint:
         return vertices, milling_vertices
 
     def create_and_buffer_vertices(self, milling_path=False):
+        """Create and buffer vertices for joint visualization and milling paths."""
+        # Initialize vertex arrays
         self.jverts = []
         self.everts = []
         self.mverts = []
         self.gcodeverts = []
 
+        # Create joint vertices for each axis
         for ax in range(3):
             self.jverts.append(self.create_joint_vertices(ax))
 
+        # Create milling path vertices if requested
         if milling_path:
-            for n in range(self.noc):
-                mvs, gvs = self._milling_path_vertices(n)
-                self.mverts.append(mvs)
-                self.gcodeverts.append(gvs)
+            self._create_milling_path_vertices()
 
+        # Create arrow vertices for visualization
         va = self._arrow_vertices()
 
-        # Combine
+        # Combine all vertices
+        self._combine_vertices(va, milling_path)
+
+        # Buffer the vertices
+        self.buff.buffer_vertices()
+
+    def _create_milling_path_vertices(self):
+        """Create vertices for milling paths."""
+        for n in range(self.noc):
+            mvs, gvs = self._milling_path_vertices(n)
+            self.mverts.append(mvs)
+            self.gcodeverts.append(gvs)
+
+    def _combine_vertices(self, arrow_vertices, milling_path):
+        """Combine all vertex arrays into a single array."""
+        # Combine joint vertices
         jverts = np.concatenate(self.jverts)
 
-        if milling_path and len(self.mverts[0])>0:
+        # Add milling vertices if available
+        if milling_path and len(self.mverts) > 0 and len(self.mverts[0]) > 0:
             mverts = np.concatenate(self.mverts)
-            self.vertices = np.concatenate([jverts, va, mverts])
+            self.vertices = np.concatenate([jverts, arrow_vertices, mverts])
+
+            # Calculate milling start indices
+            self._calculate_milling_start_indices()
         else:
-            self.vertices = np.concatenate([jverts, va])
+            self.vertices = np.concatenate([jverts, arrow_vertices])
 
+        # Store vertex counts
+        self.vn = int(len(self.jverts[0])/8)
+        self.van = int(len(arrow_vertices)/8)
 
-        self.vn =  int(len(self.jverts[0])/8)
-        self.van = int(len(va)/8)
-
-        if milling_path and len(self.mverts[0])>0:
-            self.m_start = []
-            mst = 3*self.vn+self.van
-            for n in range(self.noc):
-                self.m_start.append(mst)
-                mst += int(len(self.mverts[n])/8)
-
-        self.buff.buffer_vertices()
+    def _calculate_milling_start_indices(self):
+        """Calculate start indices for milling vertices."""
+        self.m_start = []
+        mst = 3*self.vn + self.van
+        for n in range(self.noc):
+            self.m_start.append(mst)
+            mst += int(len(self.mverts[n])/8)
 
     def create_joint_vertices(self, ax):
         vertices = []

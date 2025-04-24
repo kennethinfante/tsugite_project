@@ -32,12 +32,6 @@ class RoughPixel:
         self.flat_neighbors = [x for sublist in self.neighbors for x in sublist]
 
 class MillVertex:
-    def __init__(self, pt: np.ndarray):
-        self.pt: np.ndarray = pt
-        self.is_arc: bool = False
-        self.arc_ctr: Optional[np.ndarray] = None
-
-class MillVertex:
     def __init__(self,pt,is_tra=False,is_arc=False,arc_ctr=np.array([0,0,0])):
         self.pt: np.ndarray = np.array(pt)
         self.x = pt[0]
