@@ -924,19 +924,60 @@ class Display:
         G1 = self.joint.mesh.indices_fcon
         self.draw_geometries_with_excluded_area(G0, G1)
 
+    # def unbridged(self):
+    #     # Draw colored faces when unbridged
+    #     for n in range(self.joint.noc):
+    #         if not self.joint.mesh.eval.bridged[n]:
+    #             for m in range(2): # browse the two parts
+    #                 # a) Unbridge part 1
+    #                 col = self.view.unbridge_colors[n][m]
+    #                 GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #                 G0 = [self.joint.mesh.indices_not_fbridge[n][m]]
+    #                 G1 = [self.joint.mesh.indices_not_fbridge[n][1 - m],
+    #                       self.joint.mesh.indices_fall[1 - n],
+    #                       self.joint.mesh.indices_not_fcon[n]] # needs reformulation for 3 components
+    #                 self.draw_geometries_with_excluded_area(G0,G1)
+
     def unbridged(self):
-        # Draw colored faces when unbridged
+        """
+        Highlight components that are not properly bridged.
+        """
         for n in range(self.joint.noc):
             if not self.joint.mesh.eval.bridged[n]:
-                for m in range(2): # browse the two parts
-                    # a) Unbridge part 1
-                    col = self.view.unbridge_colors[n][m]
-                    GL.glUniform3f(self.myColor, col[0], col[1], col[2])
-                    G0 = [self.joint.mesh.indices_not_fbridge[n][m]]
-                    G1 = [self.joint.mesh.indices_not_fbridge[n][1 - m],
-                          self.joint.mesh.indices_fall[1 - n],
-                          self.joint.mesh.indices_not_fcon[n]] # needs reformulation for 3 components
-                    self.draw_geometries_with_excluded_area(G0,G1)
+                self._highlight_unbridged_component(n)
+
+    def _highlight_unbridged_component(self, component_index):
+        """
+        Highlight a specific component that is not properly bridged.
+
+        Args:
+            component_index: Index of the component to highlight
+        """
+        for part_index in range(2):  # browse the two parts
+            col = self.view.unbridge_colors[component_index][part_index]
+            GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+
+            G0 = [self.joint.mesh.indices_not_fbridge[component_index][part_index]]
+            G1 = self._get_excluded_geometries_for_unbridged(component_index, part_index)
+
+            self.draw_geometries_with_excluded_area(G0, G1)
+
+    def _get_excluded_geometries_for_unbridged(self, component_index, part_index):
+        """
+        Get geometries to exclude when highlighting unbridged components.
+
+        Args:
+            component_index: Index of the component
+            part_index: Index of the part within the component
+
+        Returns:
+            List of geometries to exclude
+        """
+        return [
+            self.joint.mesh.indices_not_fbridge[component_index][1 - part_index],
+            self.joint.mesh.indices_fall[1 - component_index],
+            self.joint.mesh.indices_not_fcon[component_index]  # needs reformulation for 3 components
+        ]
 
     def checker(self):
         # 1. Draw hidden geometry
