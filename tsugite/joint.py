@@ -1596,6 +1596,150 @@ class Joint:
         vertices = np.array(vertices, dtype = np.float32) #converts to correct format
         return vertices
 
+    # REFACTOR
+    # def create_joint_vertices(self, ax):
+    #     """Create vertices for joint visualization."""
+    #     vertices = []
+    #
+    #     # Initialize position vectors
+    #     self._initialize_position_vectors()
+    #
+    #     # Add cube vertices
+    #     vertices = self._add_cube_vertices(vertices)
+    #
+    #     # Add component base vertices
+    #     vertices = self._add_component_base_vertices(vertices, ax)
+    #
+    #     # Format and return
+    #     return np.array(vertices, dtype=np.float32)
+    #
+    # def _initialize_position_vectors(self):
+    #     """Initialize position vectors for the three axes."""
+    #     # Create vectors - one for each of the 3 axis
+    #     vx = np.array([1.0, 0, 0]) * self.voxel_sizes[0]
+    #     vy = np.array([0, 1.0, 0]) * self.voxel_sizes[1]
+    #     vz = np.array([0, 0, 1.0]) * self.voxel_sizes[2]
+    #     self.pos_vecs = [vx, vy, vz]
+    #
+    #     # Rotate position vectors if needed
+    #     if self.rot:
+    #         self._rotate_position_vectors()
+    #
+    # def _rotate_position_vectors(self):
+    #     """Rotate position vectors if rotation is enabled."""
+    #     non_sax = [0, 1, 2]
+    #     non_sax.remove(self.sax)
+    #
+    #     for i, ax in enumerate(non_sax):
+    #         theta = math.radians(0.5 * self.ang)
+    #         if i % 2 == 1:
+    #             theta = -theta
+    #
+    #         self.pos_vecs[ax] = Utils.rotate_vector_around_axis(
+    #             self.pos_vecs[ax], self.pos_vecs[self.sax], theta
+    #         )
+    #         self.pos_vecs[ax] = self.pos_vecs[ax] / math.cos(math.radians(abs(self.ang)))
+    #
+    # def _add_cube_vertices(self, vertices):
+    #     """Add vertices for the voxel cube."""
+    #     r = g = b = 0.0
+    #
+    #     # Add all vertices of the dim*dim*dim voxel cube
+    #     for i in range(self.dim + 1):
+    #         for j in range(self.dim + 1):
+    #             for k in range(self.dim + 1):
+    #                 # Calculate position
+    #                 ivec = (i - 0.5 * self.dim) * self.pos_vecs[0]
+    #                 jvec = (j - 0.5 * self.dim) * self.pos_vecs[1]
+    #                 kvec = (k - 0.5 * self.dim) * self.pos_vecs[2]
+    #                 pos = ivec + jvec + kvec
+    #                 x, y, z = pos
+    #
+    #                 # Calculate texture coordinates
+    #                 tx, ty = self._calculate_texture_coordinates([i, j, k])
+    #
+    #                 # Add vertex
+    #                 vertices.extend([x, y, z, r, g, b, tx, ty])
+    #
+    #     return vertices
+    #
+    # def _calculate_texture_coordinates(self, coords, ax=None):
+    #     """Calculate texture coordinates for a vertex."""
+    #     if ax is None:
+    #         ax = self.sax
+    #
+    #     tex_coords = coords.copy()
+    #     tex_coords.pop(ax)
+    #     tx = tex_coords[0] / self.dim
+    #     ty = tex_coords[1] / self.dim
+    #
+    #     return tx, ty
+    #
+    # def _add_component_base_vertices(self, vertices, ax):
+    #     """Add vertices for component bases."""
+    #     r = g = b = 0.0
+    #
+    #     # Calculate extra length for angled components
+    #     extra_len = self._calculate_extra_length()
+    #
+    #     # Add component base vertices
+    #     for ax in range(3):
+    #         extra_l = extra_len if ax != self.sax and self.rot else 0
+    #
+    #         for dir in range(-1, 2, 2):
+    #             for step in self._get_step_values():
+    #                 # Calculate step size
+    #                 step_size = self._calculate_step_size(step, extra_l)
+    #
+    #                 # Calculate axis vector
+    #                 axvec = dir * step_size * self.pos_vecs[ax] / np.linalg.norm(self.pos_vecs[ax])
+    #
+    #                 # Add vertices for each corner
+    #                 for x in range(2):
+    #                     for y in range(2):
+    #                         # Calculate position
+    #                         pos = self._calculate_component_position(ax, axvec, x, y, step)
+    #
+    #                         # Calculate texture coordinates
+    #                         tx, ty = x, y
+    #
+    #                         # Add vertex
+    #                         vertices.extend([pos[0], pos[1], pos[2], r, g, b, tx, ty])
+    #
+    #     return vertices
+    #
+    # def _calculate_extra_length(self):
+    #     """Calculate extra length for angled components."""
+    #     if self.ang != 0.0 and self.rot:
+    #         return 0.1 * self.component_size * math.tan(math.radians(abs(self.ang)))
+    #     return 0
+    #
+    # def _get_step_values(self):
+    #     """Get step values for component base vertices."""
+    #     return [1, 2.5, 3.5]  # Adjusted for clarity from the original logic
+    #
+    # def _calculate_step_size(self, step, extra_l):
+    #     """Calculate step size based on step value and extra length."""
+    #     if step == 1:
+    #         return step
+    #     else:
+    #         return step + 0.5 + extra_l
+    #
+    # def _calculate_component_position(self, ax, axvec, x, y, step):
+    #     """Calculate position for a component base vertex."""
+    #     other_vecs = copy.deepcopy(self.pos_vecs)
+    #     other_vecs.pop(ax)
+    #
+    #     # Apply special handling for non-sliding axis components with rotation
+    #     if ax != self.sax and self.rot and step != 1:
+    #         xvec = (x - 0.5) * self.dim * other_vecs[0]
+    #         yvec = (y - 0.5) * self.dim * other_vecs[1]
+    #     else:
+    #         xvec = (x - 0.5) * self.dim * other_vecs[0]
+    #         yvec = (y - 0.5) * self.dim * other_vecs[1]
+    #
+    #     return axvec + xvec + yvec
+
     def combine_and_buffer_indices(self, milling_path=False):
         self.update_suggestions()
         self.mesh.create_indices(milling_path=milling_path)
@@ -1682,29 +1826,77 @@ class Joint:
         self.mesh.update_voxel_matrix_from_height_fields()
         self.combine_and_buffer_indices()
 
-    def reset(self, fs=None, sax=2, dim=3, ang=90., td=[44.0,44.0,44.0], incremental=False, align_ax=0, fabdia=6.0, fabtol=0.15, finterp=True, fabrot=0.0, fabext="gcode", hfs=[], fspe=400, fspi=600):
-        self.fixed = FixedSides(self,fs=fs)
-        self.noc=len(self.fixed.sides)
-        self.sax=sax
-        self.dim=dim
-        self.ang=ang
+    # def reset(self, fs=None, sax=2, dim=3, ang=90., td=[44.0,44.0,44.0], incremental=False, align_ax=0, fabdia=6.0, fabtol=0.15, finterp=True, fabrot=0.0, fabext="gcode", hfs=[], fspe=400, fspi=600):
+    #     self.fixed = FixedSides(self,fs=fs)
+    #     self.noc=len(self.fixed.sides)
+    #     self.sax=sax
+    #     self.dim=dim
+    #     self.ang=ang
+    #     self.real_tim_dims = np.array(td)
+    #     self.ratio = np.average(self.real_tim_dims)/self.component_size
+    #     self.voxel_sizes = np.copy(self.real_tim_dims)/(self.ratio*self.dim)
+    #     self.fab.tol=fabtol
+    #     self.fab.real_dia = fabdia
+    #     self.fab.rad = 0.5*self.fab.real_dia-self.fab.tol
+    #     self.fab.dia = 2*self.fab.rad
+    #     self.fab.vdia = self.fab.dia/self.ratio
+    #     self.fab.vrad = self.fab.rad/self.ratio
+    #     self.fab.vtol = self.fab.tol/self.ratio
+    #     self.fab.speed = fspe
+    #     self.fab.spindlespeed = fspi
+    #     self.fab.extra_rot_deg=fabrot
+    #     self.fab.ext=fabext
+    #     self.fab.align_ax=align_ax
+    #     self.fab.interp = finterp
+    #     self.incremental=incremental
+    #     self.mesh = Geometries(self, hfs=hfs)
+    #     self.fixed.update_unblocked()
+    #     self.create_and_buffer_vertices(milling_path=False)
+    #     self.combine_and_buffer_indices()
+
+    def reset(self, fs=None, sax=2, dim=3, ang=90., td=[44.0,44.0,44.0], incremental=False,
+             align_ax=0, fabdia=6.0, fabtol=0.15, finterp=True, fabrot=0.0, fabext="gcode",
+             hfs=[], fspe=400, fspi=600):
+        """Reset the joint to initial state with given parameters."""
+        # Initialize basic joint properties
+        self._init_basic_properties(fs, sax, dim, ang, td)
+
+        # Initialize fabrication properties
+        self._init_fabrication_properties(fabdia, fabtol, fabrot, fabext, align_ax, finterp, fspe, fspi)
+
+        # Initialize geometry and buffer
+        self._init_geometry_and_buffer(incremental, hfs)
+
+    def _init_basic_properties(self, fs, sax, dim, ang, td):
+        """Initialize basic joint properties."""
+        self.fixed = FixedSides(self, fs=fs)
+        self.noc = len(self.fixed.sides)
+        self.sax = sax
+        self.dim = dim
+        self.ang = ang
         self.real_tim_dims = np.array(td)
-        self.ratio = np.average(self.real_tim_dims)/self.component_size
-        self.voxel_sizes = np.copy(self.real_tim_dims)/(self.ratio*self.dim)
-        self.fab.tol=fabtol
+        self.ratio = np.average(self.real_tim_dims) / self.component_size
+        self.voxel_sizes = np.copy(self.real_tim_dims) / (self.ratio * self.dim)
+
+    def _init_fabrication_properties(self, fabdia, fabtol, fabrot, fabext, align_ax, finterp, fspe, fspi):
+        """Initialize fabrication properties."""
+        self.fab.tol = fabtol
         self.fab.real_dia = fabdia
-        self.fab.rad = 0.5*self.fab.real_dia-self.fab.tol
-        self.fab.dia = 2*self.fab.rad
-        self.fab.vdia = self.fab.dia/self.ratio
-        self.fab.vrad = self.fab.rad/self.ratio
-        self.fab.vtol = self.fab.tol/self.ratio
+        self.fab.rad = 0.5 * self.fab.real_dia - self.fab.tol
+        self.fab.dia = 2 * self.fab.rad
+        self.fab.vdia = self.fab.dia / self.ratio
+        self.fab.vrad = self.fab.rad / self.ratio
+        self.fab.vtol = self.fab.tol / self.ratio
         self.fab.speed = fspe
         self.fab.spindlespeed = fspi
-        self.fab.extra_rot_deg=fabrot
-        self.fab.ext=fabext
-        self.fab.align_ax=align_ax
+        self.fab.extra_rot_deg = fabrot
+        self.fab.ext = fabext
+        self.fab.align_ax = align_ax
         self.fab.interp = finterp
-        self.incremental=incremental
+
+    def _init_geometry_and_buffer(self, incremental, hfs):
+        """Initialize geometry and buffer."""
+        self.incremental = incremental
         self.mesh = Geometries(self, hfs=hfs)
         self.fixed.update_unblocked()
         self.create_and_buffer_vertices(milling_path=False)
