@@ -49,33 +49,89 @@ class GLWidget(qgl.QGLWidget):
         GL.glClearColor(255, 255, 255, 1)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
 
+    # def initializeGL(self):
+    #     self.print_system_info()
+    #     self.gl_settings()
+    #
+    #     sax = self.parent.cmb_sliding_axis.currentIndex() # string x, y, z
+    #     dim = self.parent.spb_voxel_res.value() # int [2:5]
+    #     ang = self.parent.spb_angle.value() # int [-80: 80]
+    #     dx = self.parent.spb_xdim.value() # float [10:150]
+    #     dy = self.parent.spb_ydim.value() # float [10:150]
+    #     dz = self.parent.spb_zdim.value() # float [10:150]
+    #     dia = self.parent.spb_milling_diam.value() # float [1:50]
+    #     tol = self.parent.spb_tolerances.value() # float [0.15, 5]
+    #     spe = self.parent.spb_milling_speed.value() # int [100, 1000]
+    #     spi = self.parent.spb_spindle_speed.value() # int [1000, 10000]
+    #     aax = self.parent.cmb_alignment_axis.currentIndex() # str x-, y-, x+, y+
+    #     inc = self.parent.chk_increm_depth.isChecked() # bool
+    #     fin = self.parent.chk_arc_interp.isChecked() # bool
+    #
+    #     if self.parent.rdo_gcode.isChecked(): ext = "gcode"
+    #     elif self.parent.rdo_nc.isChecked(): ext = "nc"
+    #     elif self.parent.rdo_sbp.isChecked(): ext = "sbp"
+    #     else: ext = "gcode"
+    #
+    #     # joint and display objects are related to OpenGL hence initialized here
+    #     # instead of the __init__
+    #     self.joint = Joint(self, fs=[[[2, 0]], [[2, 1]]], sax=sax, dim=dim, ang=ang, td=[dx, dy, dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
+    #     self.display = Display(self, self.joint)
+
     def initializeGL(self):
+        """Initialize OpenGL settings and create joint and display objects."""
         self.print_system_info()
         self.gl_settings()
 
-        sax = self.parent.cmb_sliding_axis.currentIndex() # string x, y, z
-        dim = self.parent.spb_voxel_res.value() # int [2:5]
-        ang = self.parent.spb_angle.value() # int [-80: 80]
-        dx = self.parent.spb_xdim.value() # float [10:150]
-        dy = self.parent.spb_ydim.value() # float [10:150]
-        dz = self.parent.spb_zdim.value() # float [10:150]
-        dia = self.parent.spb_milling_diam.value() # float [1:50]
-        tol = self.parent.spb_tolerances.value() # float [0.15, 5]
-        spe = self.parent.spb_milling_speed.value() # int [100, 1000]
-        spi = self.parent.spb_spindle_speed.value() # int [1000, 10000]
-        aax = self.parent.cmb_alignment_axis.currentIndex() # str x-, y-, x+, y+
-        inc = self.parent.chk_increm_depth.isChecked() # bool
-        fin = self.parent.chk_arc_interp.isChecked() # bool
+        # Extract parameters from UI
+        params = self._extract_parameters_from_ui()
 
-        if self.parent.rdo_gcode.isChecked(): ext = "gcode"
-        elif self.parent.rdo_nc.isChecked(): ext = "nc"
-        elif self.parent.rdo_sbp.isChecked(): ext = "sbp"
-        else: ext = "gcode"
-
-        # joint and display objects are related to OpenGL hence initialized here
-        # instead of the __init__
-        self.joint = Joint(self, fs=[[[2, 0]], [[2, 1]]], sax=sax, dim=dim, ang=ang, td=[dx, dy, dz], fabtol=tol, fabdia=dia, fspe=spe, fspi=spi, fabext=ext, align_ax=aax, incremental=inc, finterp=fin)
+        # Create joint and display objects
+        self.joint = Joint(
+            self,
+            fs=[[[2, 0]], [[2, 1]]],
+            sax=params['sliding_axis'],
+            dim=params['voxel_resolution'],
+            ang=params['angle'],
+            td=[params['x_dim'], params['y_dim'], params['z_dim']],
+            fabtol=params['tolerance'],
+            fabdia=params['milling_diameter'],
+            fspe=params['milling_speed'],
+            fspi=params['spindle_speed'],
+            fabext=params['extension'],
+            align_ax=params['alignment_axis'],
+            incremental=params['incremental'],
+            finterp=params['interpolation']
+        )
         self.display = Display(self, self.joint)
+
+    def _extract_parameters_from_ui(self):
+        """Extract parameters from UI controls."""
+        # Get export file extension
+        if self.parent.rdo_gcode.isChecked():
+            ext = "gcode"
+        elif self.parent.rdo_nc.isChecked():
+            ext = "nc"
+        elif self.parent.rdo_sbp.isChecked():
+            ext = "sbp"
+        else:
+            ext = "gcode"
+
+        return {
+            'sliding_axis': self.parent.cmb_sliding_axis.currentIndex(),
+            'voxel_resolution': self.parent.spb_voxel_res.value(),
+            'angle': self.parent.spb_angle.value(),
+            'x_dim': self.parent.spb_xdim.value(),
+            'y_dim': self.parent.spb_ydim.value(),
+            'z_dim': self.parent.spb_zdim.value(),
+            'milling_diameter': self.parent.spb_milling_diam.value(),
+            'tolerance': self.parent.spb_tolerances.value(),
+            'milling_speed': self.parent.spb_milling_speed.value(),
+            'spindle_speed': self.parent.spb_spindle_speed.value(),
+            'alignment_axis': self.parent.cmb_alignment_axis.currentIndex(),
+            'incremental': self.parent.chk_increm_depth.isChecked(),
+            'interpolation': self.parent.chk_arc_interp.isChecked(),
+            'extension': ext
+        }
 
     def resizeGL(self, w, h):
         # remove the calls to matrixmode because the programmable pipeline is used
@@ -84,72 +140,190 @@ class GLWidget(qgl.QGLWidget):
         self.wstep = int(0.5+w/5)
         self.hstep = int(0.5+h/4)
 
+    # def paintGL(self):
+    #     self.clear()
+    #
+    #     # technically not needed because it is part of fixed pipeline
+    #     # https://stackoverflow.com/questions/21112570/opengl-changing-from-fixed-functions-to-programmable-pipeline
+    #     GL.glLoadIdentity()
+    #
+    #     self.display.update()
+    #
+    #     GL.glViewport(0, 0, self.width - self.wstep, self.height)
+    #
+    #     # Color picking / editing
+    #     # Pick faces -1: nothing, 0: hovered, 1: adding, 2: pulling
+    #
+    #     # Draw back buffer colors
+    #     if not self.joint.mesh.select.state == 2 and not self.joint.mesh.select.state == 12:
+    #         self.display.pick(self.x, self.y, self.height)
+    #         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+    #     elif self.joint.mesh.select.state == 2:  # Edit joint geometry
+    #         self.joint.mesh.select.edit([self.x, self.y], self.display.view.xrot, self.display.view.yrot, w=self.width,
+    #                                     h=self.height)
+    #     elif self.joint.mesh.select.state == 12:  # Edit timber orientation/position
+    #         self.joint.mesh.select.move([self.x, self.y], self.display.view.xrot, self.display.view.yrot)
+    #
+    #     # Display main geometry
+    #     self.display.end_grains()
+    #     if self.display.view.show_feedback:
+    #         self.display.unfabricatable()
+    #         self.display.nondurable()
+    #         self.display.unconnected()
+    #         self.display.unbridged()
+    #         self.display.checker()
+    #         self.display.arrows()
+    #         show_area = False  # <--replace by checkbox...
+    #         if show_area:
+    #             self.display.area()
+    #     self.display.joint_geometry()
+    #
+    #     if self.joint.mesh.select.sugg_state >= 0:
+    #         index = self.joint.mesh.select.sugg_state
+    #         if len(self.joint.suggestions) > index:
+    #             self.display.difference_suggestion(index)
+    #
+    #     # Display editing in action
+    #     self.display.selected()
+    #     self.display.moving_rotating()
+    #
+    #     # Display milling paths
+    #     self.display.milling_paths()
+    #
+    #     # Suggestions
+    #     if self.display.view.show_suggestions:
+    #         for i in range(len(self.joint.suggestions)):
+    #             # hquater = self.height / 4
+    #             # wquater = self.width / 5
+    #             GL.glViewport(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
+    #
+    #             if i == self.joint.mesh.select.sugg_state:
+    #                 GL.glEnable(GL.GL_SCISSOR_TEST)
+    #                 # glClear is determined by the scissor box.
+    #                 GL.glScissor(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
+    #                 GL.glClearDepth(1.0)
+    #                 GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
+    #                 GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+    #                 GL.glDisable(GL.GL_SCISSOR_TEST)
+    #             self.display.joint_geometry(mesh=self.joint.suggestions[i], lw=2, hidden=False)
+
     def paintGL(self):
+        """Main rendering function."""
         self.clear()
-
-        # technically not needed because it is part of fixed pipeline
-        # https://stackoverflow.com/questions/21112570/opengl-changing-from-fixed-functions-to-programmable-pipeline
         GL.glLoadIdentity()
-
         self.display.update()
 
+        # Set main viewport
         GL.glViewport(0, 0, self.width - self.wstep, self.height)
 
-        # Color picking / editing
-        # Pick faces -1: nothing, 0: hovered, 1: adding, 2: pulling
+        # Handle color picking and editing
+        self._handle_selection_and_editing()
 
-        # Draw back buffer colors
-        if not self.joint.mesh.select.state == 2 and not self.joint.mesh.select.state == 12:
+        # Render main scene
+        self._render_main_scene()
+
+        # Render suggestions if enabled
+        if self.display.view.show_suggestions:
+            self._render_suggestions()
+
+    def _handle_selection_and_editing(self):
+        """Handle color picking and geometry editing."""
+        if self.joint.mesh.select.state == 2:  # Edit joint geometry
+            self.joint.mesh.select.edit(
+                [self.x, self.y],
+                self.display.view.xrot,
+                self.display.view.yrot,
+                w=self.width,
+                h=self.height
+            )
+        elif self.joint.mesh.select.state == 12:  # Edit timber orientation/position
+            self.joint.mesh.select.move(
+                [self.x, self.y],
+                self.display.view.xrot,
+                self.display.view.yrot
+            )
+        else:  # Normal picking
             self.display.pick(self.x, self.y, self.height)
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
-        elif self.joint.mesh.select.state == 2:  # Edit joint geometry
-            self.joint.mesh.select.edit([self.x, self.y], self.display.view.xrot, self.display.view.yrot, w=self.width,
-                                        h=self.height)
-        elif self.joint.mesh.select.state == 12:  # Edit timber orientation/position
-            self.joint.mesh.select.move([self.x, self.y], self.display.view.xrot, self.display.view.yrot)
 
-        # Display main geometry
+    def _render_main_scene(self):
+        """Render the main scene with all visual elements."""
+        # Render end grains
         self.display.end_grains()
+
+        # Render feedback elements if enabled
         if self.display.view.show_feedback:
-            self.display.unfabricatable()
-            self.display.nondurable()
-            self.display.unconnected()
-            self.display.unbridged()
-            self.display.checker()
-            self.display.arrows()
-            show_area = False  # <--replace by checkbox...
-            if show_area:
-                self.display.area()
+            self._render_feedback_elements()
+
+        # Render joint geometry
         self.display.joint_geometry()
 
+        # Render suggestion differences if applicable
+        self._render_suggestion_differences()
+
+        # Render selection and movement
+        self.display.selected()
+        self.display.moving_rotating()
+
+        # Render milling paths
+        self.display.milling_paths()
+
+    def _render_feedback_elements(self):
+        """Render visual feedback elements."""
+        self.display.unfabricatable()
+        self.display.nondurable()
+        self.display.unconnected()
+        self.display.unbridged()
+        self.display.checker()
+        self.display.arrows()
+
+        # Area display (currently disabled)
+        show_area = False  # <--replace by checkbox...
+        if show_area:
+            self.display.area()
+
+    def _render_suggestion_differences(self):
+        """Render differences for the selected suggestion."""
         if self.joint.mesh.select.sugg_state >= 0:
             index = self.joint.mesh.select.sugg_state
             if len(self.joint.suggestions) > index:
                 self.display.difference_suggestion(index)
 
-        # Display editing in action
-        self.display.selected()
-        self.display.moving_rotating()
+    def _render_suggestions(self):
+        """Render suggestion thumbnails."""
+        for i in range(len(self.joint.suggestions)):
+            # Set viewport for this suggestion
+            GL.glViewport(
+                self.width - self.wstep,
+                self.height - self.hstep * (i + 1),
+                self.wstep,
+                self.hstep
+            )
 
-        # Display milling paths
-        self.display.milling_paths()
+            # Highlight selected suggestion
+            if i == self.joint.mesh.select.sugg_state:
+                self._highlight_selected_suggestion(i)
 
-        # Suggestions
-        if self.display.view.show_suggestions:
-            for i in range(len(self.joint.suggestions)):
-                # hquater = self.height / 4
-                # wquater = self.width / 5
-                GL.glViewport(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
+            # Render suggestion geometry
+            self.display.joint_geometry(
+                mesh=self.joint.suggestions[i],
+                lw=2,
+                hidden=False
+            )
 
-                if i == self.joint.mesh.select.sugg_state:
-                    GL.glEnable(GL.GL_SCISSOR_TEST)
-                    # glClear is determined by the scissor box.
-                    GL.glScissor(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
-                    GL.glClearDepth(1.0)
-                    GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
-                    GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-                    GL.glDisable(GL.GL_SCISSOR_TEST)
-                self.display.joint_geometry(mesh=self.joint.suggestions[i], lw=2, hidden=False)
+    def _highlight_selected_suggestion(self, index):
+        """Highlight the selected suggestion with a gray background."""
+        GL.glEnable(GL.GL_SCISSOR_TEST)
+        GL.glScissor(
+            self.width - self.wstep,
+            self.height - self.hstep * (index + 1),
+            self.wstep,
+            self.hstep
+        )
+        GL.glClearDepth(1.0)
+        GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        GL.glDisable(GL.GL_SCISSOR_TEST)
 
     def mousePressEvent(self, e):
         if e.button() == qtc.Qt.LeftButton:
