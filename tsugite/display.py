@@ -597,32 +597,88 @@ class Display:
         else:
             self.joint.mesh.select.state = -1
 
+    # def selected(self):
+    #     ################### Draw top face that is currently being hovered ##########
+    #     # Draw base face (hovered)
+    #     if self.joint.mesh.select.state==0:
+    #         GL.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+    #         GL.glUniform3f(self.myColor, 0.2, 0.2, 0.2) #dark grey
+    #         G1 = self.joint.mesh.indices_fpick_not_top
+    #         for face in self.joint.mesh.select.faces:
+    #             if self.joint.mesh.select.n==0 or self.joint.mesh.select.n==self.joint.noc-1: mos = 1
+    #             else: mos = 2
+    #             index = int(self.joint.dim * face[0] + face[1])
+    #             top = ElementProperties(GL.GL_QUADS, 4, self.joint.mesh.indices_fpick_top[self.joint.mesh.select.n].start_index + mos * 4 * index + (mos - 1) * 4 * self.joint.mesh.select.dir, self.joint.mesh.select.n)
+    #             #top = ElementProperties(GL_QUADS, 4, mesh.indices_fpick_top[mesh.select.n].start_index+4*index, mesh.select.n)
+    #             self.draw_geometries_with_excluded_area([top],G1)
+    #     # Draw pulled face
+    #     if self.joint.mesh.select.state==2:
+    #         GL.glPushAttrib(GL.GL_ENABLE_BIT)
+    #         GL.glLineWidth(3)
+    #         GL.glEnable(GL.GL_LINE_STIPPLE)
+    #         GL.glLineStipple(2, 0xAAAA)
+    #         for val in range(0, abs(self.joint.mesh.select.val) + 1):
+    #             if self.joint.mesh.select.val<0: val = -val
+    #             pulled_vec = [0,0,0]
+    #             pulled_vec[self.joint.sax] = val * self.joint.voxel_sizes[self.joint.sax]
+    #             self.draw_geometries([self.joint.mesh.outline_selected_faces], translation_vec=np.array(pulled_vec))
+    #         GL.glPopAttrib()
+
     def selected(self):
-        ################### Draw top face that is currently being hovered ##########
-        # Draw base face (hovered)
-        if self.joint.mesh.select.state==0:
-            GL.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
-            GL.glUniform3f(self.myColor, 0.2, 0.2, 0.2) #dark grey
-            G1 = self.joint.mesh.indices_fpick_not_top
-            for face in self.joint.mesh.select.faces:
-                if self.joint.mesh.select.n==0 or self.joint.mesh.select.n==self.joint.noc-1: mos = 1
-                else: mos = 2
-                index = int(self.joint.dim * face[0] + face[1])
-                top = ElementProperties(GL.GL_QUADS, 4, self.joint.mesh.indices_fpick_top[self.joint.mesh.select.n].start_index + mos * 4 * index + (mos - 1) * 4 * self.joint.mesh.select.dir, self.joint.mesh.select.n)
-                #top = ElementProperties(GL_QUADS, 4, mesh.indices_fpick_top[mesh.select.n].start_index+4*index, mesh.select.n)
-                self.draw_geometries_with_excluded_area([top],G1)
-        # Draw pulled face
-        if self.joint.mesh.select.state==2:
-            GL.glPushAttrib(GL.GL_ENABLE_BIT)
-            GL.glLineWidth(3)
-            GL.glEnable(GL.GL_LINE_STIPPLE)
-            GL.glLineStipple(2, 0xAAAA)
-            for val in range(0, abs(self.joint.mesh.select.val) + 1):
-                if self.joint.mesh.select.val<0: val = -val
-                pulled_vec = [0,0,0]
-                pulled_vec[self.joint.sax] = val * self.joint.voxel_sizes[self.joint.sax]
-                self.draw_geometries([self.joint.mesh.outline_selected_faces], translation_vec=np.array(pulled_vec))
-            GL.glPopAttrib()
+        """
+        Render the currently selected face or component.
+        """
+        if self.joint.mesh.select.state == 0:
+            self._render_hovered_face()
+
+        if self.joint.mesh.select.state == 2:
+            self._render_pulled_face()
+
+    def _render_hovered_face(self):
+        """
+        Render the face that is currently being hovered.
+        """
+        GL.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+        GL.glUniform3f(self.myColor, 0.2, 0.2, 0.2)  # dark grey
+
+        G1 = self.joint.mesh.indices_fpick_not_top
+
+        for face in self.joint.mesh.select.faces:
+            mos = 1 if self.joint.mesh.select.n == 0 or self.joint.mesh.select.n == self.joint.noc - 1 else 2
+            index = int(self.joint.dim * face[0] + face[1])
+
+            top = ElementProperties(
+                GL.GL_QUADS,
+                4,
+                self.joint.mesh.indices_fpick_top[self.joint.mesh.select.n].start_index +
+                mos * 4 * index + (mos - 1) * 4 * self.joint.mesh.select.dir,
+                self.joint.mesh.select.n
+            )
+
+            self.draw_geometries_with_excluded_area([top], G1)
+
+    def _render_pulled_face(self):
+        """
+        Render the face that is being pulled.
+        """
+        GL.glPushAttrib(GL.GL_ENABLE_BIT)
+        GL.glLineWidth(3)
+        GL.glEnable(GL.GL_LINE_STIPPLE)
+        GL.glLineStipple(2, 0xAAAA)
+
+        for val in range(0, abs(self.joint.mesh.select.val) + 1):
+            if self.joint.mesh.select.val < 0:
+                val = -val
+
+            pulled_vec = [0, 0, 0]
+            pulled_vec[self.joint.sax] = val * self.joint.voxel_sizes[self.joint.sax]
+
+            self.draw_geometries(
+                [self.joint.mesh.outline_selected_faces],
+                translation_vec=np.array(pulled_vec)
+            )
+
+        GL.glPopAttrib()
 
     def difference_suggestion(self,index):
         GL.glPushAttrib(GL.GL_ENABLE_BIT)
