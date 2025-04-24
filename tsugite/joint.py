@@ -1757,24 +1757,64 @@ class Joint:
         self.indices = np.array(indices, dtype=np.uint32)
         Buffer.buffer_indices(self.buff)
 
-    def update_sliding_direction(self,sax):
-        blocked = False
-        for i,sides in enumerate(self.fixed.sides):
+    # def update_sliding_direction(self,sax):
+    #     blocked = False
+    #     for i,sides in enumerate(self.fixed.sides):
+    #         for side in sides:
+    #             if side.ax==sax:
+    #                 if side.dir==0 and i==0: continue
+    #                 if side.dir==1 and i==self.noc-1: continue
+    #                 blocked = True
+    #     if blocked:
+    #         return False, "This sliding direction is blocked"
+    #     else:
+    #         self.sax = sax
+    #         self.fixed.update_unblocked()
+    #         self.create_and_buffer_vertices(milling_path=False)
+    #         self.mesh.update_voxel_matrix_from_height_fields()
+    #         for mesh in self.suggestions: mesh.update_voxel_matrix_from_height_fields()
+    #         self.combine_and_buffer_indices()
+    #         return True, ''
+
+    def update_sliding_direction(self, sax):
+        """Update the sliding direction of the joint."""
+        # Check if the new sliding direction is blocked
+        blocked_result = self._is_sliding_direction_blocked(sax)
+        if blocked_result['blocked']:
+            return False, blocked_result['message']
+
+        # Update sliding direction
+        self.sax = sax
+
+        # Update joint after sliding direction change
+        self._update_after_sliding_direction_change()
+
+        return True, ''
+
+    def _is_sliding_direction_blocked(self, sax):
+        """Check if the sliding direction is blocked."""
+        for i, sides in enumerate(self.fixed.sides):
             for side in sides:
-                if side.ax==sax:
-                    if side.dir==0 and i==0: continue
-                    if side.dir==1 and i==self.noc-1: continue
-                    blocked = True
-        if blocked:
-            return False, "This sliding direction is blocked"
-        else:
-            self.sax = sax
-            self.fixed.update_unblocked()
-            self.create_and_buffer_vertices(milling_path=False)
-            self.mesh.update_voxel_matrix_from_height_fields()
-            for mesh in self.suggestions: mesh.update_voxel_matrix_from_height_fields()
-            self.combine_and_buffer_indices()
-            return True, ''
+                if side.ax == sax:
+                    # Check if this is an end component in the sliding direction
+                    if (side.dir == 0 and i == 0) or (side.dir == 1 and i == self.noc - 1):
+                        continue
+
+                    return {'blocked': True, 'message': "This sliding direction is blocked"}
+
+        return {'blocked': False, 'message': ''}
+
+    def _update_after_sliding_direction_change(self):
+        """Update joint after changing the sliding direction."""
+        self.fixed.update_unblocked()
+        self.create_and_buffer_vertices(milling_path=False)
+        self.mesh.update_voxel_matrix_from_height_fields()
+
+        # Update suggestions
+        for mesh in self.suggestions:
+            mesh.update_voxel_matrix_from_height_fields()
+
+        self.combine_and_buffer_indices()
 
     def update_dimension(self,add):
         self.dim+=add
