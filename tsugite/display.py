@@ -682,39 +682,55 @@ class Display:
 
     def difference_suggestion(self,index):
         GL.glPushAttrib(GL.GL_ENABLE_BIT)
-        # draw faces of additional part
-        # glUniform3f(self.myColor, 1.0, 1.0, 1.0) # white
-        # for n in range(self.joint.noc):
-        #    G0 = [self.joint.suggestions[index].indices_fall[n]]
-        #    G1 = self.joint.mesh.indices_fall
-        #    self.draw_geometries_with_excluded_area(G0,G1)
 
-        # draw faces of subtracted part
-        # glUniform3f(self.myColor, 1.0, 0.5, 0.5) # pink/red
-        # for n in range(self.joint.noc):
-        #    G0 = [self.joint.mesh.indices_fall[n]]
-        #    G1 = self.joint.suggestions[index].indices_fall
-        #    self.draw_geometries_with_excluded_area(G0,G1)
+        # draw_faces_for_additional_part(index)
+        # draw_faces_for_subtracted_part(index)
 
         # draw outlines
         GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # black
         GL.glLineWidth(3)
         GL.glEnable(GL.GL_LINE_STIPPLE)
         GL.glLineStipple(2, 0xAAAA)
+
         for n in range(self.joint.noc):
             G0 = [self.joint.suggestions[index].indices_lns[n]]
             G1 = self.joint.suggestions[index].indices_fall
             self.draw_geometries_with_excluded_area(G0,G1)
+
         GL.glPopAttrib()
 
+    def draw_faces_for_additional_part(self, index):
+        glUniform3f(self.myColor, 1.0, 1.0, 1.0) # white
+
+        for n in range(self.joint.noc):
+            G0 = [self.joint.suggestions[index].indices_fall[n]]
+            G1 = self.joint.mesh.indices_fall
+            self.draw_geometries_with_excluded_area(G0,G1)
+
+    def draw_faces_for_subtracted_part(self, index):
+        glUniform3f(self.myColor, 1.0, 0.5, 0.5) # pink/red
+
+        for n in range(self.joint.noc):
+            G0 = [self.joint.mesh.indices_fall[n]]
+            G1 = self.joint.suggestions[index].indices_fall
+            self.draw_geometries_with_excluded_area(G0,G1)
+
     def moving_rotating(self):
-        # Draw moved_rotated component before action is finalized
-        if self.joint.mesh.select.state==12 and self.joint.mesh.outline_selected_component!=None:
+        """
+        Render component that is being moved or rotated.
+        """
+        if (self.joint.mesh.select.state == 12 and
+            self.joint.mesh.outline_selected_component is not None):
+
             GL.glPushAttrib(GL.GL_ENABLE_BIT)
             GL.glLineWidth(3)
             GL.glEnable(GL.GL_LINE_STIPPLE)
             GL.glLineStipple(2, 0xAAAA)
+
+            # Draw outline of component being moved/rotated
+            GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
             self.draw_geometries([self.joint.mesh.outline_selected_component])
+
             GL.glPopAttrib()
 
     def joint_geometry(self,mesh=None,lw=3,hidden=True,zoom=False):
