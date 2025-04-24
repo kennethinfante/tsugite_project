@@ -1902,30 +1902,90 @@ class Joint:
         self.create_and_buffer_vertices(milling_path=False)
         self.combine_and_buffer_indices()
 
+
+    # def update_suggestions(self):
+    #     self.suggestions = [] # clear list of suggestions
+    #     if self.suggestions_on:
+    #         sugg_hfs = []
+    #         if not self.mesh.eval.valid:
+    #             sugg_hfs = self._produce_suggestions(self.mesh.height_fields)
+    #             for i in range(len(sugg_hfs)): self.suggestions.append(Geometries(self, mainmesh=False, hfs=sugg_hfs[i]))
+
+    # def _produce_suggestions(self, hfs):
+    #     valid_suggestions = []
+    #     for i in range(len(hfs)):
+    #         for j in range(self.dim):
+    #             for k in range(self.dim):
+    #                 for add in range(-1,2,2):
+    #                     sugg_hfs = copy.deepcopy(hfs)
+    #                     sugg_hfs[i][j][k]+=add
+    #                     val = sugg_hfs[i][j][k]
+    #                     if val>=0 and val<=self.dim:
+    #                         sugg_voxmat = Utils.matrix_from_height_fields(sugg_hfs,self.sax)
+    #                         sugg_eval = Evaluation(sugg_voxmat,self,mainmesh=False)
+    #                         if sugg_eval.valid:
+    #                             valid_suggestions.append(sugg_hfs)
+    #                             if len(valid_suggestions)==4: break
+    #     return valid_suggestions
+
+    def update_suggestions(self):
+        """Update joint design suggestions."""
+        self.suggestions = []  # clear list of suggestions
+
+        if not self.suggestions_on:
+            return
+
+        # Only generate suggestions if current design is invalid
+        if not self.mesh.eval.valid:
+            sugg_hfs = self._produce_suggestions(self.mesh.height_fields)
+
+            # _create_suggestion_geometries
+            for i in range(len(sugg_hfs)):
+                self.suggestions.append(
+                    Geometries(self, mainmesh=False, hfs=sugg_hfs[i])
+                )
+
     def _produce_suggestions(self, hfs):
+        """Produce valid suggestions by modifying height fields."""
         valid_suggestions = []
+
+        # Try modifying each height field position
         for i in range(len(hfs)):
             for j in range(self.dim):
                 for k in range(self.dim):
-                    for add in range(-1,2,2):
-                        sugg_hfs = copy.deepcopy(hfs)
-                        sugg_hfs[i][j][k]+=add
-                        val = sugg_hfs[i][j][k]
-                        if val>=0 and val<=self.dim:
-                            sugg_voxmat = Utils.matrix_from_height_fields(sugg_hfs,self.sax)
-                            sugg_eval = Evaluation(sugg_voxmat,self,mainmesh=False)
-                            if sugg_eval.valid:
-                                valid_suggestions.append(sugg_hfs)
-                                if len(valid_suggestions)==4: break
+                    # Try increasing and decreasing height
+                    for add in range(-1, 2, 2):
+                        # Skip if we already have enough suggestions
+                        if len(valid_suggestions) >= 4:
+                            return valid_suggestions
+
+                        # Create a modified height field
+                        modified_hf = self._create_modified_height_field(hfs, i, j, k, add)
+
+                        # Check if modification is valid
+                        if self._is_valid_height_field_modification(modified_hf, i, j, k):
+                            # Check if the modified design is valid
+                            if self._is_valid_design(modified_hf):
+                                valid_suggestions.append(modified_hf)
+
         return valid_suggestions
 
-    def update_suggestions(self):
-        self.suggestions = [] # clear list of suggestions
-        if self.suggestions_on:
-            sugg_hfs = []
-            if not self.mesh.eval.valid:
-                sugg_hfs = self._produce_suggestions(self.mesh.height_fields)
-                for i in range(len(sugg_hfs)): self.suggestions.append(Geometries(self, mainmesh=False, hfs=sugg_hfs[i]))
+    def _create_modified_height_field(self, hfs, i, j, k, add):
+        """Create a modified copy of height fields."""
+        sugg_hfs = copy.deepcopy(hfs)
+        sugg_hfs[i][j][k] += add
+        return sugg_hfs
+
+    def _is_valid_height_field_modification(self, modified_hf, i, j, k):
+        """Check if the height field modification is within bounds."""
+        val = modified_hf[i][j][k]
+        return 0 <= val <= self.dim
+
+    def _is_valid_design(self, modified_hf):
+        """Check if the modified design is valid."""
+        sugg_voxmat = Utils.matrix_from_height_fields(modified_hf, self.sax)
+        sugg_eval = Evaluation(sugg_voxmat, self, mainmesh=False)
+        return sugg_eval.valid
 
     def init_gallery(self,start_index):
         self.gallary_start_index = start_index
