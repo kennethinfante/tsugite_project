@@ -95,6 +95,36 @@ class Display:
         self.shader_tex = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
                                                   GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
+    # OpenGL setup state methods
+    def _setup_dashed_line_style(self, line_width=3, stipple_factor=2, stipple_pattern=0xAAAA):
+        """
+        Set up OpenGL state for drawing dashed lines.
+
+        Args:
+            line_width: Width of the lines
+            stipple_factor: Stipple factor for dashed lines
+            stipple_pattern: Stipple pattern for dashed lines
+        """
+        GL.glPushAttrib(GL.GL_ENABLE_BIT)
+        GL.glLineWidth(line_width)
+        GL.glEnable(GL.GL_LINE_STIPPLE)
+        GL.glLineStipple(stipple_factor, stipple_pattern)
+
+    def _restore_line_style(self):
+        """
+        Restore OpenGL state after drawing lines.
+        """
+        GL.glPopAttrib()
+
+    def _set_color(self, color):
+        """
+        Set the current drawing color.
+
+        Args:
+            color: RGB color as a list or tuple of 3 values
+        """
+        GL.glUniform3f(self.myColor, color[0], color[1], color[2])
+
     # def update(self):
     #     self.current_program = self.shader_col
     #     GL.glUseProgram(self.current_program)
@@ -123,8 +153,12 @@ class Display:
         """
         Update joint opening animation if needed.
         """
-        if ((self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or
-            (not self.view.open_joint and self.view.open_ratio > 0)):
+        should_update = (
+            (self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or
+            (not self.view.open_joint and self.view.open_ratio > 0)
+        )
+
+        if should_update:
             self.view.set_joint_opening_distance(self.joint.noc)
 
     def bind_view_mat_to_shader_transform_mat(self):
