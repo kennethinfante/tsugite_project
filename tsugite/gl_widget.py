@@ -419,19 +419,14 @@ class GLWidget(qgl.QGLWidget):
         self.display.view.end_rotation()
 
     def mouseMoveEvent(self, e):
-        self.x = self.parent.scaling*e.x()
-        self.y = self.parent.scaling*e.y()
+        """Handle mouse movement events."""
+        # Update current mouse position with proper scaling
+        self.x = self.parent.scaling * e.x()
+        self.y = self.parent.scaling * e.y()
+
+        # Handle rotation if dragging with right mouse button
         if self.display.view.dragged:
             self.display.view.update_rotation_xy(self.x, self.y)
-
-    def mouseReleaseEvent(self, e):
-        if e.button() == qtc.Qt.LeftButton:
-            if self.joint.mesh.select.state == 2:  # face pulled
-                self.joint.mesh.select.end_pull()
-            elif self.joint.mesh.select.state == 12:  # body moved
-                self.joint.mesh.select.end_move()
-        elif e.button() == qtc.Qt.RightButton:
-            self.display.view.end_rotation()
 
     def minimumSizeHint(self):
         return qtc.QSize(50, 50)
