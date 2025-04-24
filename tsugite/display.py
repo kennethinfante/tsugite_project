@@ -365,94 +365,237 @@ class Display:
             GL.glUniformMatrix4fv(translate_ref, 1, GL.GL_FALSE, moves[geo.n])
             GL.glDrawElements(geo.draw_type, geo.count, GL.GL_UNSIGNED_INT, buffer_offset(4*geo.start_index))
 
-    def pick(self,xpos,ypos,height):
+    # def pick(self,xpos,ypos,height):
+    #     if not self.view.gallery:
+    #         ######################## COLOR SHADER ###########################
+    #         self.current_program = self.shader_col
+    #         GL.glUseProgram(self.current_program)
+    #
+    #         GL.glClearColor(1.0, 1.0, 1.0, 1.0) # white
+    #         GL.glEnable(GL.GL_DEPTH_TEST)
+    #         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+    #
+    #         self.bind_view_mat_to_shader_transform_mat()
+    #         GL.glPolygonOffset(1.0,1.0)
+    #
+    #         ########################## Draw colorful top faces ##########################
+    #
+    #         # Draw colorful geometries
+    #         col_step = 1.0/(2 + 2 * self.joint.dim * self.joint.dim)
+    #         for n in range(self.joint.noc):
+    #             col = np.zeros(3, dtype=np.float64)
+    #             col[n%3] = 1.0
+    #             if n>2: col[(n+1) % self.joint.dim] = 1.0
+    #             GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #             self.draw_geometries([self.joint.mesh.indices_fpick_not_top[n]], clear_depth_buffer=False)
+    #             if n==0 or n==self.joint.noc-1: mos = 1
+    #             else: mos = 2
+    #             # mos is "number of sides"
+    #             for m in range(mos):
+    #                 # Draw top faces
+    #                 for i in range(self.joint.dim * self.joint.dim):
+    #                     col -= col_step
+    #                     GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #                     top = ElementProperties(GL.GL_QUADS, 4, self.joint.mesh.indices_fpick_top[n].start_index + mos * 4 * i + 4 * m, n)
+    #                     self.draw_geometries([top],clear_depth_buffer=False)
+    #
+    #     ############### Read pixel color at mouse position ###############
+    #     mouse_pixel = GL.glReadPixelsub(xpos, height-ypos, 1, 1, GL.GL_RGB, outputType=GL.GL_UNSIGNED_BYTE)[0][0]
+    #     mouse_pixel = np.array(mouse_pixel)
+    #     pick_n = pick_d = pick_x = pick_y = None
+    #     self.joint.mesh.select.sugg_state = -1
+    #     self.joint.mesh.select.gallstate = -1
+    #     if not self.view.gallery:
+    #         if xpos>self.pwidget.width-self.pwidget.wstep: # suggestion side
+    #             if ypos>0 and ypos<self.pwidget.height:
+    #                 index = int(ypos/self.pwidget.hstep)
+    #                 if self.joint.mesh.select.sugg_state!=index:
+    #                     self.joint.mesh.select.sugg_state=index
+    #         elif not np.all(mouse_pixel==255): # not white / background
+    #                 non_zeros = np.where(mouse_pixel!=0)
+    #                 if len(non_zeros)>0:
+    #                     if len(non_zeros[0]>0):
+    #                         pick_n = non_zeros[0][0]
+    #                         if len(non_zeros[0])>1:
+    #                             pick_n = pick_n+self.joint.dim
+    #                             if mouse_pixel[0]==mouse_pixel[2]: pick_n = 5
+    #                         val = 255-mouse_pixel[non_zeros[0][0]]
+    #                         #i = int(0.5+val*(2+2*self.joint.dim*self.joint.dim)/255)-1
+    #                         step_size = 128/(self.joint.dim ** 2 + 1)
+    #                         i=round(val/step_size)-1
+    #                         if i>=0:
+    #                             pick_x = (int(i / self.joint.dim)) % self.joint.dim
+    #                             pick_y = i%self.joint.dim
+    #                         pick_d = 0
+    #                         if pick_n==self.joint.noc-1: pick_d = 1
+    #                         elif int(i/self.joint.dim)>=self.joint.dim: pick_d = 1
+    #                         #print("pick",pick_n,pick_d,pick_x,pick_y)
+    #     """
+    #     else: #gallerymode
+    #         if xpos>0 and xpos<2000 and ypos>0 and ypos<1600:
+    #             i = int(xpos/400)
+    #             j = int(ypos/400)
+    #             index = i*4+j
+    #             mesh.select.gallstate=index
+    #             mesh.select.state = -1
+    #             mesh.select.sugg_state = -1
+    #     """
+    #     ### Update selection
+    #     if pick_x !=None and pick_d!=None and pick_y!=None and pick_n!=None:
+    #         ### Initialize selection
+    #         new_pos = False
+    #         if pick_x!=self.joint.mesh.select.x or pick_y!=self.joint.mesh.select.y or pick_n!=self.joint.mesh.select.n or pick_d!=self.joint.mesh.select.dir or self.joint.mesh.select.refresh:
+    #             self.joint.mesh.select.update_pick(pick_x, pick_y, pick_n, pick_d)
+    #             self.joint.mesh.select.refresh = False
+    #             self.joint.mesh.select.state = 0 # hovering
+    #     elif pick_n!=None:
+    #         self.joint.mesh.select.state = 10 # hovering component body
+    #         self.joint.mesh.select.update_pick(pick_x, pick_y, pick_n, pick_d)
+    #     else: self.joint.mesh.select.state = -1
+    #     GL.glClearColor(1.0, 1.0, 1.0, 1.0)
+
+    def pick(self, xpos, ypos, height):
+        """
+        Handle picking (selection) at the given screen coordinates.
+        """
         if not self.view.gallery:
-            ######################## COLOR SHADER ###########################
-            self.current_program = self.shader_col
-            GL.glUseProgram(self.current_program)
+            self._setup_pick_rendering()
+            self._render_pickable_geometries()
 
-            GL.glClearColor(1.0, 1.0, 1.0, 1.0) # white
-            GL.glEnable(GL.GL_DEPTH_TEST)
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+        # Read pixel color at mouse position and process selection
+        pick_result = self._process_pick_result(xpos, ypos, height)
 
-            self.bind_view_mat_to_shader_transform_mat()
-            GL.glPolygonOffset(1.0,1.0)
+        # Reset rendering state
+        GL.glClearColor(1.0, 1.0, 1.0, 1.0)
 
-            ########################## Draw colorful top faces ##########################
+        return pick_result
 
-            # Draw colorful geometries
-            col_step = 1.0/(2 + 2 * self.joint.dim * self.joint.dim)
-            for n in range(self.joint.noc):
-                col = np.zeros(3, dtype=np.float64)
-                col[n%3] = 1.0
-                if n>2: col[(n+1) % self.joint.dim] = 1.0
-                GL.glUniform3f(self.myColor, col[0], col[1], col[2])
-                self.draw_geometries([self.joint.mesh.indices_fpick_not_top[n]], clear_depth_buffer=False)
-                if n==0 or n==self.joint.noc-1: mos = 1
-                else: mos = 2
-                # mos is "number of sides"
-                for m in range(mos):
-                    # Draw top faces
-                    for i in range(self.joint.dim * self.joint.dim):
-                        col -= col_step
-                        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
-                        top = ElementProperties(GL.GL_QUADS, 4, self.joint.mesh.indices_fpick_top[n].start_index + mos * 4 * i + 4 * m, n)
-                        self.draw_geometries([top],clear_depth_buffer=False)
+    def _setup_pick_rendering(self):
+        """
+        Setup rendering state for picking.
+        """
+        self.current_program = self.shader_col
+        GL.glUseProgram(self.current_program)
 
-        ############### Read pixel color at mouse position ###############
-        mouse_pixel = GL.glReadPixelsub(xpos, height-ypos, 1, 1, GL.GL_RGB, outputType=GL.GL_UNSIGNED_BYTE)[0][0]
+        GL.glClearColor(1.0, 1.0, 1.0, 1.0)  # white
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
+
+        self.bind_view_mat_to_shader_transform_mat()
+        GL.glPolygonOffset(1.0, 1.0)
+
+    def _render_pickable_geometries(self):
+        """
+        Render geometries with unique colors for picking.
+        """
+        # Draw colorful geometries
+        col_step = 1.0 / (2 + 2 * self.joint.dim * self.joint.dim)
+
+        for n in range(self.joint.noc):
+            # Set base color for component
+            col = np.zeros(3, dtype=np.float64)
+            col[n % 3] = 1.0
+            if n > 2:
+                col[(n + 1) % self.joint.dim] = 1.0
+
+            GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+            self.draw_geometries([self.joint.mesh.indices_fpick_not_top[n]], clear_depth_buffer=False)
+
+            # Determine number of sides
+            mos = 1 if n == 0 or n == self.joint.noc - 1 else 2
+
+            # Draw top faces with unique colors
+            for m in range(mos):
+                for i in range(self.joint.dim * self.joint.dim):
+                    col -= col_step
+                    GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+                    top = ElementProperties(
+                        GL.GL_QUADS,
+                        4,
+                        self.joint.mesh.indices_fpick_top[n].start_index + mos * 4 * i + 4 * m,
+                        n
+                    )
+                    self.draw_geometries([top], clear_depth_buffer=False)
+
+    def _process_pick_result(self, xpos, ypos, height):
+        """
+        Process the picking result from the rendered image.
+        """
+        mouse_pixel = GL.glReadPixelsub(xpos, height - ypos, 1, 1, GL.GL_RGB, outputType=GL.GL_UNSIGNED_BYTE)[0][0]
         mouse_pixel = np.array(mouse_pixel)
+
         pick_n = pick_d = pick_x = pick_y = None
         self.joint.mesh.select.sugg_state = -1
         self.joint.mesh.select.gallstate = -1
+
         if not self.view.gallery:
-            if xpos>self.pwidget.width-self.pwidget.wstep: # suggestion side
-                if ypos>0 and ypos<self.pwidget.height:
-                    index = int(ypos/self.pwidget.hstep)
-                    if self.joint.mesh.select.sugg_state!=index:
-                        self.joint.mesh.select.sugg_state=index
-            elif not np.all(mouse_pixel==255): # not white / background
-                    non_zeros = np.where(mouse_pixel!=0)
-                    if len(non_zeros)>0:
-                        if len(non_zeros[0]>0):
-                            pick_n = non_zeros[0][0]
-                            if len(non_zeros[0])>1:
-                                pick_n = pick_n+self.joint.dim
-                                if mouse_pixel[0]==mouse_pixel[2]: pick_n = 5
-                            val = 255-mouse_pixel[non_zeros[0][0]]
-                            #i = int(0.5+val*(2+2*self.joint.dim*self.joint.dim)/255)-1
-                            step_size = 128/(self.joint.dim ** 2 + 1)
-                            i=round(val/step_size)-1
-                            if i>=0:
-                                pick_x = (int(i / self.joint.dim)) % self.joint.dim
-                                pick_y = i%self.joint.dim
-                            pick_d = 0
-                            if pick_n==self.joint.noc-1: pick_d = 1
-                            elif int(i/self.joint.dim)>=self.joint.dim: pick_d = 1
-                            #print("pick",pick_n,pick_d,pick_x,pick_y)
+            # Check if in suggestion panel
+            if xpos > self.pwidget.width - self.pwidget.wstep:
+                if 0 < ypos < self.pwidget.height:
+                    index = int(ypos / self.pwidget.hstep)
+                    if self.joint.mesh.select.sugg_state != index:
+                        self.joint.mesh.select.sugg_state = index
+            # Check if picking a component (not background)
+            elif not np.all(mouse_pixel == 255):
+                pick_result = self._decode_pick_color(mouse_pixel)
+                pick_n, pick_d, pick_x, pick_y = pick_result
+
+        # Update selection state
+        self._update_selection_state(pick_n, pick_d, pick_x, pick_y)
+
+        return pick_n, pick_d, pick_x, pick_y
+
+    def _decode_pick_color(self, mouse_pixel):
         """
-        else: #gallerymode
-            if xpos>0 and xpos<2000 and ypos>0 and ypos<1600:
-                i = int(xpos/400)
-                j = int(ypos/400)
-                index = i*4+j
-                mesh.select.gallstate=index
-                mesh.select.state = -1
-                mesh.select.sugg_state = -1
+        Decode the color from picking to determine what was selected.
         """
-        ### Update selection
-        if pick_x !=None and pick_d!=None and pick_y!=None and pick_n!=None:
-            ### Initialize selection
-            new_pos = False
-            if pick_x!=self.joint.mesh.select.x or pick_y!=self.joint.mesh.select.y or pick_n!=self.joint.mesh.select.n or pick_d!=self.joint.mesh.select.dir or self.joint.mesh.select.refresh:
+        pick_n = pick_d = pick_x = pick_y = None
+
+        non_zeros = np.where(mouse_pixel != 0)
+        if len(non_zeros) > 0 and len(non_zeros[0]) > 0:
+            pick_n = non_zeros[0][0]
+
+            if len(non_zeros[0]) > 1:
+                pick_n = pick_n + self.joint.dim
+                if mouse_pixel[0] == mouse_pixel[2]:
+                    pick_n = 5
+
+            val = 255 - mouse_pixel[non_zeros[0][0]]
+            step_size = 128 / (self.joint.dim ** 2 + 1)
+            i = round(val / step_size) - 1
+
+            if i >= 0:
+                pick_x = (int(i / self.joint.dim)) % self.joint.dim
+                pick_y = i % self.joint.dim
+
+            pick_d = 0
+            if pick_n == self.joint.noc - 1:
+                pick_d = 1
+            elif int(i / self.joint.dim) >= self.joint.dim:
+                pick_d = 1
+
+        return pick_n, pick_d, pick_x, pick_y
+
+    def _update_selection_state(self, pick_n, pick_d, pick_x, pick_y):
+        """
+        Update the selection state based on picking result.
+        """
+        if pick_x is not None and pick_d is not None and pick_y is not None and pick_n is not None:
+            # Initialize selection
+            if (pick_x != self.joint.mesh.select.x or
+                    pick_y != self.joint.mesh.select.y or
+                    pick_n != self.joint.mesh.select.n or
+                    pick_d != self.joint.mesh.select.dir or
+                    self.joint.mesh.select.refresh):
+
                 self.joint.mesh.select.update_pick(pick_x, pick_y, pick_n, pick_d)
                 self.joint.mesh.select.refresh = False
-                self.joint.mesh.select.state = 0 # hovering
-        elif pick_n!=None:
-            self.joint.mesh.select.state = 10 # hovering component body
+                self.joint.mesh.select.state = 0  # hovering
+        elif pick_n is not None:
+            self.joint.mesh.select.state = 10  # hovering component body
             self.joint.mesh.select.update_pick(pick_x, pick_y, pick_n, pick_d)
-        else: self.joint.mesh.select.state = -1
-        GL.glClearColor(1.0, 1.0, 1.0, 1.0)
+        else:
+            self.joint.mesh.select.state = -1
 
     def selected(self):
         ################### Draw top face that is currently being hovered ##########
