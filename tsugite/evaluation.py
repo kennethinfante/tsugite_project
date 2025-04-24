@@ -4,7 +4,7 @@ import copy
 import utils as Utils
 
 class Evaluation:
-    def __init__(self,voxel_matrix,type,mainmesh=True):
+    def __init__(self, voxel_matrix, joint_, mainmesh=True):
         self.mainmesh = mainmesh
         self.valid = True
         self.slides = []
@@ -27,58 +27,58 @@ class Evaluation:
         self.friction_faces = []
         self.contact_nums = []
         self.contact_faces = []
-        self.fab_directions = self.update(voxel_matrix,type)
+        self.fab_directions = self.update(voxel_matrix, joint_)
 
-    # def update(self,voxel_matrix,type):
-    #     self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, type.fixed.sides)
+    # def update(self,voxel_matrix,joint_):
+    #     self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, joint_.fixed.sides)
     #
     #     # Voxel connection and bridgeing
     #     self.connected = []
     #     self.bridged = []
     #     self.voxel_matrices_unbridged = []
-    #     for n in range(type.noc):
+    #     for n in range(joint_.noc):
     #         self.connected.append(Utils.is_connected(self.voxel_matrix_with_sides,n))
     #         self.bridged.append(True)
     #         self.voxel_matrices_unbridged.append(None)
     #     self.voxel_matrix_connected = voxel_matrix.copy()
     #     self.voxel_matrix_unconnected = None
     #
-    #     self.seperate_unconnected(voxel_matrix,type.fixed.sides,type.dim)
+    #     self.seperate_unconnected(voxel_matrix,joint_.fixed.sides,joint_.dim)
     #
     #     # Bridging
-    #     voxel_matrix_connected_with_sides = Utils.add_fixed_sides(self.voxel_matrix_connected, type.fixed.sides)
-    #     for n in range(type.noc):
+    #     voxel_matrix_connected_with_sides = Utils.add_fixed_sides(self.voxel_matrix_connected, joint_.fixed.sides)
+    #     for n in range(joint_.noc):
     #         self.bridged[n] = Utils.is_connected(voxel_matrix_connected_with_sides,n)
     #         if not self.bridged[n]:
-    #             voxel_matrix_unbridged_1, voxel_matrix_unbridged_2 = self.seperate_unbridged(voxel_matrix,type.fixed.sides,type.dim,n)
+    #             voxel_matrix_unbridged_1, voxel_matrix_unbridged_2 = self.seperate_unbridged(voxel_matrix,joint_.fixed.sides,joint_.dim,n)
     #             self.voxel_matrices_unbridged[n] = [voxel_matrix_unbridged_1, voxel_matrix_unbridged_2]
     #
     #     # Fabricatability by direction constraint
     #     self.fab_direction_ok = []
-    #     fab_directions = list(range(type.noc))
-    #     for n in range(type.noc):
-    #         if n==0 or n==type.noc-1:
+    #     fab_directions = list(range(joint_.noc))
+    #     for n in range(joint_.noc):
+    #         if n==0 or n==joint_.noc-1:
     #             self.fab_direction_ok.append(True)
     #             if n==0: fab_directions[n]=0
     #             else: fab_directions[n]=1
     #         else:
-    #             fab_ok,fab_dir = Utils.is_fab_direction_ok(voxel_matrix,type.sax,n)
+    #             fab_ok,fab_dir = Utils.is_fab_direction_ok(voxel_matrix,joint_.sax,n)
     #             fab_directions[n] = fab_dir
     #             self.fab_direction_ok.append(fab_ok)
     #
     #     # Chessboard
     #     self.checker = []
     #     self.checker_vertices = []
-    #     for n in range(type.noc):
-    #         check,verts = Utils.get_chessboard_vertics(voxel_matrix,type.sax,type.noc,n)
+    #     for n in range(joint_.noc):
+    #         check,verts = Utils.get_chessboard_vertics(voxel_matrix,joint_.sax,joint_.noc,n)
     #         self.checker.append(check)
     #         self.checker_vertices.append(verts)
     #
     #     # Sliding directions
-    #     self.slides,self.number_of_slides = Utils.get_sliding_directions(self.voxel_matrix_with_sides,type.noc)
+    #     self.slides,self.number_of_slides = Utils.get_sliding_directions(self.voxel_matrix_with_sides,joint_.noc)
     #     self.interlock = True
-    #     for n in range(type.noc):
-    #         if (n==0 or n==type.noc-1):
+    #     for n in range(joint_.noc):
+    #         if (n==0 or n==joint_.noc-1):
     #             if self.number_of_slides[n]<=1:
     #                 self.interlocks.append(True)
     #             else:
@@ -96,8 +96,8 @@ class Evaluation:
     #     self.friction_faces = []
     #     self.contact_nums = []
     #     self.contact_faces = []
-    #     for n in range(type.noc):
-    #         friction,ffaces,contact,cfaces, = Utils.get_friction_and_contact_areas(voxel_matrix,self.slides[n],type.fixed.sides,n)
+    #     for n in range(joint_.noc):
+    #         friction,ffaces,contact,cfaces, = Utils.get_friction_and_contact_areas(voxel_matrix,self.slides[n],joint_.fixed.sides,n)
     #         self.friction_nums.append(friction)
     #         self.friction_faces.append(ffaces)
     #         self.contact_nums.append(contact)
@@ -105,8 +105,8 @@ class Evaluation:
     #
     #
     #     # Grain direction
-    #     for n in range(type.noc):
-    #         brk,brk_oinds,brk_vinds = Utils.get_breakable_voxels(voxel_matrix,type.fixed.sides[n],type.sax,n)
+    #     for n in range(joint_.noc):
+    #         brk,brk_oinds,brk_vinds = Utils.get_breakable_voxels(voxel_matrix,joint_.fixed.sides[n],joint_.sax,n)
     #         self.breakable.append(brk)
     #         self.breakable_outline_inds.append(brk_oinds)
     #         self.breakable_voxel_inds.append(brk_vinds)
@@ -136,40 +136,40 @@ class Evaluation:
     #     """
     #     return fab_directions
 
-    def update(self, voxel_matrix, type):
-        self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, type.fixed.sides)
+    def update(self, voxel_matrix, joint_):
+        self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, joint_.fixed.sides)
 
         # Process connectivity and bridging
-        self._process_connectivity_and_bridging(voxel_matrix, type)
+        self._process_connectivity_and_bridging(voxel_matrix, joint_)
 
         # Process fabrication directions
-        fab_directions = self._process_fabrication_directions(voxel_matrix, type)
+        fab_directions = self._process_fabrication_directions(voxel_matrix, joint_)
 
         # Process chessboard pattern
-        self._process_chessboard(voxel_matrix, type)
+        self._process_chessboard(voxel_matrix, joint_)
 
         # Process sliding directions and interlocking
-        self._process_sliding_and_interlocking(type)
+        self._process_sliding_and_interlocking(joint_)
 
         # Process friction and contact areas
-        self._process_friction_and_contact(voxel_matrix, type)
+        self._process_friction_and_contact(voxel_matrix, joint_)
 
         # Process grain direction and breakability
-        self._process_grain_direction(voxel_matrix, type)
+        self._process_grain_direction(voxel_matrix, joint_)
 
         # Validate the joint
         self._validate_joint()
 
         return fab_directions
 
-    def _process_connectivity_and_bridging(self, voxel_matrix, type):
+    def _process_connectivity_and_bridging(self, voxel_matrix, joint_):
         # Initialize connectivity and bridging arrays
         self.connected = []
         self.bridged = []
         self.voxel_matrices_unbridged = []
 
         # Check connectivity for each component
-        for n in range(type.noc):
+        for n in range(joint_.noc):
             self.connected.append(Utils.is_connected(self.voxel_matrix_with_sides, n))
             self.bridged.append(True)
             self.voxel_matrices_unbridged.append(None)
@@ -179,57 +179,57 @@ class Evaluation:
         self.voxel_matrix_unconnected = None
 
         # Separate unconnected voxels
-        self.seperate_unconnected(voxel_matrix, type.fixed.sides, type.dim)
+        self.seperate_unconnected(voxel_matrix, joint_.fixed.sides, joint_.dim)
 
         # Check bridging for each component
-        voxel_matrix_connected_with_sides = Utils.add_fixed_sides(self.voxel_matrix_connected, type.fixed.sides)
-        for n in range(type.noc):
+        voxel_matrix_connected_with_sides = Utils.add_fixed_sides(self.voxel_matrix_connected, joint_.fixed.sides)
+        for n in range(joint_.noc):
             self.bridged[n] = Utils.is_connected(voxel_matrix_connected_with_sides, n)
             if not self.bridged[n]:
                 voxel_matrix_unbridged_1, voxel_matrix_unbridged_2 = self.seperate_unbridged(
-                    voxel_matrix, type.fixed.sides, type.dim, n
+                    voxel_matrix, joint_.fixed.sides, joint_.dim, n
                 )
                 self.voxel_matrices_unbridged[n] = [voxel_matrix_unbridged_1, voxel_matrix_unbridged_2]
 
-    def _process_fabrication_directions(self, voxel_matrix, type):
+    def _process_fabrication_directions(self, voxel_matrix, joint_):
         # Initialize fabrication direction arrays
         self.fab_direction_ok = []
-        fab_directions = list(range(type.noc))
+        fab_directions = list(range(joint_.noc))
 
         # Check fabrication direction for each component
-        for n in range(type.noc):
-            if n == 0 or n == type.noc - 1:
+        for n in range(joint_.noc):
+            if n == 0 or n == joint_.noc - 1:
                 self.fab_direction_ok.append(True)
                 fab_directions[n] = 0 if n == 0 else 1
             else:
-                fab_ok, fab_dir = Utils.is_fab_direction_ok(voxel_matrix, type.sax, n)
+                fab_ok, fab_dir = Utils.is_fab_direction_ok(voxel_matrix, joint_.sax, n)
                 fab_directions[n] = fab_dir
                 self.fab_direction_ok.append(fab_ok)
 
         return fab_directions
 
-    def _process_chessboard(self, voxel_matrix, type):
+    def _process_chessboard(self, voxel_matrix, joint_):
         # Initialize chessboard arrays
         self.checker = []
         self.checker_vertices = []
 
         # Check chessboard pattern for each component
-        for n in range(type.noc):
-            check, verts = Utils.get_chessboard_vertics(voxel_matrix, type.sax, type.noc, n)
+        for n in range(joint_.noc):
+            check, verts = Utils.get_chessboard_vertics(voxel_matrix, joint_.sax, joint_.noc, n)
             self.checker.append(check)
             self.checker_vertices.append(verts)
 
-    def _process_sliding_and_interlocking(self, type):
+    def _process_sliding_and_interlocking(self, joint_):
         # Get sliding directions for all components
-        self.slides, self.number_of_slides = Utils.get_sliding_directions(self.voxel_matrix_with_sides, type.noc)
+        self.slides, self.number_of_slides = Utils.get_sliding_directions(self.voxel_matrix_with_sides, joint_.noc)
 
         # Initialize interlocking
         self.interlock = True
         self.interlocks = []
 
         # Check interlocking for each component
-        for n in range(type.noc):
-            if n == 0 or n == type.noc - 1:
+        for n in range(joint_.noc):
+            if n == 0 or n == joint_.noc - 1:
                 # End components should have exactly one sliding direction
                 if self.number_of_slides[n] <= 1:
                     self.interlocks.append(True)
@@ -244,7 +244,7 @@ class Evaluation:
                     self.interlocks.append(False)
                     self.interlock = False
 
-    def _process_friction_and_contact(self, voxel_matrix, type):
+    def _process_friction_and_contact(self, voxel_matrix, joint_):
         # Initialize friction and contact arrays
         self.friction_nums = []
         self.friction_faces = []
@@ -252,25 +252,25 @@ class Evaluation:
         self.contact_faces = []
 
         # Calculate friction and contact areas for each component
-        for n in range(type.noc):
+        for n in range(joint_.noc):
             friction, ffaces, contact, cfaces = Utils.get_friction_and_contact_areas(
-                voxel_matrix, self.slides[n], type.fixed.sides, n
+                voxel_matrix, self.slides[n], joint_.fixed.sides, n
             )
             self.friction_nums.append(friction)
             self.friction_faces.append(ffaces)
             self.contact_nums.append(contact)
             self.contact_faces.append(cfaces)
 
-    def _process_grain_direction(self, voxel_matrix, type):
+    def _process_grain_direction(self, voxel_matrix, joint_):
         # Initialize breakability arrays
         self.breakable = []
         self.breakable_outline_inds = []
         self.breakable_voxel_inds = []
 
         # Check breakability for each component
-        for n in range(type.noc):
+        for n in range(joint_.noc):
             brk, brk_oinds, brk_vinds = Utils.get_breakable_voxels(
-                voxel_matrix, type.fixed.sides[n], type.sax, n
+                voxel_matrix, joint_.fixed.sides[n], joint_.sax, n
             )
             self.breakable.append(brk)
             self.breakable_outline_inds.append(brk_oinds)

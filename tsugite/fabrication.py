@@ -23,11 +23,11 @@ class RoughPixel:
     #         for dir in range(-1,2,2):
     #             nind = self.ind.copy()
     #             nind[ax] += dir
-    #             type = 0
+    #             joint_ = 0
     #             if nind[0]>=0 and nind[0]<mat.shape[0] and nind[1]>=0 and nind[1]<mat.shape[1]:
     #                 val = mat[tuple(nind)]
-    #                 if val==n: type = 1
-    #             temp.append(type)
+    #                 if val==n: joint_ = 1
+    #             temp.append(joint_)
     #         self.neighbors.append(temp)
     #     self.flat_neighbors = [x for sublist in self.neighbors for x in sublist]
 
