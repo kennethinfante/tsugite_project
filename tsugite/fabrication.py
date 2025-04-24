@@ -144,20 +144,48 @@ class MillVertex:
         # Convert to numpy array
         self.arc_ctr = np.array(self.arc_ctr)
 
-    def rotate(self,ang,d):
-        self.pt = np.array([self.x,self.y,self.z])
-        self.pt = Utils.rotate_vector_around_axis(self.pt, [0,0,1], ang)
+    # def rotate(self,ang,d):
+    #     self.pt = np.array([self.x,self.y,self.z])
+    #     self.pt = Utils.rotate_vector_around_axis(self.pt, [0,0,1], ang)
+    #     self.x = self.pt[0]
+    #     self.y = self.pt[1]
+    #     self.z = self.pt[2]
+    #     self.pos = np.array([self.x,self.y,self.z],dtype=np.float64)
+    #     self.xstr = str(round(self.x,d))
+    #     self.ystr = str(round(self.y,d))
+    #     self.zstr = str(round(self.z,d))
+    #     ##
+    #     if self.is_arc:
+    #         self.arc_ctr = Utils.rotate_vector_around_axis(self.arc_ctr, [0,0,1], ang)
+    #         self.arc_ctr = np.array(self.arc_ctr)
+
+    def rotate(self, ang, d):
+        """Rotate vertex around Z axis by the given angle."""
+        # Rotate point coordinates
+        self._rotate_point(ang, d)
+
+        # Rotate arc center if this is an arc
+        if self.is_arc:
+            self._rotate_arc_center(ang)
+
+    def _rotate_point(self, ang, d):
+        """Rotate the point coordinates around Z axis."""
+        self.pt = np.array([self.x, self.y, self.z])
+        self.pt = Utils.rotate_vector_around_axis(self.pt, [0, 0, 1], ang)
+
+        # Update coordinates and string representations
         self.x = self.pt[0]
         self.y = self.pt[1]
         self.z = self.pt[2]
-        self.pos = np.array([self.x,self.y,self.z],dtype=np.float64)
-        self.xstr = str(round(self.x,d))
-        self.ystr = str(round(self.y,d))
-        self.zstr = str(round(self.z,d))
-        ##
-        if self.is_arc:
-            self.arc_ctr = Utils.rotate_vector_around_axis(self.arc_ctr, [0,0,1], ang)
-            self.arc_ctr = np.array(self.arc_ctr)
+        self.pos = np.array([self.x, self.y, self.z], dtype=np.float64)
+        self.xstr = str(round(self.x, d))
+        self.ystr = str(round(self.y, d))
+        self.zstr = str(round(self.z, d))
+
+    def _rotate_arc_center(self, ang):
+        """Rotate the arc center coordinates around Z axis."""
+        self.arc_ctr = Utils.rotate_vector_around_axis(self.arc_ctr, [0, 0, 1], ang)
+        self.arc_ctr = np.array(self.arc_ctr)
 
 class Fabrication:
     def __init__(self,pjoint,tol=0.15,dia=6.00,ext="gcode",align_ax=0,interp=True, spe=400, spi=6000):
