@@ -95,16 +95,37 @@ class Display:
         self.shader_tex = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
                                                   GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
 
+    # def update(self):
+    #     self.current_program = self.shader_col
+    #     GL.glUseProgram(self.current_program)
+    #
+    #     self.bind_view_mat_to_shader_transform_mat()
+    #     if (self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or (not self.view.open_joint and self.view.open_ratio > 0):
+    #         self.view.set_joint_opening_distance(self.joint.noc)
+    #
+    #     # there's only one myColor var so it is safe to make it an attribute
+    #     self.myColor = GL.glGetUniformLocation(self.current_program, 'myColor')
+
     def update(self):
+        """
+        Update the display state.
+        """
         self.current_program = self.shader_col
         GL.glUseProgram(self.current_program)
 
         self.bind_view_mat_to_shader_transform_mat()
-        if (self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or (not self.view.open_joint and self.view.open_ratio > 0):
-            self.view.set_joint_opening_distance(self.joint.noc)
+        self._update_joint_opening()
 
         # there's only one myColor var so it is safe to make it an attribute
         self.myColor = GL.glGetUniformLocation(self.current_program, 'myColor')
+
+    def _update_joint_opening(self):
+        """
+        Update joint opening animation if needed.
+        """
+        if ((self.view.open_joint and self.view.open_ratio < self.joint.noc - 1) or
+            (not self.view.open_joint and self.view.open_ratio > 0)):
+            self.view.set_joint_opening_distance(self.joint.noc)
 
     def bind_view_mat_to_shader_transform_mat(self):
         rot_x = pyrr.Matrix44.from_x_rotation(self.view.xrot)
