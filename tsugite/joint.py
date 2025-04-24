@@ -1987,29 +1987,98 @@ class Joint:
         sugg_eval = Evaluation(sugg_voxmat, self, mainmesh=False)
         return sugg_eval.valid
 
-    def init_gallery(self,start_index):
+    # def init_gallery(self,start_index):
+    #     self.gallary_start_index = start_index
+    #     self.gals = []
+    #     self.suggestions = []
+    #     # Folder
+    #     location = os.path.abspath(os.getcwd())
+    #     location = location.split(os.sep)
+    #     location.pop()
+    #     location = os.sep.join(location)
+    #     location += os.sep+"search_results"+os.sep+"noc_"+str(self.noc)+os.sep+"dim_"+str(self.dim)+os.sep+"fs_"
+    #     for i in range(len(self.fixed.sides)):
+    #         for fs in self.fixed.sides[i]:
+    #             location+=str(fs.ax)+str(fs.dir)
+    #         if i!=len(self.fixed.sides)-1: location+=("_")
+    #     location+=os.sep+"allvalid"
+    #     maxi = len(os.listdir(location))-1
+    #     for i in range(20):
+    #         if (i+start_index)>maxi: break
+    #         try:
+    #             hfs = np.load(location+os.sep+"height_fields_"+str(start_index+i)+".npy")
+    #             self.gals.append(Geometries(self,mainmesh=False,hfs=hfs))
+    #         except:
+    #             abc = 0
+
+    def init_gallery(self, start_index):
+        """Initialize gallery of joint designs."""
         self.gallary_start_index = start_index
         self.gals = []
         self.suggestions = []
-        # Folder
+
+        # Get gallery directory path
+        gallery_path = self._get_gallery_path()
+
+        # Load gallery items
+        self._load_gallery_items(gallery_path, start_index)
+
+    def _get_gallery_path(self):
+        """Get the path to the gallery directory."""
+        # Get base directory
         location = os.path.abspath(os.getcwd())
         location = location.split(os.sep)
         location.pop()
         location = os.sep.join(location)
-        location += os.sep+"search_results"+os.sep+"noc_"+str(self.noc)+os.sep+"dim_"+str(self.dim)+os.sep+"fs_"
+
+        # Build path components
+        components = [
+            location,
+            "search_results",
+            f"noc_{self.noc}",
+            f"dim_{self.dim}",
+            f"fs_{self._get_fixed_sides_string()}",
+            "allvalid"
+        ]
+
+        return os.sep.join(components)
+
+    def _get_fixed_sides_string(self):
+        """Get string representation of fixed sides configuration."""
+        fs_parts = []
+
         for i in range(len(self.fixed.sides)):
+            part = ""
             for fs in self.fixed.sides[i]:
-                location+=str(fs.ax)+str(fs.dir)
-            if i!=len(self.fixed.sides)-1: location+=("_")
-        location+=os.sep+"allvalid"
-        maxi = len(os.listdir(location))-1
-        for i in range(20):
-            if (i+start_index)>maxi: break
-            try:
-                hfs = np.load(location+os.sep+"height_fields_"+str(start_index+i)+".npy")
-                self.gals.append(Geometries(self,mainmesh=False,hfs=hfs))
-            except:
-                abc = 0
+                part += f"{fs.ax}{fs.dir}"
+            fs_parts.append(part)
+
+        return "_".join(fs_parts)
+
+    def _load_gallery_items(self, gallery_path, start_index):
+        """Load gallery items from the specified path."""
+        try:
+            # Get maximum index
+            max_index = len(os.listdir(gallery_path)) - 1
+
+            # Load up to 20 items
+            for i in range(20):
+                current_index = i + start_index
+                if current_index > max_index:
+                    break
+
+                self._load_gallery_item(gallery_path, current_index)
+        except Exception as e:
+            print(f"Error loading gallery: {e}")
+
+    def _load_gallery_item(self, gallery_path, index):
+        """Load a single gallery item."""
+        try:
+            file_path = os.path.join(gallery_path, f"height_fields_{index}.npy")
+            hfs = np.load(file_path)
+            self.gals.append(Geometries(self, mainmesh=False, hfs=hfs))
+        except Exception:
+            pass  # Silently ignore errors for individual items
 
     def save(self,filename="joint.tsu"):
 
