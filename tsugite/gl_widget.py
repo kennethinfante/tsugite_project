@@ -325,34 +325,98 @@ class GLWidget(qgl.QGLWidget):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         GL.glDisable(GL.GL_SCISSOR_TEST)
 
+    # def mousePressEvent(self, e):
+    #     if e.button() == qtc.Qt.LeftButton:
+    #         if time.time() - self.click_time < 0.2:
+    #             self.display.view.open_joint = not self.display.view.open_joint
+    #         elif self.joint.mesh.select.state==0: #face hovered
+    #             self.joint.mesh.select.start_pull([self.parent.scaling * e.x(), self.parent.scaling * e.y()])
+    #         elif self.joint.mesh.select.state==10: #body hovered
+    #             self.joint.mesh.select.start_move([self.parent.scaling * e.x(), self.parent.scaling * e.y()], h=self.height)
+    #         #SUGGESTION PICK
+    #         elif self.joint.mesh.select.sugg_state>=0:
+    #             index = self.joint.mesh.select.sugg_state
+    #             if len(self.joint.suggestions)>index:
+    #                 self.joint.mesh = Geometries(self.joint, hfs=self.joint.suggestions[index].height_fields)
+    #                 self.joint.suggestions = []
+    #                 self.joint.combine_and_buffer_indices()
+    #                 self.joint.mesh.select.sugg_state=-1
+    #         #GALLERY PICK -- not implemented currently
+    #         #elif joint.mesh.select.gallstate>=0:
+    #         #    index = joint.mesh.select.gallstate
+    #         #    if index<len(joint.gals):
+    #         #        joint.mesh = Geometries(joint,hfs=joint.gals[index].height_fields)
+    #         #        joint.gals = []
+    #         #        view_opt.gallery=False
+    #         #        joint.gallary_start_index = -20
+    #         #        joint.combine_and_buffer_indices()
+    #         else: self.click_time = time.time()
+    #     elif e.button() == qtc.Qt.RightButton:
+    #         self.display.view.start_rotation_xy(self.parent.scaling*e.x(),self.parent.scaling*e.y())
+
     def mousePressEvent(self, e):
+        """Handle mouse press events."""
+        scaled_x = self.parent.scaling * e.x()
+        scaled_y = self.parent.scaling * e.y()
+
         if e.button() == qtc.Qt.LeftButton:
-            if time.time() - self.click_time < 0.2:
-                self.display.view.open_joint = not self.display.view.open_joint
-            elif self.joint.mesh.select.state==0: #face hovered
-                self.joint.mesh.select.start_pull([self.parent.scaling * e.x(), self.parent.scaling * e.y()])
-            elif self.joint.mesh.select.state==10: #body hovered
-                self.joint.mesh.select.start_move([self.parent.scaling * e.x(), self.parent.scaling * e.y()], h=self.height)
-            #SUGGESTION PICK
-            elif self.joint.mesh.select.sugg_state>=0:
-                index = self.joint.mesh.select.sugg_state
-                if len(self.joint.suggestions)>index:
-                    self.joint.mesh = Geometries(self.joint, hfs=self.joint.suggestions[index].height_fields)
-                    self.joint.suggestions = []
-                    self.joint.combine_and_buffer_indices()
-                    self.joint.mesh.select.sugg_state=-1
-            #GALLERY PICK -- not implemented currently
-            #elif joint.mesh.select.gallstate>=0:
-            #    index = joint.mesh.select.gallstate
-            #    if index<len(joint.gals):
-            #        joint.mesh = Geometries(joint,hfs=joint.gals[index].height_fields)
-            #        joint.gals = []
-            #        view_opt.gallery=False
-            #        joint.gallary_start_index = -20
-            #        joint.combine_and_buffer_indices()
-            else: self.click_time = time.time()
+            self._handle_left_button_press(scaled_x, scaled_y)
         elif e.button() == qtc.Qt.RightButton:
-            self.display.view.start_rotation_xy(self.parent.scaling*e.x(),self.parent.scaling*e.y())
+            self._handle_right_button_press(scaled_x, scaled_y)
+
+    def _handle_left_button_press(self, x, y):
+        """Handle left mouse button press."""
+        # Check for double click (toggle joint opening)
+        if time.time() - self.click_time < 0.2:
+            self.display.view.open_joint = not self.display.view.open_joint
+            return
+
+        # Handle based on selection state
+        select_state = self.joint.mesh.select.state
+
+        if select_state == 0:  # Face hovered
+            self.joint.mesh.select.start_pull([x, y])
+        elif select_state == 10:  # Body hovered
+            self.joint.mesh.select.start_move([x, y], h=self.height)
+        elif self.joint.mesh.select.sugg_state >= 0:
+            self._apply_selected_suggestion()
+        else:
+            # Just a regular click, update click time
+            self.click_time = time.time()
+
+    def _apply_selected_suggestion(self):
+        """Apply the currently selected suggestion."""
+        index = self.joint.mesh.select.sugg_state
+        if len(self.joint.suggestions) > index:
+            self.joint.mesh = Geometries(
+                self.joint,
+                hfs=self.joint.suggestions[index].height_fields
+            )
+            self.joint.suggestions = []
+            self.joint.combine_and_buffer_indices()
+            self.joint.mesh.select.sugg_state = -1
+
+    def _handle_right_button_press(self, x, y):
+        """Handle right mouse button press."""
+        self.display.view.start_rotation_xy(x, y)
+
+    def mouseReleaseEvent(self, e):
+        """Handle mouse release events."""
+        if e.button() == qtc.Qt.LeftButton:
+            self._handle_left_button_release()
+        elif e.button() == qtc.Qt.RightButton:
+            self._handle_right_button_release()
+
+    def _handle_left_button_release(self):
+        """Handle left mouse button release."""
+        if self.joint.mesh.select.state == 2:  # Face pulled
+            self.joint.mesh.select.end_pull()
+        elif self.joint.mesh.select.state == 12:  # Body moved
+            self.joint.mesh.select.end_move()
+
+    def _handle_right_button_release(self):
+        """Handle right mouse button release."""
+        self.display.view.end_rotation()
 
     def mouseMoveEvent(self, e):
         self.x = self.parent.scaling*e.x()
