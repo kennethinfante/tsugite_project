@@ -1820,29 +1820,82 @@ class Joint:
         self.fab.vrad = self.fab.rad / self.ratio
         self.fab.vtol = self.fab.tol / self.ratio
 
-    def update_number_of_components(self,new_noc):
-        if new_noc!=self.noc:
-            # Increasing number of components
-            if new_noc>self.noc:
-                if len(self.fixed.unblocked)>=(new_noc-self.noc):
-                    for i in range(new_noc-self.noc):
-                        random_i = random.randint(0,len(self.fixed.unblocked)-1)
-                        if self.fixed.sides[-1][0].ax==self.sax: # last component is aligned with the sliding axis
-                            self.fixed.sides.insert(-1,[self.fixed.unblocked[random_i]])
-                        else:
-                            self.fixed.sides.append([self.fixed.unblocked[random_i]])
-                        #also consider if it is aligned and should be the first one in line... rare though...
-                        self.fixed.update_unblocked()
-                    self.noc = new_noc
-            # Decreasing number of components
-            elif new_noc<self.noc:
-                for i in range(self.noc-new_noc):
-                    self.fixed.sides.pop()
-                self.noc = new_noc
-            # Rebuffer
-            self.fixed.update_unblocked()
-            self.create_and_buffer_vertices(milling_path=False)
-            self.mesh.randomize_height_fields()
+    # def update_number_of_components(self,new_noc):
+    #     if new_noc!=self.noc:
+    #         # Increasing number of components
+    #         if new_noc>self.noc:
+    #             if len(self.fixed.unblocked)>=(new_noc-self.noc):
+    #                 for i in range(new_noc-self.noc):
+    #                     random_i = random.randint(0,len(self.fixed.unblocked)-1)
+    #                     if self.fixed.sides[-1][0].ax==self.sax: # last component is aligned with the sliding axis
+    #                         self.fixed.sides.insert(-1,[self.fixed.unblocked[random_i]])
+    #                     else:
+    #                         self.fixed.sides.append([self.fixed.unblocked[random_i]])
+    #                     #also consider if it is aligned and should be the first one in line... rare though...
+    #                     self.fixed.update_unblocked()
+    #                 self.noc = new_noc
+    #         # Decreasing number of components
+    #         elif new_noc<self.noc:
+    #             for i in range(self.noc-new_noc):
+    #                 self.fixed.sides.pop()
+    #             self.noc = new_noc
+    #         # Rebuffer
+    #         self.fixed.update_unblocked()
+    #         self.create_and_buffer_vertices(milling_path=False)
+    #         self.mesh.randomize_height_fields()
+
+    def update_number_of_components(self, new_noc):
+        """Update the number of components in the joint."""
+        if new_noc == self.noc:
+            return
+
+        if new_noc > self.noc:
+            self._increase_components(new_noc)
+        else:
+            self._decrease_components(new_noc)
+
+        # Update joint after component change
+        self._update_after_component_change()
+
+    def _increase_components(self, new_noc):
+        """Increase the number of components."""
+        # Check if we have enough unblocked sides
+        if len(self.fixed.unblocked) < (new_noc - self.noc):
+            return
+
+        # Add components
+        for i in range(new_noc - self.noc):
+            self._add_component()
+
+        self.noc = new_noc
+
+    def _add_component(self):
+        """Add a single component to the joint."""
+        # Choose a random unblocked side
+        random_i = random.randint(0, len(self.fixed.unblocked) - 1)
+
+        # Determine where to insert the new component
+        if self.fixed.sides[-1][0].ax == self.sax:  # last component is aligned with the sliding axis
+            self.fixed.sides.insert(-1, [self.fixed.unblocked[random_i]])
+        else:
+            self.fixed.sides.append([self.fixed.unblocked[random_i]])
+
+        # Update unblocked sides
+        self.fixed.update_unblocked()
+
+    def _decrease_components(self, new_noc):
+        """Decrease the number of components."""
+        for i in range(self.noc - new_noc):
+            self.fixed.sides.pop()
+
+        self.noc = new_noc
+
+    def _update_after_component_change(self):
+        """Update joint after changing the number of components."""
+        self.fixed.update_unblocked()
+        self.create_and_buffer_vertices(milling_path=False)
+        self.mesh.randomize_height_fields()
+
 
     def update_component_position(self,new_sides,n):
         self.fixed.sides[n] = new_sides
