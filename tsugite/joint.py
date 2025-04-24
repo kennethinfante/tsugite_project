@@ -508,114 +508,301 @@ class Joint:
 
         return pt0, pt1
 
-    def _offset_verts(self,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,verts,lay_num,n):
+    # def _offset_verts(self,neighbor_vectors,neighbor_vectors_a,neighbor_vectors_b,verts,lay_num,n):
+    #     outline = []
+    #     corner_artifacts = []
+    #
+    #     fdir = self.mesh.fab_directions[n]
+    #
+    #     test_first=True
+    #     for i,rv in enumerate(list(verts)): # browse each vertex in the outline
+    #
+    #         # remove vertices with neighbor count 2 #OK
+    #         if rv.region_count==2 and rv.block_count==2: continue # redundant
+    #         if rv.block_count==0: continue                        # redundant
+    #         if rv.ind[0]<0 or rv.ind[0]>self.dim: continue        # out of bounds
+    #         if rv.ind[1]<0 or rv.ind[1]>self.dim: continue        # out of bounds
+    #
+    #         # add vertex information #OK
+    #         ind = rv.ind.copy()
+    #         ind.insert(self.sax,(self.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
+    #         add = [0,0,0]
+    #         add[self.sax] = 1-fdir
+    #         i_pt = Utils.get_index(ind,add,self.dim)
+    #         pt = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+    #
+    #         # move vertex according to boundary condition <---needs to be updated
+    #         off_vecs = []
+    #         if rv.block_count==1:
+    #             nind = tuple(np.argwhere(rv.neighbors==1)[0])
+    #             off_vecs.append(-neighbor_vectors[nind])
+    #         if rv.region_count==1 and rv.free_count!=3:
+    #             nind = tuple(np.argwhere(rv.neighbors==0)[0])
+    #             off_vecs.append(neighbor_vectors[nind])
+    #             if np.any(rv.flat_neighbor_values==-2):
+    #                 nind = tuple(np.argwhere(rv.neighbor_values==-2)[0])
+    #                 off_vecs.append(neighbor_vectors[nind])
+    #
+    #         off_vec = np.average(off_vecs,axis=0)
+    #         # check if it is an outer corner that should be rounded
+    #         rounded = False
+    #         if rv.region_count==3: # outer corner, check if it should be rounded or not
+    #             # check if this outer corner correspond to an inner corner of another material
+    #             for n2 in range(self.noc):
+    #                 if n2==n: continue
+    #                 cnt = np.sum(rv.flat_neighbor_values==n2)
+    #                 if cnt==3: rounded = True
+    #                 elif cnt==2:
+    #                     # Check if it is a diagonal
+    #                     dia1 = rv.neighbor_values[0][0]==rv.neighbor_values[1][1]
+    #                     dia2 = rv.neighbor_values[0][1]==rv.neighbor_values[1][0]
+    #                     if dia1 or dia2:
+    #                         rounded = True
+    #         if rounded:
+    #             nind = tuple(np.argwhere(rv.neighbors==1)[0])
+    #             off_vec_a = -neighbor_vectors_a[nind]
+    #             off_vec_b = -neighbor_vectors_b[nind]
+    #             le2 = math.sqrt(math.pow(2*np.linalg.norm(off_vec_a+off_vec_b),2)-math.pow(2*self.fab.vrad,2))-np.linalg.norm(off_vec_a)
+    #             off_vec_a2 = Utils.set_vector_length(off_vec_a,le2)
+    #             off_vec_b2 = Utils.set_vector_length(off_vec_b,le2)
+    #
+    #             # define end points and the center point of the arc
+    #             pt1 = pt+off_vec_a-off_vec_b2
+    #             pt2 = pt+off_vec_b-off_vec_a2
+    #             pts = [pt1,pt2]
+    #             ctr = pt-off_vec_a-off_vec_b # arc center
+    #
+    #
+    #             # Reorder pt1 and pt2
+    #             if len(outline)>0: # if it is not the first point in the outline
+    #                 ppt = outline[-1].pt
+    #                 v1 = pt1-ppt
+    #                 v2 = pt2-ppt
+    #                 ang1 = Utils.angle_between_vectors1(v1, off_vec_b) #should be 0 if order is already good
+    #                 ang2 = Utils.angle_between_vectors1(v2, off_vec_b) #should be more than 0
+    #                 if ang1>ang2: pts.reverse()
+    #             outline.append(MillVertex(pts[0],is_arc=True,arc_ctr=ctr))
+    #             outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))
+    #
+    #             # Extreme case where corner is very rounded and everything is not cut
+    #             dist = np.linalg.norm(pt-ctr)
+    #             if dist>self.fab.vdia and lay_num<self.dim-1:
+    #                 artifact = []
+    #                 v0 = self.fab.vdia * Utils.normalize(pt+off_vec-pts[0])
+    #                 v1 = self.fab.vdia * Utils.normalize(pt+off_vec-pts[1])
+    #                 vp = self.fab.vrad * Utils.normalize(pts[1]-pts[0])
+    #                 pts3 =  [pts[0]-vp+v0,pt+2*off_vec,pts[1]+vp+v1]
+    #                 while np.linalg.norm(pts3[2]-pts3[0])>self.fab.vdia:
+    #                     pts3[0] += vp
+    #                     pts3[1] += -off_vec
+    #                     pts3[2] += -vp
+    #                     for i in range(3): artifact.append(MillVertex(pts3[i]))
+    #                     pts3.reverse()
+    #                     vp = -vp
+    #                 if len(artifact)>0:
+    #                     corner_artifacts.append(artifact)
+    #
+    #         else: # other corner
+    #             pt = pt+off_vec
+    #             outline.append(MillVertex(pt))
+    #         if len(outline)>2 and outline[0].is_arc and test_first:
+    #             # if the previous one was an arc but it was the first point of the outline,
+    #             # so we couldn't verify the order of the points
+    #             # we might need to retrospectively switch order of the arc points
+    #             npt = outline[2].pt
+    #             d1 = np.linalg.norm(outline[0].pt-npt)
+    #             d2 = np.linalg.norm(outline[1].pt-npt)
+    #             if d1<d2: outline[0],outline[1] = outline[1],outline[0]
+    #             test_first=False
+    #
+    #     return outline, corner_artifacts
+
+    def _offset_verts(self, neighbor_vectors, neighbor_vectors_a, neighbor_vectors_b, verts, lay_num, n):
         outline = []
         corner_artifacts = []
 
         fdir = self.mesh.fab_directions[n]
+        test_first = True
 
-        test_first=True
-        for i,rv in enumerate(list(verts)): # browse each vertex in the outline
+        for i, rv in enumerate(list(verts)):
+            # Skip vertices that don't need processing
+            if self._should_skip_vertex(rv):
+                continue
 
-            # remove vertices with neighbor count 2 #OK
-            if rv.region_count==2 and rv.block_count==2: continue # redundant
-            if rv.block_count==0: continue                        # redundant
-            if rv.ind[0]<0 or rv.ind[0]>self.dim: continue        # out of bounds
-            if rv.ind[1]<0 or rv.ind[1]>self.dim: continue        # out of bounds
+            # Get base point
+            pt = self._get_base_point_for_vertex(rv, lay_num, fdir, n)
 
-            # add vertex information #OK
-            ind = rv.ind.copy()
-            ind.insert(self.sax,(self.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
-            add = [0,0,0]
-            add[self.sax] = 1-fdir
-            i_pt = Utils.get_index(ind,add,self.dim)
-            pt = Utils.get_vertex(i_pt,self.jverts[n],self.vertex_no_info)
+            # Calculate offset vector based on boundary conditions
+            off_vec = self._calculate_offset_vector(rv)
 
-            # move vertex according to boundary condition <---needs to be updated
-            off_vecs = []
-            if rv.block_count==1:
-                nind = tuple(np.argwhere(rv.neighbors==1)[0])
-                off_vecs.append(-neighbor_vectors[nind])
-            if rv.region_count==1 and rv.free_count!=3:
-                nind = tuple(np.argwhere(rv.neighbors==0)[0])
-                off_vecs.append(neighbor_vectors[nind])
-                if np.any(rv.flat_neighbor_values==-2):
-                    nind = tuple(np.argwhere(rv.neighbor_values==-2)[0])
-                    off_vecs.append(neighbor_vectors[nind])
-
-            off_vec = np.average(off_vecs,axis=0)
-            # check if it is an outer corner that should be rounded
-            rounded = False
-            if rv.region_count==3: # outer corner, check if it should be rounded or not
-                # check if this outer corner correspond to an inner corner of another material
-                for n2 in range(self.noc):
-                    if n2==n: continue
-                    cnt = np.sum(rv.flat_neighbor_values==n2)
-                    if cnt==3: rounded = True
-                    elif cnt==2:
-                        # Check if it is a diagonal
-                        dia1 = rv.neighbor_values[0][0]==rv.neighbor_values[1][1]
-                        dia2 = rv.neighbor_values[0][1]==rv.neighbor_values[1][0]
-                        if dia1 or dia2:
-                            rounded = True
-            if rounded:
-                nind = tuple(np.argwhere(rv.neighbors==1)[0])
-                off_vec_a = -neighbor_vectors_a[nind]
-                off_vec_b = -neighbor_vectors_b[nind]
-                le2 = math.sqrt(math.pow(2*np.linalg.norm(off_vec_a+off_vec_b),2)-math.pow(2*self.fab.vrad,2))-np.linalg.norm(off_vec_a)
-                off_vec_a2 = Utils.set_vector_length(off_vec_a,le2)
-                off_vec_b2 = Utils.set_vector_length(off_vec_b,le2)
-
-                # define end points and the center point of the arc
-                pt1 = pt+off_vec_a-off_vec_b2
-                pt2 = pt+off_vec_b-off_vec_a2
-                pts = [pt1,pt2]
-                ctr = pt-off_vec_a-off_vec_b # arc center
-
-
-                # Reorder pt1 and pt2
-                if len(outline)>0: # if it is not the first point in the outline
-                    ppt = outline[-1].pt
-                    v1 = pt1-ppt
-                    v2 = pt2-ppt
-                    ang1 = Utils.angle_between_vectors1(v1, off_vec_b) #should be 0 if order is already good
-                    ang2 = Utils.angle_between_vectors1(v2, off_vec_b) #should be more than 0
-                    if ang1>ang2: pts.reverse()
-                outline.append(MillVertex(pts[0],is_arc=True,arc_ctr=ctr))
-                outline.append(MillVertex(pts[1],is_arc=True,arc_ctr=ctr))
-
-                # Extreme case where corner is very rounded and everything is not cut
-                dist = np.linalg.norm(pt-ctr)
-                if dist>self.fab.vdia and lay_num<self.dim-1:
-                    artifact = []
-                    v0 = self.fab.vdia * Utils.normalize(pt+off_vec-pts[0])
-                    v1 = self.fab.vdia * Utils.normalize(pt+off_vec-pts[1])
-                    vp = self.fab.vrad * Utils.normalize(pts[1]-pts[0])
-                    pts3 =  [pts[0]-vp+v0,pt+2*off_vec,pts[1]+vp+v1]
-                    while np.linalg.norm(pts3[2]-pts3[0])>self.fab.vdia:
-                        pts3[0] += vp
-                        pts3[1] += -off_vec
-                        pts3[2] += -vp
-                        for i in range(3): artifact.append(MillVertex(pts3[i]))
-                        pts3.reverse()
-                        vp = -vp
-                    if len(artifact)>0:
-                        corner_artifacts.append(artifact)
-
-            else: # other corner
-                pt = pt+off_vec
+            # Handle rounded corners
+            if self._is_rounded_corner(rv, n):
+                outline, corner_artifacts = self._process_rounded_corner(
+                    rv, pt, off_vec, neighbor_vectors_a, neighbor_vectors_b,
+                    outline, corner_artifacts, lay_num
+                )
+            else:
+                # Handle regular vertex
+                pt = pt + off_vec
                 outline.append(MillVertex(pt))
-            if len(outline)>2 and outline[0].is_arc and test_first:
-                # if the previous one was an arc but it was the first point of the outline,
-                # so we couldn't verify the order of the points
-                # we might need to retrospectively switch order of the arc points
-                npt = outline[2].pt
-                d1 = np.linalg.norm(outline[0].pt-npt)
-                d2 = np.linalg.norm(outline[1].pt-npt)
-                if d1<d2: outline[0],outline[1] = outline[1],outline[0]
-                test_first=False
+
+            # Check if we need to reorder first arc points
+            if len(outline) > 2 and outline[0].is_arc and test_first:
+                outline = self._reorder_first_arc_points_if_needed(outline)
+                test_first = False
 
         return outline, corner_artifacts
+
+    def _should_skip_vertex(self, rv):
+        """Check if vertex should be skipped."""
+        if rv.region_count == 2 and rv.block_count == 2:
+            return True  # redundant
+        if rv.block_count == 0:
+            return True  # redundant
+        if rv.ind[0] < 0 or rv.ind[0] > self.dim:
+            return True  # out of bounds
+        if rv.ind[1] < 0 or rv.ind[1] > self.dim:
+            return True  # out of bounds
+        return False
+
+    def _get_base_point_for_vertex(self, rv, lay_num, fdir, n):
+        """Get the base point for a vertex."""
+        ind = rv.ind.copy()
+        ind.insert(self.sax, (self.dim-1)*(1-fdir)+(2*fdir-1)*lay_num)
+        add = [0, 0, 0]
+        add[self.sax] = 1-fdir
+        i_pt = Utils.get_index(ind, add, self.dim)
+        return Utils.get_vertex(i_pt, self.jverts[n], self.vertex_no_info)
+
+    def _calculate_offset_vector(self, rv, neighbor_vectors):
+        """Calculate offset vector based on boundary conditions."""
+        off_vecs = []
+
+        # Handle block boundary
+        if rv.block_count == 1:
+            nind = tuple(np.argwhere(rv.neighbors == 1)[0])
+            off_vecs.append(-neighbor_vectors[nind])
+
+        # Handle region boundary
+        if rv.region_count == 1 and rv.free_count != 3:
+            nind = tuple(np.argwhere(rv.neighbors == 0)[0])
+            off_vecs.append(neighbor_vectors[nind])
+            if np.any(rv.flat_neighbor_values == -2):
+                nind = tuple(np.argwhere(rv.neighbor_values == -2)[0])
+                off_vecs.append(neighbor_vectors[nind])
+
+        # Return average of offset vectors
+        return np.average(off_vecs, axis=0) if off_vecs else np.array([0, 0, 0])
+
+    def _is_rounded_corner(self, rv, n):
+        """Check if vertex is a rounded outer corner."""
+        if rv.region_count != 3:
+            return False
+
+        # Check if this outer corner corresponds to an inner corner of another material
+        for n2 in range(self.noc):
+            if n2 == n:
+                continue
+
+            cnt = np.sum(rv.flat_neighbor_values == n2)
+            if cnt == 3:
+                return True
+            elif cnt == 2:
+                # Check if it is a diagonal
+                dia1 = rv.neighbor_values[0][0] == rv.neighbor_values[1][1]
+                dia2 = rv.neighbor_values[0][1] == rv.neighbor_values[1][0]
+                if dia1 or dia2:
+                    return True
+
+        return False
+
+    def _process_rounded_corner(self, rv, pt, off_vec, neighbor_vectors_a, neighbor_vectors_b,
+                               outline, corner_artifacts, lay_num):
+        """Process a rounded corner vertex."""
+        # Calculate offset vectors
+        nind = tuple(np.argwhere(rv.neighbors == 1)[0])
+        off_vec_a = -neighbor_vectors_a[nind]
+        off_vec_b = -neighbor_vectors_b[nind]
+
+        # Calculate arc parameters
+        arc_params = self._calculate_arc_parameters(off_vec_a, off_vec_b)
+        le2 = arc_params['le2']
+
+        # Calculate adjusted offset vectors
+        off_vec_a2 = Utils.set_vector_length(off_vec_a, le2)
+        off_vec_b2 = Utils.set_vector_length(off_vec_b, le2)
+
+        # Define end points and center point of the arc
+        pt1 = pt + off_vec_a - off_vec_b2
+        pt2 = pt + off_vec_b - off_vec_a2
+        pts = [pt1, pt2]
+        ctr = pt - off_vec_a - off_vec_b  # arc center
+
+        # Reorder points if needed
+        pts = self._reorder_arc_points_if_needed(pts, outline, off_vec_b)
+
+        # Add arc points to outline
+        outline.append(MillVertex(pts[0], is_arc=True, arc_ctr=ctr))
+        outline.append(MillVertex(pts[1], is_arc=True, arc_ctr=ctr))
+
+        # Handle extreme rounded corner case
+        if self._is_extreme_rounded_corner(pt, ctr, lay_num):
+            corner_artifacts.append(
+                self._create_corner_artifact(pt, off_vec, pts, ctr)
+            )
+
+        return outline, corner_artifacts
+
+    def _calculate_arc_parameters(self, off_vec_a, off_vec_b):
+        """Calculate parameters for arc generation."""
+        le2 = math.sqrt(math.pow(2 * np.linalg.norm(off_vec_a + off_vec_b), 2) -
+                       math.pow(2 * self.fab.vrad, 2)) - np.linalg.norm(off_vec_a)
+        return {'le2': le2}
+
+    def _reorder_arc_points_if_needed(self, pts, outline, off_vec_b):
+        """Reorder arc points if needed based on previous point."""
+        if len(outline) > 0:  # if it is not the first point in the outline
+            ppt = outline[-1].pt
+            v1 = pts[0] - ppt
+            v2 = pts[1] - ppt
+            ang1 = Utils.angle_between_vectors1(v1, off_vec_b)  # should be 0 if order is already good
+            ang2 = Utils.angle_between_vectors1(v2, off_vec_b)  # should be more than 0
+            if ang1 > ang2:
+                pts.reverse()
+        return pts
+
+    def _is_extreme_rounded_corner(self, pt, ctr, lay_num):
+        """Check if this is an extreme rounded corner case."""
+        dist = np.linalg.norm(pt - ctr)
+        return dist > self.fab.vdia and lay_num < self.dim - 1
+
+    def _create_corner_artifact(self, pt, off_vec, pts, ctr):
+        """Create artifact for extreme rounded corner case."""
+        artifact = []
+        v0 = self.fab.vdia * Utils.normalize(pt + off_vec - pts[0])
+        v1 = self.fab.vdia * Utils.normalize(pt + off_vec - pts[1])
+        vp = self.fab.vrad * Utils.normalize(pts[1] - pts[0])
+        pts3 = [pts[0] - vp + v0, pt + 2 * off_vec, pts[1] + vp + v1]
+
+        while np.linalg.norm(pts3[2] - pts3[0]) > self.fab.vdia:
+            pts3[0] += vp
+            pts3[1] += -off_vec
+            pts3[2] += -vp
+            for i in range(3):
+                artifact.append(MillVertex(pts3[i]))
+            pts3.reverse()
+            vp = -vp
+
+        return artifact
+
+    def _reorder_first_arc_points_if_needed(self, outline):
+        """Reorder first arc points if needed."""
+        npt = outline[2].pt
+        d1 = np.linalg.norm(outline[0].pt - npt)
+        d2 = np.linalg.norm(outline[1].pt - npt)
+        if d1 < d2:
+            outline[0], outline[1] = outline[1], outline[0]
+        return outline
 
     # def _get_layered_vertices(self, outline,n,lay_num,no_z,dep):
     #     verts = []
