@@ -1786,14 +1786,39 @@ class Joint:
         self.ang = ang
         self.create_and_buffer_vertices(milling_path=False)
 
-    def update_timber_width_and_height(self,inds,val,milling_path=False):
-        for i in inds: self.real_tim_dims[i]=val
-        self.ratio = np.average(self.real_tim_dims)/self.component_size
-        self.voxel_sizes = np.copy(self.real_tim_dims)/(self.ratio*self.dim)
-        self.fab.vdia = self.fab.dia/self.ratio
-        self.fab.vrad = self.fab.rad/self.ratio
-        self.fab.vtol = self.fab.tol/self.ratio
+    # def update_timber_width_and_height(self,inds,val,milling_path=False):
+    #     for i in inds: self.real_tim_dims[i]=val
+    #     self.ratio = np.average(self.real_tim_dims)/self.component_size
+    #     self.voxel_sizes = np.copy(self.real_tim_dims)/(self.ratio*self.dim)
+    #     self.fab.vdia = self.fab.dia/self.ratio
+    #     self.fab.vrad = self.fab.rad/self.ratio
+    #     self.fab.vtol = self.fab.tol/self.ratio
+    #     self.create_and_buffer_vertices(milling_path)
+
+    def update_timber_width_and_height(self, inds, val, milling_path=False):
+        """Update timber dimensions and related properties."""
+        # Update timber dimensions
+        for i in inds: self.real_tim_dims[i] = val
+
+        # Update derived properties
+        self._update_derived_timber_properties()
+
+        # Update fabrication properties
+        self._update_fabrication_properties_for_timber()
+
+        # Recreate vertices
         self.create_and_buffer_vertices(milling_path)
+
+    def _update_derived_timber_properties(self):
+        """Update properties derived from timber dimensions."""
+        self.ratio = np.average(self.real_tim_dims) / self.component_size
+        self.voxel_sizes = np.copy(self.real_tim_dims) / (self.ratio * self.dim)
+
+    def _update_fabrication_properties_for_timber(self):
+        """Update fabrication properties based on new timber dimensions."""
+        self.fab.vdia = self.fab.dia / self.ratio
+        self.fab.vrad = self.fab.rad / self.ratio
+        self.fab.vtol = self.fab.tol / self.ratio
 
     def update_number_of_components(self,new_noc):
         if new_noc!=self.noc:
