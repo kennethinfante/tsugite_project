@@ -1048,17 +1048,45 @@ class Display:
             vec = d0 * (2 * side.dir - 1) * self.joint.pos_vecs[side.ax] / np.linalg.norm(self.joint.pos_vecs[side.ax])
             self.draw_geometries(G0, translation_vec=vec)
 
-    def nondurable(self):
-        # 1. Draw hidden geometry
-        col = [1.0, 1.0, 0.8] # super light yellow
-        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
-        for n in range(self.joint.noc):
-            self.draw_geometries_with_excluded_area([self.joint.mesh.indices_fbrk[n]], [self.joint.mesh.indices_not_fbrk[n]])
+    # def nondurable(self):
+    #     # 1. Draw hidden geometry
+    #     col = [1.0, 1.0, 0.8] # super light yellow
+    #     GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #     for n in range(self.joint.noc):
+    #         self.draw_geometries_with_excluded_area([self.joint.mesh.indices_fbrk[n]], [self.joint.mesh.indices_not_fbrk[n]])
+    #
+    #     # Draw visible geometry
+    #     col = [1.0, 1.0, 0.4] # light yellow
+    #     GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #     self.draw_geometries_with_excluded_area(self.joint.mesh.indices_fbrk, self.joint.mesh.indices_not_fbrk)
 
-        # Draw visible geometry
-        col = [1.0, 1.0, 0.4] # light yellow
+    def nondurable(self):
+        """
+        Highlight components that may not be durable.
+        """
+        self._draw_hidden_nondurable_geometry()
+        self._draw_visible_nondurable_geometry()
+
+    def _draw_hidden_nondurable_geometry(self):
+        """Draw hidden geometry for non-durable components."""
+        col = [1.0, 1.0, 0.8]  # super light yellow
         GL.glUniform3f(self.myColor, col[0], col[1], col[2])
-        self.draw_geometries_with_excluded_area(self.joint.mesh.indices_fbrk, self.joint.mesh.indices_not_fbrk)
+
+        for n in range(self.joint.noc):
+            self.draw_geometries_with_excluded_area(
+                [self.joint.mesh.indices_fbrk[n]],
+                [self.joint.mesh.indices_not_fbrk[n]]
+            )
+
+    def _draw_visible_nondurable_geometry(self):
+        """Draw visible geometry for non-durable components."""
+        col = [1.0, 1.0, 0.4]  # light yellow
+        GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+
+        self.draw_geometries_with_excluded_area(
+            self.joint.mesh.indices_fbrk,
+            self.joint.mesh.indices_not_fbrk
+        )
 
     def milling_paths(self):
         if len(self.joint.mesh.indices_milling_path)==0: self.view.show_milling_path = False
