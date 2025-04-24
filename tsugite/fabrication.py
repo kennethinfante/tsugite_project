@@ -244,23 +244,55 @@ class MillVertex:
         self.arc_ctr = np.array(self.arc_ctr)
 
 class Fabrication:
-    def __init__(self,pjoint,tol=0.15,dia=6.00,ext="gcode",align_ax=0,interp=True, spe=400, spi=6000):
+    # def __init__(self,pjoint,tol=0.15,dia=6.00,ext="gcode",align_ax=0,interp=True, spe=400, spi=6000):
+    #     self.pjoint = pjoint
+    #     self.real_dia = dia #milling bit radius in mm
+    #     self.tol = tol #0.10 #tolerance in mm
+    #     self.rad = 0.5*self.real_dia-self.tol
+    #     self.dia = 2*self.rad
+    #     self.unit_scale = 1.0
+    #     #if ext=='sbp': self.unit_scale=1/25.4 #inches
+    #     self.vdia = self.dia/self.pjoint.ratio
+    #     self.vrad = self.rad/self.pjoint.ratio
+    #     self.vtol = self.tol/self.pjoint.ratio
+    #     self.dep = 1.5 #milling depth in mm
+    #     self.align_ax = align_ax
+    #     self.ext = ext
+    #     self.interp=interp
+    #     self.speed = spe
+    #     self.spindlespeed = spi
+
+    def __init__(self, pjoint, tol=0.15, dia=6.00, ext="gcode", align_ax=0, interp=True, spe=400, spi=6000):
+        """Initialize fabrication parameters."""
+        # Store joint reference and basic parameters
         self.pjoint = pjoint
-        self.real_dia = dia #milling bit radius in mm
-        self.tol = tol #0.10 #tolerance in mm
-        self.rad = 0.5*self.real_dia-self.tol
-        self.dia = 2*self.rad
-        self.unit_scale = 1.0
-        #if ext=='sbp': self.unit_scale=1/25.4 #inches
-        self.vdia = self.dia/self.pjoint.ratio
-        self.vrad = self.rad/self.pjoint.ratio
-        self.vtol = self.tol/self.pjoint.ratio
-        self.dep = 1.5 #milling depth in mm
-        self.align_ax = align_ax
         self.ext = ext
-        self.interp=interp
+        self.align_ax = align_ax
+        self.interp = interp
         self.speed = spe
         self.spindlespeed = spi
+
+        # Initialize tool parameters
+        self._init_tool_parameters(tol, dia)
+
+        # Initialize unit scale
+        self.unit_scale = 1.0
+        self.dep = 1.5  # milling depth in mm
+
+    def _init_tool_parameters(self, tol, dia):
+        """Initialize tool-related parameters."""
+        # Store basic tool parameters
+        self.real_dia = dia  # milling bit diameter in mm
+        self.tol = tol  # tolerance in mm
+
+        # Calculate derived tool parameters
+        self.rad = 0.5 * self.real_dia - self.tol
+        self.dia = 2 * self.rad
+
+        # Calculate virtual (scaled) tool parameters
+        self.vdia = self.dia / self.pjoint.ratio
+        self.vrad = self.rad / self.pjoint.ratio
+        self.vtol = self.tol / self.pjoint.ratio
 
     def update_extension(self,ext):
         self.ext = ext
