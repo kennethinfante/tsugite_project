@@ -846,16 +846,43 @@ class Display:
 
             GL.glPopAttrib()
 
+    # def unfabricatable(self):
+    #     col = [1.0, 0.8, 0.5] # orange
+    #     GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+    #     for n in range(self.joint.noc):
+    #         if not self.joint.mesh.eval.fab_direction_ok[n]:
+    #             G0 = [self.joint.mesh.indices_fall[n]]
+    #             G1 = []
+    #             for n2 in range(self.joint.noc):
+    #                 if n2!=n: G1.append(self.joint.mesh.indices_fall[n2])
+    #             self.draw_geometries_with_excluded_area(G0,G1)
+
     def unfabricatable(self):
-        col = [1.0, 0.8, 0.5] # orange
+        """
+        Highlight components that cannot be fabricated with the current settings.
+        """
+        col = [1.0, 0.8, 0.5]  # orange
         GL.glUniform3f(self.myColor, col[0], col[1], col[2])
+
         for n in range(self.joint.noc):
             if not self.joint.mesh.eval.fab_direction_ok[n]:
-                G0 = [self.joint.mesh.indices_fall[n]]
-                G1 = []
-                for n2 in range(self.joint.noc):
-                    if n2!=n: G1.append(self.joint.mesh.indices_fall[n2])
-                self.draw_geometries_with_excluded_area(G0,G1)
+                self._highlight_unfabricatable_component(n)
+
+    def _highlight_unfabricatable_component(self, component_index):
+        """
+        Highlight a specific component that cannot be fabricated.
+
+        Args:
+            component_index: Index of the component to highlight
+        """
+        G0 = [self.joint.mesh.indices_fall[component_index]]
+        G1 = []
+
+        for n2 in range(self.joint.noc):
+            if n2 != component_index:
+                G1.append(self.joint.mesh.indices_fall[n2])
+
+        self.draw_geometries_with_excluded_area(G0, G1)
 
     def unconnected(self):
         # 1. Draw hidden geometry
