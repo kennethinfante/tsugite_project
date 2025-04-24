@@ -737,8 +737,8 @@ class Joint:
             self.sax = sax
             self.fixed.update_unblocked()
             self.create_and_buffer_vertices(milling_path=False)
-            self.mesh.voxel_matrix_from_height_fields()
-            for mesh in self.suggestions: mesh.voxel_matrix_from_height_fields()
+            self.mesh.update_voxel_matrix_from_height_fields()
+            for mesh in self.suggestions: mesh.update_voxel_matrix_from_height_fields()
             self.combine_and_buffer_indices()
             return True, ''
 
@@ -789,7 +789,7 @@ class Joint:
         self.fixed.sides[n] = new_sides
         self.fixed.update_unblocked()
         self.create_and_buffer_vertices(milling_path=False)
-        self.mesh.voxel_matrix_from_height_fields()
+        self.mesh.update_voxel_matrix_from_height_fields()
         self.combine_and_buffer_indices()
 
     def reset(self, fs=None, sax=2, dim=3, ang=90., td=[44.0,44.0,44.0], incremental=False, align_ax=0, fabdia=6.0, fabtol=0.15, finterp=True, fabrot=0.0, fabext="gcode", hfs=[], fspe=400, fspi=600):

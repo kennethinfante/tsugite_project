@@ -1,19 +1,21 @@
 import numpy as np
+from numpy import ndarray, linalg
 import math
 import random
 import copy
 from typing import List, Tuple, Optional, Any
 
 from model.fixed_side import FixedSide
+from fabrication import MillVertex
 
 class RegionVertex:
-    def __init__(self, ind: List[int], abs_ind: List[int], neighbors: np.ndarray,
-                 neighbor_values: np.ndarray, dia: bool = False, minus_one_neighbor: bool = False):
+    def __init__(self, ind: List[int], abs_ind: List[int], neighbors: ndarray,
+                 neighbor_values: ndarray, dia: bool = False, minus_one_neighbor: bool = False):
         self.ind: List[int] = ind
         self.i: int = ind[0]
         self.j: int = ind[1]
-        self.neighbors: np.ndarray = neighbors
-        self.flat_neighbors: np.ndarray = self.neighbors.flatten()
+        self.neighbors: ndarray = neighbors
+        self.flat_neighbors: ndarray = self.neighbors.flatten()
         self.region_count: int = np.sum(self.flat_neighbors == 0)
         self.block_count: int = np.sum(self.flat_neighbors == 1)
         self.free_count: int = np.sum(self.flat_neighbors == 2)
@@ -22,31 +24,31 @@ class RegionVertex:
         ##
         self.dia: bool = dia
         ##
-        self.neighbor_values: np.ndarray = np.array(neighbor_values)
-        self.flat_neighbor_values: np.ndarray = self.neighbor_values.flatten()
+        self.neighbor_values: ndarray = np.array(neighbor_values)
+        self.flat_neighbor_values: ndarray = self.neighbor_values.flatten()
 
-def normalize(v: np.ndarray) -> np.ndarray:
-    norm = np.linalg.norm(v)
+def normalize(v: ndarray) -> np.ndarray:
+    norm = linalg.norm(v)
     if norm == 0: return v
     else: return v / norm
 
-def unitize(v: np.ndarray) -> np.ndarray:
-    uv = v/np.linalg.norm(v)
+def unitize(v: ndarray) -> np.ndarray:
+    uv = v/linalg.norm(v)
     return uv
 
-def angle_between_vectors1(vector_1: np.ndarray, vector_2: np.ndarray, direction: bool = False) -> float:
+def angle_between_vectors1(vector_1: ndarray, vector_2: ndarray, direction: bool = False) -> float:
     unit_vector_1 = unitize(vector_1)
     unit_vector_2 = unitize(vector_2)
     v_dot_product = np.dot(unit_vector_1, unit_vector_2)
 
     if direction:
-        angle = np.arctan2(np.linalg.det([unit_vector_1, unit_vector_2]), v_dot_product)
+        angle = np.arctan2(linalg.det([unit_vector_1, unit_vector_2]), v_dot_product)
         return math.degrees(angle)
     else:
         angle = np.arccos(v_dot_product)
         return angle
 
-def angle_between_vectors2(vector_1: np.ndarray, vector_2: np.ndarray,
+def angle_between_vectors2(vector_1: ndarray, vector_2: ndarray,
                            normal_vector: List[float] = []) -> float:
     unit_vector_1 = unitize(vector_1)
     unit_vector_2 = unitize(vector_2)
@@ -89,7 +91,7 @@ def matrix_from_height_fields(hfs: List[np.ndarray], ax: int) -> np.ndarray:  ##
     mat = np.array(mat)
     return mat
 
-def get_same_height_neighbors(hfield: np.ndarray, inds: List[List[int]]) -> List[List[int]]:
+def get_same_height_neighbors(hfield: ndarray, inds: List[List[int]]) -> List[List[int]]:
     dim = len(hfield)
     val = hfield[tuple(inds[0])]
     new_inds = list(inds)
@@ -123,7 +125,7 @@ def get_random_height_fields(dim: int, noc: int) -> List[np.ndarray]:
         phf = copy.deepcopy(hf)
     return hfs
 
-def get_diff_neighbors(mat2: np.ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
+def get_diff_neighbors(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
     new_inds = list(inds)
     for ind in inds:
         for ax in range(2):
@@ -233,12 +235,6 @@ def get_sublist_of_ordered_verts(verts: List[RegionVertex]) -> Tuple[List[Region
 
     return ord_verts, verts, closed
 
-class MillVertex:
-    def __init__(self, pt: np.ndarray):
-        self.pt: np.ndarray = pt
-        self.is_arc: bool = False
-        self.arc_ctr: Optional[np.ndarray] = None
-
 def get_outline(type: Any, verts: List[RegionVertex], lay_num: int, n: int) -> List[MillVertex]:
     fdir = type.mesh.fab_directions[n]
     outline = []
@@ -252,13 +248,13 @@ def get_outline(type: Any, verts: List[RegionVertex], lay_num: int, n: int) -> L
         outline.append(MillVertex(pt))
     return outline
 
-def set_vector_length(vec: np.ndarray, new_norm: float) -> np.ndarray:
-    norm = np.linalg.norm(vec)
+def set_vector_length(vec: ndarray, new_norm: float) -> np.ndarray:
+    norm = linalg.norm(vec)
     vec = vec / norm
     vec = new_norm * vec
     return vec
 
-def get_vertex(index: int, verts: np.ndarray, n: int) -> np.ndarray:
+def get_vertex(index: int, verts: ndarray, n: int) -> np.ndarray:
     x = verts[n * index]
     y = verts[n * index + 1]
     z = verts[n * index + 2]
@@ -272,7 +268,7 @@ def get_segment_proportions(outline: List[MillVertex]) -> List[float]:
     for i in range(1, len(outline)):
         ppt = outline[i-1].pt
         pt = outline[i].pt
-        dist = np.linalg.norm(pt-ppt)
+        dist = linalg.norm(pt-ppt)
         slens.append(dist)
         olen += dist
 
@@ -285,7 +281,7 @@ def get_segment_proportions(outline: List[MillVertex]) -> List[float]:
 
     return sprops
 
-def has_minus_one_neighbor(ind: List[int], lay_mat: np.ndarray) -> bool:
+def has_minus_one_neighbor(ind: List[int], lay_mat: ndarray) -> bool:
     condition = False
     for add0 in range(-1, 1, 1):
         temp = []
@@ -301,8 +297,8 @@ def has_minus_one_neighbor(ind: List[int], lay_mat: np.ndarray) -> bool:
                     break
     return condition
 
-def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: np.ndarray,
-                         org_lay_mat: np.ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
+def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: ndarray,
+                         org_lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
     # 0 = in region
     # 1 = outside region, block
     # 2 = outside region, free
@@ -343,7 +339,7 @@ def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: np.
         values.append(temp2)
     return in_out, values
 
-def face_neighbors(mat: np.ndarray, ind: List[int], ax: int, n: int,
+def face_neighbors(mat: ndarray, ind: List[int], ax: int, n: int,
                    fixed_sides: List[FixedSide]) -> Tuple[int, np.ndarray]:
     values = []
     dim = len(mat)
@@ -418,7 +414,7 @@ def arc_points(st: List[float], en: List[float], ctr0: List[float], ctr1: List[f
         pts.append(ctr0+rvec+zvec)
     return pts
 
-def is_connected(mat: np.ndarray, n: int) -> bool:
+def is_connected(mat: ndarray, n: int) -> bool:
     connected = False
     all_same = np.count_nonzero(mat == n)  # Count number of ones in matrix
     if all_same > 0:
@@ -428,7 +424,7 @@ def is_connected(mat: np.ndarray, n: int) -> bool:
         if connected_same == all_same: connected = True
     return connected
 
-def get_sliding_directions(mat: np.ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
+def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
     sliding_directions = []
     number_of_sliding_directions = []
     for n in range(noc):  # Browse the components
@@ -460,7 +456,7 @@ def get_sliding_directions(mat: np.ndarray, noc: int) -> Tuple[List[List[List[in
         number_of_sliding_directions.append(len(mat_sliding))
     return sliding_directions, number_of_sliding_directions
 
-def get_sliding_directions_of_one_timber(mat: np.ndarray, level: int) -> Tuple[List[List[int]], int]:
+def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
     sliding_directions = []
     n = level
     for ax in range(3):  # Browse the three possible sliding axes
@@ -489,7 +485,7 @@ def get_sliding_directions_of_one_timber(mat: np.ndarray, level: int) -> Tuple[L
     number_of_sliding_directions = len(sliding_directions)
     return sliding_directions, number_of_sliding_directions
 
-def get_neighbors(mat: np.ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, ...]], np.ndarray]:
+def get_neighbors(mat: ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, ...]], np.ndarray]:
     indices = []
     values = []
     for m in range(len(ind)):   # For each direction (x,y)
@@ -503,7 +499,7 @@ def get_neighbors(mat: np.ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int
                 values.append(int(mat[ind0]))
     return indices, np.array(values)
 
-def get_all_same_connected(mat: np.ndarray, indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
+def get_all_same_connected(mat: ndarray, indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
     start_n = len(indices)
     val = int(mat[indices[0]])
     all_same_neighbors = []
@@ -569,7 +565,7 @@ def get_ordered_outline(verts: List[RegionVertex]) -> List[RegionVertex]:
         if found_next: continue
     return ord_verts
 
-def get_indices_of_same_neighbors(indices: List[List[int]], mat: np.ndarray) -> np.ndarray:
+def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.ndarray:
     d = len(mat)
     val = mat[tuple(indices[0])]
     neighbors = []
@@ -588,7 +584,7 @@ def get_indices_of_same_neighbors(indices: List[List[int]], mat: np.ndarray) -> 
         neighbors = np.unique(neighbors, axis=0)
     return neighbors
 
-def is_connected_to_fixed_side(indices: np.ndarray, mat: np.ndarray,
+def is_connected_to_fixed_side(indices: ndarray, mat: ndarray,
                               fixed_sides: List[FixedSide]) -> bool:
     connected = False
     val = mat[tuple(indices[0])]
@@ -611,7 +607,7 @@ def is_connected_to_fixed_side(indices: np.ndarray, mat: np.ndarray,
                 connected = is_connected_to_fixed_side(new_indices, mat, fixed_sides)
     return connected
 
-def _get_region_outline(reg_inds: List[List[int]], lay_mat: np.ndarray,
+def _get_region_outline(reg_inds: List[List[int]], lay_mat: ndarray,
                        fixed_neighbors: List[bool], n: int) -> List[RegionVertex]:
     # also duplicate vertices on diagonal
     reg_verts = []
@@ -635,7 +631,7 @@ def _get_region_outline(reg_inds: List[List[int]], lay_mat: np.ndarray,
     return reg_verts
 
 def _get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
-                     lay_mat: np.ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
+                     lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
     # 0 = in region
     # 1 = outside region, block
     # 2 = outside region, free
@@ -690,7 +686,7 @@ def _is_connected_to_fixed_side_2d(inds: List[List[int]], fixed_sides: List[Fixe
         if connected: break
     return connected
 
-def _get_same_neighbors_2d(mat2: np.ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
+def _get_same_neighbors_2d(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
     new_inds = list(inds)
     for ind in inds:
         for ax in range(2):
@@ -710,7 +706,7 @@ def _get_same_neighbors_2d(mat2: np.ndarray, inds: List[List[int]], val: int) ->
         new_inds = _get_same_neighbors_2d(mat2, new_inds, val)
     return new_inds
 
-def _layer_mat(mat3d: np.ndarray, ax: int, dim: int, lay_num: int) -> np.ndarray:
+def _layer_mat(mat3d: ndarray, ax: int, dim: int, lay_num: int) -> np.ndarray:
     mat2d = np.ndarray(shape=(dim, dim), dtype=int)
     for i in range(dim):
         for j in range(dim):
@@ -719,7 +715,7 @@ def _layer_mat(mat3d: np.ndarray, ax: int, dim: int, lay_num: int) -> np.ndarray
             mat2d[i][j] = int(mat3d[tuple(ind)])
     return mat2d
 
-def get_breakable_voxels(mat: np.ndarray, fixed_sides: List[List[FixedSide]],
+def get_breakable_voxels(mat: ndarray, fixed_sides: List[List[FixedSide]],
                         sax: int, n: int) -> Tuple[bool, List[List[int]], List[List[int]]]:
     breakable = False
     outline_indices = []
@@ -822,7 +818,7 @@ def get_breakable_voxels(mat: np.ndarray, fixed_sides: List[List[FixedSide]],
 
     return breakable, outline_indices, voxel_indices
 
-def get_friction_and_contact_areas(mat: np.ndarray, slides: List[List[int]],
+def get_friction_and_contact_areas(mat: ndarray, slides: List[List[int]],
                                   fixed_sides: List[List[FixedSide]], n: int) -> Tuple[int, List[List], int, List[List]]:
     friction = -1
     contact = -1
@@ -878,7 +874,7 @@ def get_friction_and_contact_areas(mat: np.ndarray, slides: List[List[int]],
                             ffaces.append([side.ax, list(find)])
     return friction, ffaces, contact, cfaces
 
-def add_fixed_sides(mat: np.ndarray, fixed_sides: List[List[FixedSide]], add: int = 0) -> np.ndarray:
+def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int = 0) -> np.ndarray:
     dim = len(mat)
     pad_loc = [[0, 0], [0, 0], [0, 0]]
     pad_val = [[-1, -1], [-1, -1], [-1, -1]]
@@ -905,7 +901,7 @@ def add_fixed_sides(mat: np.ndarray, fixed_sides: List[List[FixedSide]], add: in
                             a = 0
     return mat
 
-def get_chessboard_vertics(mat: np.ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
+def get_chessboard_vertics(mat: ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
     chess = False
     dim = len(mat)
     verts = []
@@ -939,7 +935,7 @@ def get_chessboard_vertics(mat: np.ndarray, ax: int, noc: int, n: int) -> Tuple[
                         verts.append(ind3d)
     return chess, verts
 
-def is_fab_direction_ok(mat: np.ndarray, ax: int, n: int) -> Tuple[bool, int]:
+def is_fab_direction_ok(mat: ndarray, ax: int, n: int) -> Tuple[bool, int]:
     fab_dir = 1
     dim = len(mat)
     for dir in range(2):
@@ -961,7 +957,7 @@ def is_fab_direction_ok(mat: np.ndarray, ax: int, n: int) -> Tuple[bool, int]:
             break
     return is_ok, fab_dir
 
-def open_matrix(mat: np.ndarray, sax: int, noc: int) -> np.ndarray:
+def open_matrix(mat: ndarray, sax: int, noc: int) -> np.ndarray:
     # Pad matrix by correct number of rows top and bottom
     dim = len(mat)
     pad_loc = [[0, 0], [0, 0], [0, 0]]
@@ -981,7 +977,7 @@ def open_matrix(mat: np.ndarray, sax: int, noc: int) -> np.ndarray:
             mat[tuple(ind)] = i
     return mat
 
-def flood_all_nonneg(mat: np.ndarray, floodval: int) -> np.ndarray:
+def flood_all_nonneg(mat: ndarray, floodval: int) -> np.ndarray:
     inds = np.argwhere(mat == floodval)
     start_len = len(inds)
     for ind in inds:
@@ -1003,7 +999,7 @@ def flood_all_nonneg(mat: np.ndarray, floodval: int) -> np.ndarray:
         mat = flood_all_nonneg(mat, floodval)
     return mat
 
-def is_potentially_connected(mat: np.ndarray, dim: int, noc: int, level: int) -> bool:
+def is_potentially_connected(mat: ndarray, dim: int, noc: int, level: int) -> bool:
     potconn = True
     mat[mat == level] = -1
     mat[mat == level + 10] = -1
@@ -1056,8 +1052,8 @@ def is_potentially_connected(mat: np.ndarray, dim: int, noc: int, level: int) ->
                         break
     return potconn
 
-def get_region_outline_vertices(reg_inds: List[List[int]], lay_mat: np.ndarray,
-                               org_lay_mat: np.ndarray, pad_loc: List[List[int]],
+def get_region_outline_vertices(reg_inds: List[List[int]], lay_mat: ndarray,
+                               org_lay_mat: ndarray, pad_loc: List[List[int]],
                                n: int) -> List[RegionVertex]:
     # also duplicate vertices on diagonal
     reg_verts = []

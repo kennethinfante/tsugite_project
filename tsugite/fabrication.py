@@ -32,17 +32,23 @@ class RoughPixel:
         self.flat_neighbors = [x for sublist in self.neighbors for x in sublist]
 
 class MillVertex:
+    def __init__(self, pt: np.ndarray):
+        self.pt: np.ndarray = pt
+        self.is_arc: bool = False
+        self.arc_ctr: Optional[np.ndarray] = None
+
+class MillVertex:
     def __init__(self,pt,is_tra=False,is_arc=False,arc_ctr=np.array([0,0,0])):
-        self.pt = np.array(pt)
+        self.pt: np.ndarray = np.array(pt)
         self.x = pt[0]
         self.y = pt[1]
         self.z = pt[2]
-        self.is_arc = is_arc
-        self.arc_ctr = np.array(arc_ctr)
+        self.is_arc: bool = is_arc
+        self.arc_ctr: Optional[np.ndarray] = np.array(arc_ctr)
         self.is_tra = is_tra # is traversing, gcode_mode G0 (max speed) (otherwise G1)
 
     def scale_and_swap(self,ax,dir,ratio,unit_scale,real_tim_dims,coords,d,n):
-        
+
         #print("1", self.x,self.y,self.z)
 
         #sawp and scale
@@ -52,7 +58,7 @@ class MillVertex:
         self.x,self.y,self.z = xyz[0],xyz[1],xyz[2]
 
         #print("2",self.x,self.y,self.z)
-        
+
         #move z down, flip if component b
         self.z = -(2*dir-1)*self.z-0.5*unit_scale*real_tim_dims[ax]
         self.y = -(2*dir-1)*self.y
@@ -63,7 +69,7 @@ class MillVertex:
         self.zstr = str(round(self.z,d))
         ##
         if self.is_arc:
-            self.arc_ctr = [unit_scale*ratio*self.arc_ctr[0], unit_scale*ratio*self.arc_ctr[1], unit_scale*ratio*self.arc_ctr[2]] 
+            self.arc_ctr = [unit_scale*ratio*self.arc_ctr[0], unit_scale*ratio*self.arc_ctr[1], unit_scale*ratio*self.arc_ctr[2]]
             if ax==2: self.arc_ctr[1] = -self.arc_ctr[1]
             self.arc_ctr = [self.arc_ctr[coords[0]],self.arc_ctr[coords[1]],self.arc_ctr[coords[2]]]
             self.arc_ctr[2] = -(2*dir-1)*self.arc_ctr[2]-0.5*unit_scale*real_tim_dims[ax]
@@ -103,7 +109,7 @@ class Fabrication:
         self.interp=interp
         self.speed = spe
         self.spindlespeed = spi
-    
+
     def update_extension(self,ext):
         self.ext = ext
         self.unit_scale = 1.0
@@ -205,7 +211,7 @@ class Fabrication:
                         if i==0 or mv.y!=pmv.y: file.write(" Y"+mv.ystr)
                         if i==0 or mv.z!=pmv.z: file.write(" Z"+mv.zstr)
                         file.write("\n")
-                        
+
                 elif self.ext=="sbp":
                     if arc and mv.z==pmv.z:
                         file.write("CG,"+str(round(2*self.dia*self.unit_scale,d))+","+mv.xstr+","+mv.ystr+",,,T,")

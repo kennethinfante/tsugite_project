@@ -19,9 +19,19 @@ class Geometries:
         if len(hfs)==0: self.height_fields = Utils.get_random_height_fields(self.pjoint.dim, self.pjoint.noc) #Initiate a random joint geometry
         else: self.height_fields = hfs
         if self.mainmesh: self.select = Selection(self)
-        self.voxel_matrix_from_height_fields(first=True)
+        self.update_voxel_matrix_from_height_fields(first=True)
 
-    def voxel_matrix_from_height_fields(self, first=False):
+    def _process_indices(self, indices, all_indices, element_type, n, offset=0, global_offset=0):
+        """Process and format indices, creating element properties."""
+        indices = np.array(indices, dtype=np.uint32)
+        indices = indices + offset
+
+        indices_prop = ElementProperties(element_type, len(indices), len(all_indices) + global_offset, n)
+        all_indices = np.concatenate([all_indices, indices]) if len(all_indices) > 0 else indices
+
+        return indices_prop, all_indices
+
+    def update_voxel_matrix_from_height_fields(self, first=False):
         vox_mat = Utils.matrix_from_height_fields(self.height_fields, self.pjoint.sax)
         self.voxel_matrix = vox_mat
         if self.mainmesh:
@@ -30,45 +40,61 @@ class Geometries:
         if self.mainmesh and not first:
             self.pjoint.update_suggestions()
 
-    def _joint_line_indices(self,all_indices,n,offset,global_offset=0):
+    def _joint_line_indices(self, all_indices, n, offset, global_offset=0):
         fixed_sides = self.pjoint.fixed.sides[n]
-        d = self.pjoint.dim + 1
         indices = []
+
+        # Add joint outline indices
+        indices.extend(self._get_joint_outline_indices(n))
+
+        # Add component base outline indices
+        indices.extend(self._get_component_base_outline_indices(fixed_sides, n))
+
+        # Process and return
+        return self._process_indices(indices, all_indices, GL.GL_LINES, n, offset, global_offset)
+
+    def _get_joint_outline_indices(self, n):
+        """Extract indices for the joint outline."""
+        indices = []
+        d = self.pjoint.dim + 1
+
         for i in range(d):
             for j in range(d):
                 for k in range(d):
-                    ind = [i,j,k]
+                    ind = [i, j, k]
                     for ax in range(3):
-                        if ind[ax]==self.pjoint.dim: continue
-                        cnt,vals = self._line_neighbors(ind,ax,n)
-                        diagonal = False
-                        if vals[0]==vals[3] or vals[1]==vals[2]: diagonal = True
-                        if cnt==1 or cnt==3 or (cnt==2 and diagonal):
-                            add = [0,0,0]
-                            add[ax] = 1
-                            start_i = Utils.get_index(ind, [0,0,0], self.pjoint.dim)
-                            end_i = Utils.get_index(ind, add, self.pjoint.dim)
-                            indices.extend([start_i,end_i])
-        #Outline of component base
-        start = d*d*d
-        for side in fixed_sides:
-            a1,b1,c1,d1 = Utils.get_corner_indices(side.ax, side.dir, self.pjoint.dim)
-            step = 2
-            if len(self.pjoint.fixed.sides[n])==2: step = 1
-            off = 24*side.ax+12*side.dir+4*step
-            a0,b0,c0,d0 = start+off,start+off+1,start+off+2,start+off+3
-            indices.extend([a0,b0, b0,d0, d0,c0, c0,a0])
-            indices.extend([a0,a1, b0,b1, c0,c1, d0,d1])
-        # Format
-        indices = np.array(indices, dtype=np.uint32)
-        indices = indices + offset
-        # Store
-        indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices)+global_offset, n)
-        all_indices = np.concatenate([all_indices, indices])
-        # Return
-        return indices_prop, all_indices
+                        if ind[ax] == self.pjoint.dim:
+                            continue
 
-    def _line_neighbors(self,ind,ax,n):
+                        cnt, vals = self._get_line_neighbor_values(ind, ax, n)
+                        diagonal = (vals[0] == vals[3] or vals[1] == vals[2])
+
+                        if cnt == 1 or cnt == 3 or (cnt == 2 and diagonal):
+                            add = [0, 0, 0]
+                            add[ax] = 1
+                            start_i = Utils.get_index(ind, [0, 0, 0], self.pjoint.dim)
+                            end_i = Utils.get_index(ind, add, self.pjoint.dim)
+                            indices.extend([start_i, end_i])
+
+        return indices
+
+    def _get_component_base_outline_indices(self, fixed_sides, n):
+        """Extract indices for the component base outline."""
+        indices = []
+        d = self.pjoint.dim + 1
+        start = d * d * d
+
+        for side in fixed_sides:
+            a1, b1, c1, d1 = Utils.get_corner_indices(side.ax, side.dir, self.pjoint.dim)
+            step = 2 if len(self.pjoint.fixed.sides[n]) != 2 else 1
+            off = 24 * side.ax + 12 * side.dir + 4 * step
+            a0, b0, c0, d0 = start + off, start + off + 1, start + off + 2, start + off + 3
+            indices.extend([a0, b0, b0, d0, d0, c0, c0, a0])
+            indices.extend([a0, a1, b0, b1, c0, c1, d0, d1])
+
+        return indices
+
+    def _get_line_neighbor_values(self, ind, ax, n):
         values = []
         for i in range(-1,1):
             for j in range(-1,1):
@@ -170,64 +196,124 @@ class Geometries:
         # Return
         return line_indices_prop, face_indices_prop, all_indices
 
-    def _joint_face_indices(self,all_indices,mat,fixed_sides,n,offset,global_offset=0):
-        # Make indices of faces for drawing method GL_QUADS
-        # 1. Faces of joint
+    def _extract_joint_faces(self, mat, fixed_sides, n):
+        """Extract indices for joint faces.
+
+        Args:
+            mat: The voxel matrix to extract faces from
+            fixed_sides: List of fixed sides for this component
+            n: Component index
+
+        Returns:
+            tuple: (indices, indices_ends) Lists of indices for regular faces and end faces
+        """
         indices = []
         indices_ends = []
         d = self.pjoint.dim + 1
-        indices = []
+
         for i in range(d):
             for j in range(d):
                 for k in range(d):
-                    ind = [i,j,k]
+                    ind = [i, j, k]
                     for ax in range(3):
-                        test_ind = np.array([i,j,k])
-                        test_ind = np.delete(test_ind,ax)
-                        if np.any(test_ind==self.pjoint.dim): continue
-                        cnt,vals = Utils.face_neighbors(mat,ind,ax,n,fixed_sides)
-                        if cnt==1:
+                        test_ind = np.array([i, j, k])
+                        test_ind = np.delete(test_ind, ax)
+                        if np.any(test_ind == self.pjoint.dim):
+                            continue
+
+                        cnt, vals = Utils.face_neighbors(mat, ind, ax, n, fixed_sides)
+                        if cnt == 1:
                             for x in range(2):
                                 for y in range(2):
-                                    add = [x,abs(y-x)]
-                                    add.insert(ax,0)
+                                    add = [x, abs(y-x)]
+                                    add.insert(ax, 0)
                                     index = Utils.get_index(ind, add, self.pjoint.dim)
-                                    if len(fixed_sides)>0:
-                                        if fixed_sides[0].ax==ax:
+
+                                    if len(fixed_sides) > 0:
+                                        if fixed_sides[0].ax == ax:
                                             indices_ends.append(index)
                                         else:
                                             indices.append(index)
-                                    else: indices.append(index)
+                                    else:
+                                        indices.append(index)
 
-            # 2. Faces of component base
-            d = self.pjoint.dim + 1
-            start = d*d*d
-            if len(fixed_sides)>0:
-                for side in fixed_sides:
-                    a1,b1,c1,d1 = Utils.get_corner_indices(side.ax, side.dir, self.pjoint.dim)
-                    step = 2
-                    if len(self.pjoint.fixed.sides[n])==2: step = 1
-                    off = 24*side.ax+12*side.dir+4*step
-                    a0,b0,c0,d0 = start+off,start+off+1,start+off+2,start+off+3
-                    # Add component side to indices
-                    indices_ends.extend([a0,b0,d0,c0]) #bottom face
-                    indices.extend([a0,b0,b1,a1]) #side face 1
-                    indices.extend([b0,d0,d1,b1]) #side face 2
-                    indices.extend([d0,c0,c1,d1]) #side face 3
-                    indices.extend([c0,a0,a1,c1]) ##side face 4
-        # Format
+        return indices, indices_ends
+
+    def _extract_component_base_faces(self, fixed_sides, n):
+        """Extract indices for component base faces.
+
+        Args:
+            fixed_sides: List of fixed sides for this component
+            n: Component index
+
+        Returns:
+            tuple: (indices, indices_ends) Lists of indices for regular faces and end faces
+        """
+        indices = []
+        indices_ends = []
+        d = self.pjoint.dim + 1
+        start = d * d * d
+
+        if len(fixed_sides) > 0:
+            for side in fixed_sides:
+                a1, b1, c1, d1 = Utils.get_corner_indices(side.ax, side.dir, self.pjoint.dim)
+                step = 2
+                if len(self.pjoint.fixed.sides[n]) == 2:
+                    step = 1
+
+                off = 24 * side.ax + 12 * side.dir + 4 * step
+                a0, b0, c0, d0 = start + off, start + off + 1, start + off + 2, start + off + 3
+
+                # Add component side to indices
+                indices_ends.extend([a0, b0, d0, c0])  # bottom face
+                indices.extend([a0, b0, b1, a1])       # side face 1
+                indices.extend([b0, d0, d1, b1])       # side face 2
+                indices.extend([d0, c0, c1, d1])       # side face 3
+                indices.extend([c0, a0, a1, c1])       # side face 4
+
+        return indices, indices_ends
+
+    def generate_joint_face_indices(self, all_indices, mat, fixed_sides, n, offset, global_offset=0):
+        """Generate indices for joint faces.
+
+        Args:
+            all_indices: Existing indices list to append to
+            mat: The voxel matrix to extract faces from
+            fixed_sides: List of fixed sides for this component
+            n: Component index
+            offset: Offset to apply to indices
+            global_offset: Global offset for indices
+
+        Returns:
+            tuple: (indices_prop, indices_ends_prop, indices_all_prop, all_indices)
+        """
+        # Extract joint faces and component base faces
+        joint_indices, joint_indices_ends = self._extract_joint_faces(mat, fixed_sides, n)
+        base_indices, base_indices_ends = self._extract_component_base_faces(fixed_sides, n)
+
+        # Combine indices
+        indices = joint_indices + base_indices
+        indices_ends = joint_indices_ends + base_indices_ends
+
+        # Format indices
         indices = np.array(indices, dtype=np.uint32)
         indices = indices + offset
         indices_ends = np.array(indices_ends, dtype=np.uint32)
         indices_ends = indices_ends + offset
-        # Store
-        indices_prop = ElementProperties(GL.GL_QUADS, len(indices), len(all_indices)+global_offset, n)
-        if len(all_indices)>0: all_indices = np.concatenate([all_indices, indices])
-        else: all_indices = indices
-        indices_ends_prop = ElementProperties(GL.GL_QUADS, len(indices_ends), len(all_indices)+global_offset, n)
+
+        # Store indices
+        indices_prop = ElementProperties(GL.GL_QUADS, len(indices), len(all_indices) + global_offset, n)
+        if len(all_indices) > 0:
+            all_indices = np.concatenate([all_indices, indices])
+        else:
+            all_indices = indices
+
+        indices_ends_prop = ElementProperties(GL.GL_QUADS, len(indices_ends), len(all_indices) + global_offset, n)
         all_indices = np.concatenate([all_indices, indices_ends])
-        indices_all_prop = ElementProperties(GL.GL_QUADS, len(indices)+len(indices_ends), indices_prop.start_index, n)
-        # Return
+
+        indices_all_prop = ElementProperties(GL.GL_QUADS, len(indices) + len(indices_ends), indices_prop.start_index, n)
+
+        # Return properties and updated indices
         return indices_prop, indices_ends_prop, indices_all_prop, all_indices
 
     def _joint_area_face_indices(self,all_indices,mat,area_faces,n):
@@ -452,8 +538,8 @@ class Geometries:
         if not self.mainmesh: # for suggestions and gallery - just show basic geometry - no feedback - global offset necessary
             for n in range(self.pjoint.noc):
                 ax = self.pjoint.fixed.sides[n][0].ax
-                nend,end,all,all_inds = self._joint_face_indices(all_inds,
-                                                                 self.voxel_matrix, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn, global_offset=glo_off)
+                nend,end,all,all_inds = self.generate_joint_face_indices(all_inds,
+                                                                         self.voxel_matrix, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn, global_offset=glo_off)
                 lns,all_inds = self._joint_line_indices(all_inds, n, ax * self.pjoint.vn, global_offset=glo_off)
                 self.indices_fall.append(all)
                 self.indices_lns.append(lns)
@@ -482,10 +568,10 @@ class Geometries:
             for n in range(self.pjoint.noc):
                 ax = self.pjoint.fixed.sides[n][0].ax
                 #Faces
-                nend,end,con,all_inds = self._joint_face_indices(all_inds,
-                                                                 self.eval.voxel_matrix_connected, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn)
+                nend,end,con,all_inds = self.generate_joint_face_indices(all_inds,
+                                                                         self.eval.voxel_matrix_connected, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn)
                 if not self.eval.connected[n]:
-                    fne,fe,uncon,all_inds = self._joint_face_indices(all_inds, self.eval.voxel_matrix_unconnected, [], n, ax * self.pjoint.vn)
+                    fne,fe,uncon,all_inds = self.generate_joint_face_indices(all_inds, self.eval.voxel_matrix_unconnected, [], n, ax * self.pjoint.vn)
                     self.indices_not_fcon.append(uncon)
                     all = ElementProperties(GL.GL_QUADS, con.count+uncon.count, con.start_index, n)
                 else:
@@ -493,13 +579,13 @@ class Geometries:
                     all = con
 
                 #breakable and not breakable faces
-                fne,fe,brk_faces,all_inds = self._joint_face_indices(all_inds, self.eval.breakable_voxmat, [], n, ax * self.pjoint.vn)
-                fne,fe,not_brk_faces,all_inds = self._joint_face_indices(all_inds, self.eval.non_breakable_voxmat, self.pjoint.fixed.sides[n], n, n * self.pjoint.vn)
+                fne,fe,brk_faces,all_inds = self.generate_joint_face_indices(all_inds, self.eval.breakable_voxmat, [], n, ax * self.pjoint.vn)
+                fne,fe,not_brk_faces,all_inds = self.generate_joint_face_indices(all_inds, self.eval.non_breakable_voxmat, self.pjoint.fixed.sides[n], n, n * self.pjoint.vn)
 
                 if not self.eval.bridged[n]:
                     unbris = []
                     for m in range(2):
-                        fne,fe,unbri,all_inds = self._joint_face_indices(all_inds, self.eval.voxel_matrices_unbridged[n][m], [self.pjoint.fixed.sides[n][m]], n, n * self.pjoint.vn)
+                        fne,fe,unbri,all_inds = self.generate_joint_face_indices(all_inds, self.eval.voxel_matrices_unbridged[n][m], [self.pjoint.fixed.sides[n][m]], n, n * self.pjoint.vn)
                         unbris.append(unbri)
                 else: unbris = None
 
@@ -564,7 +650,7 @@ class Geometries:
 
     def randomize_height_fields(self):
         self.height_fields = Utils.get_random_height_fields(self.pjoint.dim, self.pjoint.noc)
-        self.voxel_matrix_from_height_fields()
+        self.update_voxel_matrix_from_height_fields()
         self.pjoint.combine_and_buffer_indices()
 
     def clear_height_fields(self):
@@ -572,7 +658,7 @@ class Geometries:
         for n in range(self.pjoint.noc - 1):
             hf = np.zeros((self.pjoint.dim, self.pjoint.dim))
             self.height_fields.append(hf)
-        self.voxel_matrix_from_height_fields()
+        self.update_voxel_matrix_from_height_fields()
         self.pjoint.combine_and_buffer_indices()
 
     def load_search_results(self,index=-1):
@@ -595,7 +681,7 @@ class Geometries:
         for i in range(self.pjoint.noc):
             if i==0: self.fab_directions.append(0)
             else: self.fab_directions.append(1)
-        self.voxel_matrix_from_height_fields()
+        self.update_voxel_matrix_from_height_fields()
         self.pjoint.combine_and_buffer_indices()
 
     def edit_height_fields(self,faces,h,n,dir):
@@ -611,5 +697,5 @@ class Geometries:
                 for i in range(0,n-dir):
                     h2 = self.height_fields[i][tuple(ind)]
                     if h<h2: self.height_fields[i][tuple(ind)]=h
-        self.voxel_matrix_from_height_fields()
+        self.update_voxel_matrix_from_height_fields()
         self.pjoint.combine_and_buffer_indices()
