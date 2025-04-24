@@ -42,29 +42,75 @@ class Selection:
         self.state=-1
         self.refresh = True
 
-    def edit(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600):
-        self.current_pos = np.array([mouse_pos[0],-mouse_pos[1]])
+    # def edit(self,mouse_pos,screen_xrot,screen_yrot,w=1600,h=1600):
+    #     self.current_pos = np.array([mouse_pos[0],-mouse_pos[1]])
+    #     self.current_height = self.start_height
+    #     ## Mouse vector
+    #     mouse_vec = np.array(self.current_pos-self.start_pos)
+    #     mouse_vec = mouse_vec.astype(float)
+    #     mouse_vec[0] = 2*mouse_vec[0]/w
+    #     mouse_vec[1] = 2*mouse_vec[1]/h
+    #     ## Sliding direction vector
+    #     sdir_vec = [0,0,0]
+    #     sdir_vec = np.copy(self.pgeom.pjoint.pos_vecs[self.pgeom.pjoint.sax])  #<-new
+    #     rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
+    #     rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
+    #     sdir_vec = np.dot(sdir_vec,rot_x*rot_y)
+    #     sdir_vec = np.delete(sdir_vec,2) # delete Z-value
+    #     ## Calculate angle between mouse vector and sliding direction vector
+    #     cosang = np.dot(mouse_vec, sdir_vec) # Negative / positive depending on direction
+    #     val = int(np.linalg.norm(mouse_vec)/np.linalg.norm(sdir_vec)+0.5)
+    #     if cosang!=None and cosang<0: val = -val
+    #     if self.start_height + val>self.pgeom.pjoint.dim: val = self.pgeom.pjoint.dim - self.start_height
+    #     elif self.start_height+val<0: val = -self.start_height
+    #     self.current_height = self.start_height + val
+    #     self.val = int(val)
+
+    def edit(self, mouse_pos, screen_xrot, screen_yrot, w=1600, h=1600):
+        self.current_pos = np.array([mouse_pos[0], -mouse_pos[1]])
         self.current_height = self.start_height
-        ## Mouse vector
-        mouse_vec = np.array(self.current_pos-self.start_pos)
-        mouse_vec = mouse_vec.astype(float)
-        mouse_vec[0] = 2*mouse_vec[0]/w
-        mouse_vec[1] = 2*mouse_vec[1]/h
-        ## Sliding direction vector
-        sdir_vec = [0,0,0]
-        sdir_vec = np.copy(self.pgeom.pjoint.pos_vecs[self.pgeom.pjoint.sax])  #<-new
-        rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
-        rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
-        sdir_vec = np.dot(sdir_vec,rot_x*rot_y)
-        sdir_vec = np.delete(sdir_vec,2) # delete Z-value
-        ## Calculate angle between mouse vector and sliding direction vector
-        cosang = np.dot(mouse_vec, sdir_vec) # Negative / positive depending on direction
-        val = int(np.linalg.norm(mouse_vec)/np.linalg.norm(sdir_vec)+0.5)
-        if cosang!=None and cosang<0: val = -val
-        if self.start_height + val>self.pgeom.pjoint.dim: val = self.pgeom.pjoint.dim - self.start_height
-        elif self.start_height+val<0: val = -self.start_height
+
+        # Calculate mouse vector and sliding direction
+        mouse_vec = self._calculate_edit_mouse_vector(w, h)
+        sdir_vec = self._calculate_sliding_direction_vector(screen_xrot, screen_yrot)
+
+        # Calculate value change based on vectors
+        val = self._calculate_height_change(mouse_vec, sdir_vec)
+
+        # Apply constraints to the value
+        val = self._constrain_height_value(val)
+
         self.current_height = self.start_height + val
         self.val = int(val)
+
+    def _calculate_edit_mouse_vector(self, w, h):
+        mouse_vec = np.array(self.current_pos - self.start_pos)
+        mouse_vec = mouse_vec.astype(float)
+        mouse_vec[0] = 2 * mouse_vec[0] / w
+        mouse_vec[1] = 2 * mouse_vec[1] / h
+        return mouse_vec
+
+    def _calculate_sliding_direction_vector(self, screen_xrot, screen_yrot):
+        sdir_vec = np.copy(self.pgeom.pjoint.pos_vecs[self.pgeom.pjoint.sax])
+        rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
+        rot_y = pyrr.Matrix33.from_y_rotation(screen_yrot)
+        sdir_vec = np.dot(sdir_vec, rot_x * rot_y)
+        sdir_vec = np.delete(sdir_vec, 2)  # delete Z-value
+        return sdir_vec
+
+    def _calculate_height_change(self, mouse_vec, sdir_vec):
+        cosang = np.dot(mouse_vec, sdir_vec)  # Negative/positive depending on direction
+        val = int(np.linalg.norm(mouse_vec) / np.linalg.norm(sdir_vec) + 0.5)
+        if cosang is not None and cosang < 0:
+            val = -val
+        return val
+
+    def _constrain_height_value(self, val):
+        if self.start_height + val > self.pgeom.pjoint.dim:
+            val = self.pgeom.pjoint.dim - self.start_height
+        elif self.start_height + val < 0:
+            val = -self.start_height
+        return val
 
     def start_move(self,mouse_pos, h=1600):
         self.state=12
