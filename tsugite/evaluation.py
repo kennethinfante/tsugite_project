@@ -332,10 +332,87 @@ class Evaluation:
                     if conn_2: unbridged_2[tuple(ind)] = val
         return unbridged_1, unbridged_2
 
-class EvaluationOne:
-    def __init__(self,voxel_matrix,fixed_sides,sax,noc,level,last):
+# class EvaluationOne:
+#     def __init__(self,voxel_matrix,fixed_sides,sax,noc,level,last):
+#
+#         # Initiate metrics
+#         self.connected_and_bridged = True
+#         self.other_connected_and_bridged = True
+#         self.nocheck = True
+#         self.interlock = True
+#         self.nofragile = True
+#         self.valid = False
+#
+#         # Add fixed sides to voxel matrix, get dimension
+#         self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides)
+#         dim = len(voxel_matrix)
+#
+#         #Connectivity and bridging
+#         self.connected_and_bridged = Utils.is_connected(self.voxel_matrix_with_sides,level)
+#         if not self.connected_and_bridged: return
+#
+#         # Other connectivity and bridging
+#         if not last:
+#             other_level = 0
+#             if level==0: other_level = 1
+#             special_voxmat_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides, 10)
+#             self.other_connected_and_bridged = Utils.is_potentially_connected(special_voxmat_with_sides,dim,noc,level)
+#             if not self.other_connected_and_bridged: return
+#
+#         # Checkerboard
+#         if last:
+#             check,verts = Utils.get_chessboard_vertics(voxel_matrix,sax,noc,level)
+#             if check: self.nocheck=False
+#             if not self.nocheck: return
+#
+#         # Slidability
+#         self.slides,self.number_of_slides = Utils.get_sliding_directions_of_one_timber(self.voxel_matrix_with_sides,level)
+#         if level==0 or level==noc-1:
+#             if self.number_of_slides!=1: self.interlock=False
+#         else:
+#             if self.number_of_slides!=0: self.interlock=False
+#         if not self.interlock: return
+#
+#         # Durability
+#         brk,brk_inds = Utils.get_breakable_voxels(voxel_matrix,fixed_sides[level],sax,level)
+#         if brk: self.nofragile = False
+#         if not self.nofragile: return
+#
+#         self.valid=True
 
-        # Initiate metrics
+class EvaluationOne:
+    def __init__(self, voxel_matrix, fixed_sides, sax, noc, level, last):
+        # Initialize metrics
+        self._initialize_metrics()
+
+        # Add fixed sides to voxel matrix
+        self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides)
+        dim = len(voxel_matrix)
+
+        # Check connectivity and bridging
+        if not self._check_connectivity(level):
+            return
+
+        # Check other connectivity and bridging if not the last component
+        if not last and not self._check_other_connectivity(voxel_matrix, fixed_sides, dim, noc, level):
+            return
+
+        # Check for checkerboard pattern if it's the last component
+        if last and not self._check_checkerboard(voxel_matrix, sax, noc, level):
+            return
+
+        # Check slidability and interlocking
+        if not self._check_slidability(level, noc):
+            return
+
+        # Check durability
+        if not self._check_durability(voxel_matrix, fixed_sides, sax, level):
+            return
+
+        # If all checks pass, the joint is valid
+        self.valid = True
+
+    def _initialize_metrics(self):
         self.connected_and_bridged = True
         self.other_connected_and_bridged = True
         self.nocheck = True
@@ -343,58 +420,90 @@ class EvaluationOne:
         self.nofragile = True
         self.valid = False
 
-        # Add fixed sides to voxel matrix, get dimension
-        self.voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides)
-        dim = len(voxel_matrix)
+    def _check_connectivity(self, level):
+        self.connected_and_bridged = Utils.is_connected(self.voxel_matrix_with_sides, level)
+        return self.connected_and_bridged
 
-        #Connectivity and bridging
-        self.connected_and_bridged = Utils.is_connected(self.voxel_matrix_with_sides,level)
-        if not self.connected_and_bridged: return
+    def _check_other_connectivity(self, voxel_matrix, fixed_sides, dim, noc, level):
+        other_level = 1 if level == 0 else 0
+        special_voxmat_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides, 10)
+        self.other_connected_and_bridged = Utils.is_potentially_connected(
+            special_voxmat_with_sides, dim, noc, level
+        )
+        return self.other_connected_and_bridged
 
-        # Other connectivity and bridging
-        if not last:
-            other_level = 0
-            if level==0: other_level = 1
-            special_voxmat_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides, 10)
-            self.other_connected_and_bridged = Utils.is_potentially_connected(special_voxmat_with_sides,dim,noc,level)
-            if not self.other_connected_and_bridged: return
+    def _check_checkerboard(self, voxel_matrix, sax, noc, level):
+        check, verts = Utils.get_chessboard_vertics(voxel_matrix, sax, noc, level)
+        if check:
+            self.nocheck = False
+        return self.nocheck
 
-        # Checkerboard
-        if last:
-            check,verts = Utils.get_chessboard_vertics(voxel_matrix,sax,noc,level)
-            if check: self.nocheck=False
-            if not self.nocheck: return
+    def _check_slidability(self, level, noc):
+        self.slides, self.number_of_slides = Utils.get_sliding_directions_of_one_timber(
+            self.voxel_matrix_with_sides, level
+        )
 
-        # Slidability
-        self.slides,self.number_of_slides = Utils.get_sliding_directions_of_one_timber(self.voxel_matrix_with_sides,level)
-        if level==0 or level==noc-1:
-            if self.number_of_slides!=1: self.interlock=False
+        if level == 0 or level == noc - 1:
+            # End components should have exactly one sliding direction
+            if self.number_of_slides != 1:
+                self.interlock = False
         else:
-            if self.number_of_slides!=0: self.interlock=False
-        if not self.interlock: return
+            # Middle components should have no sliding directions
+            if self.number_of_slides != 0:
+                self.interlock = False
 
-        # Durability
-        brk,brk_inds = Utils.get_breakable_voxels(voxel_matrix,fixed_sides[level],sax,level)
-        if brk: self.nofragile = False
-        if not self.nofragile: return
+        return self.interlock
 
-        self.valid=True
+    def _check_durability(self, voxel_matrix, fixed_sides, sax, level):
+        brk, brk_inds = Utils.get_breakable_voxels(voxel_matrix, fixed_sides[level], sax, level)
+        if brk:
+            self.nofragile = False
+        return self.nofragile
+
+# class EvaluationSlides:
+#     def __init__(self,voxel_matrix,fixed_sides,sax,noc):
+#         voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides)
+#         # Sliding depth
+#         sliding_depths = [3,3,3]
+#         open_mat = np.copy(voxel_matrix_with_sides)
+#         for depth in range(4):
+#             slds,nos = Utils.get_sliding_directions(open_mat,noc)
+#             for n in range(noc):
+#                 if sliding_depths[n]!=3: continue
+#                 if n==0 or n==noc-1:
+#                     if nos[n]>1: sliding_depths[n]=depth
+#                 else:
+#                     if nos[n]>0: sliding_depths[n]=depth
+#             open_mat = Utils.open_matrix(open_mat,sax,noc)
+#         self.slide_depths = sliding_depths
+#         #self.slide_depths_sorted = sliding_depths
+#         #self.slide_depth_product = np.prod(np.array(sliding_depths))
 
 class EvaluationSlides:
-    def __init__(self,voxel_matrix,fixed_sides,sax,noc):
+    def __init__(self, voxel_matrix, fixed_sides, sax, noc):
         voxel_matrix_with_sides = Utils.add_fixed_sides(voxel_matrix, fixed_sides)
-        # Sliding depth
-        sliding_depths = [3,3,3]
+        self.slide_depths = self._calculate_sliding_depths(voxel_matrix_with_sides, sax, noc)
+
+    def _calculate_sliding_depths(self, voxel_matrix_with_sides, sax, noc):
+        sliding_depths = [3, 3, 3]
         open_mat = np.copy(voxel_matrix_with_sides)
+
         for depth in range(4):
-            slds,nos = Utils.get_sliding_directions(open_mat,noc)
+            slds, nos = Utils.get_sliding_directions(open_mat, noc)
+
             for n in range(noc):
-                if sliding_depths[n]!=3: continue
-                if n==0 or n==noc-1:
-                    if nos[n]>1: sliding_depths[n]=depth
+                if sliding_depths[n] != 3:
+                    continue
+
+                if n == 0 or n == noc - 1:
+                    # End components
+                    if nos[n] > 1:
+                        sliding_depths[n] = depth
                 else:
-                    if nos[n]>0: sliding_depths[n]=depth
-            open_mat = Utils.open_matrix(open_mat,sax,noc)
-        self.slide_depths = sliding_depths
-        #self.slide_depths_sorted = sliding_depths
-        #self.slide_depth_product = np.prod(np.array(sliding_depths))
+                    # Middle components
+                    if nos[n] > 0:
+                        sliding_depths[n] = depth
+
+            open_mat = Utils.open_matrix(open_mat, sax, noc)
+
+        return sliding_depths
