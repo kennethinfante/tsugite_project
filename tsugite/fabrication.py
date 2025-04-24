@@ -41,34 +41,108 @@ class MillVertex:
         self.arc_ctr: Optional[np.ndarray] = np.array(arc_ctr)
         self.is_tra = is_tra # is traversing, gcode_mode G0 (max speed) (otherwise G1)
 
-    def scale_and_swap(self,ax,dir,ratio,unit_scale,real_tim_dims,coords,d,n):
+    # def scale_and_swap(self,ax,dir,ratio,unit_scale,real_tim_dims,coords,d,n):
+    #
+    #     #print("1", self.x,self.y,self.z)
+    #
+    #     #sawp and scale
+    #     xyz = [unit_scale*ratio*self.x, unit_scale*ratio*self.y, unit_scale*ratio*self.z]
+    #     if ax==2: xyz[1] = -xyz[1]
+    #     xyz = xyz[coords[0]],xyz[coords[1]],xyz[coords[2]]
+    #     self.x,self.y,self.z = xyz[0],xyz[1],xyz[2]
+    #
+    #     #print("2",self.x,self.y,self.z)
+    #
+    #     #move z down, flip if component b
+    #     self.z = -(2*dir-1)*self.z-0.5*unit_scale*real_tim_dims[ax]
+    #     self.y = -(2*dir-1)*self.y
+    #     self.pt = np.array([self.x,self.y,self.z])
+    #     self.pos = np.array([self.x,self.y,self.z],dtype=np.float64)
+    #     self.xstr = str(round(self.x,d))
+    #     self.ystr = str(round(self.y,d))
+    #     self.zstr = str(round(self.z,d))
+    #     ##
+    #     if self.is_arc:
+    #         self.arc_ctr = [unit_scale*ratio*self.arc_ctr[0], unit_scale*ratio*self.arc_ctr[1], unit_scale*ratio*self.arc_ctr[2]]
+    #         if ax==2: self.arc_ctr[1] = -self.arc_ctr[1]
+    #         self.arc_ctr = [self.arc_ctr[coords[0]],self.arc_ctr[coords[1]],self.arc_ctr[coords[2]]]
+    #         self.arc_ctr[2] = -(2*dir-1)*self.arc_ctr[2]-0.5*unit_scale*real_tim_dims[ax]
+    #         self.arc_ctr[1] = -(2*dir-1)*self.arc_ctr[1]
+    #         self.arc_ctr = np.array(self.arc_ctr)
 
-        #print("1", self.x,self.y,self.z)
+    def scale_and_swap(self, ax, dir, ratio, unit_scale, real_tim_dims, coords, d, n):
+        """Scale and transform vertex coordinates for fabrication."""
+        # Scale coordinates
+        xyz = self._scale_coordinates(ratio, unit_scale)
 
-        #sawp and scale
-        xyz = [unit_scale*ratio*self.x, unit_scale*ratio*self.y, unit_scale*ratio*self.z]
-        if ax==2: xyz[1] = -xyz[1]
-        xyz = xyz[coords[0]],xyz[coords[1]],xyz[coords[2]]
-        self.x,self.y,self.z = xyz[0],xyz[1],xyz[2]
+        # Apply axis-specific transformations
+        xyz = self._apply_axis_transformations(xyz, ax, coords)
 
-        #print("2",self.x,self.y,self.z)
+        # Update vertex properties
+        self._update_vertex_properties(xyz, ax, dir, unit_scale, real_tim_dims, d)
 
-        #move z down, flip if component b
-        self.z = -(2*dir-1)*self.z-0.5*unit_scale*real_tim_dims[ax]
-        self.y = -(2*dir-1)*self.y
-        self.pt = np.array([self.x,self.y,self.z])
-        self.pos = np.array([self.x,self.y,self.z],dtype=np.float64)
-        self.xstr = str(round(self.x,d))
-        self.ystr = str(round(self.y,d))
-        self.zstr = str(round(self.z,d))
-        ##
+        # Handle arc center if this is an arc
         if self.is_arc:
-            self.arc_ctr = [unit_scale*ratio*self.arc_ctr[0], unit_scale*ratio*self.arc_ctr[1], unit_scale*ratio*self.arc_ctr[2]]
-            if ax==2: self.arc_ctr[1] = -self.arc_ctr[1]
-            self.arc_ctr = [self.arc_ctr[coords[0]],self.arc_ctr[coords[1]],self.arc_ctr[coords[2]]]
-            self.arc_ctr[2] = -(2*dir-1)*self.arc_ctr[2]-0.5*unit_scale*real_tim_dims[ax]
-            self.arc_ctr[1] = -(2*dir-1)*self.arc_ctr[1]
-            self.arc_ctr = np.array(self.arc_ctr)
+            self._transform_arc_center(ax, dir, ratio, unit_scale, real_tim_dims, coords)
+
+    def _scale_coordinates(self, ratio, unit_scale):
+        """Scale the coordinates by ratio and unit scale."""
+        return [
+            unit_scale * ratio * self.x,
+            unit_scale * ratio * self.y,
+            unit_scale * ratio * self.z
+        ]
+
+    def _apply_axis_transformations(self, xyz, ax, coords):
+        """Apply axis-specific transformations to coordinates."""
+        # Flip Y coordinate if Z axis
+        if ax == 2:
+            xyz[1] = -xyz[1]
+
+        # Reorder coordinates according to the coordinate mapping
+        return xyz[coords[0]], xyz[coords[1]], xyz[coords[2]]
+
+    def _update_vertex_properties(self, xyz, ax, dir, unit_scale, real_tim_dims, d):
+        """Update vertex properties with transformed coordinates."""
+        self.x, self.y, self.z = xyz[0], xyz[1], xyz[2]
+
+        # Apply Z-axis adjustments and Y-axis flipping
+        self.z = -(2*dir-1) * self.z - 0.5 * unit_scale * real_tim_dims[ax]
+        self.y = -(2*dir-1) * self.y
+
+        # Update point arrays and string representations
+        self.pt = np.array([self.x, self.y, self.z])
+        self.pos = np.array([self.x, self.y, self.z], dtype=np.float64)
+        self.xstr = str(round(self.x, d))
+        self.ystr = str(round(self.y, d))
+        self.zstr = str(round(self.z, d))
+
+    def _transform_arc_center(self, ax, dir, ratio, unit_scale, real_tim_dims, coords):
+        """Transform arc center coordinates if this is an arc vertex."""
+        # Scale arc center coordinates
+        self.arc_ctr = [
+            unit_scale * ratio * self.arc_ctr[0],
+            unit_scale * ratio * self.arc_ctr[1],
+            unit_scale * ratio * self.arc_ctr[2]
+        ]
+
+        # Apply axis-specific transformations
+        if ax == 2:
+            self.arc_ctr[1] = -self.arc_ctr[1]
+
+        # Reorder coordinates
+        self.arc_ctr = [
+            self.arc_ctr[coords[0]],
+            self.arc_ctr[coords[1]],
+            self.arc_ctr[coords[2]]
+        ]
+
+        # Apply Z-axis adjustments and Y-axis flipping
+        self.arc_ctr[2] = -(2*dir-1) * self.arc_ctr[2] - 0.5 * unit_scale * real_tim_dims[ax]
+        self.arc_ctr[1] = -(2*dir-1) * self.arc_ctr[1]
+
+        # Convert to numpy array
+        self.arc_ctr = np.array(self.arc_ctr)
 
     def rotate(self,ang,d):
         self.pt = np.array([self.x,self.y,self.z])
