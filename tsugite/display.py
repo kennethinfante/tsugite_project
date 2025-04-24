@@ -980,31 +980,73 @@ class Display:
         ]
 
     def checker(self):
-        # 1. Draw hidden geometry
-        GL.glUniform3f(self.myColor, 1.0, 0.2, 0.0) # red orange
+        """
+        Highlight components that have checker pattern issues.
+        """
+        GL.glUniform3f(self.myColor, 1.0, 0.2, 0.0)  # red orange
         GL.glLineWidth(8)
+
         for n in range(self.joint.mesh.pjoint.noc):
             if self.joint.mesh.eval.checker[n]:
                 self.draw_geometries([self.joint.mesh.indices_chess_lines[n]])
-        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # back to black
+
+        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # back to black
+
+    # def arrows(self):
+    #     #glClear(GL_DEPTH_BUFFER_BIT)
+    #     GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)
+    #     ############################## Direction arrows ################################
+    #     for n in range(self.joint.noc):
+    #         if (self.joint.mesh.eval.interlocks[n]): GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # black
+    #         else: GL.glUniform3f(self.myColor,1.0,0.0,0.0) # red
+    #         GL.glLineWidth(3)
+    #         G1 = self.joint.mesh.indices_fall
+    #         G0 = self.joint.mesh.indices_arrows[n]
+    #         d0 = 2.55*self.joint.component_size
+    #         d1 = 1.55*self.joint.component_size
+    #         if len(self.joint.fixed.sides[n])==2: d0 = d1
+    #         for side in self.joint.fixed.sides[n]:
+    #             vec = d0 * (2*side.dir-1) * self.joint.pos_vecs[side.ax] / np.linalg.norm(self.joint.pos_vecs[side.ax])
+    #             #draw_geometries_with_excluded_area(window,G0,G1,translation_vec=vec)
+    #             self.draw_geometries(G0,translation_vec=vec)
 
     def arrows(self):
-        #glClear(GL_DEPTH_BUFFER_BIT)
+        """
+        Draw direction arrows for each component.
+        """
         GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)
-        ############################## Direction arrows ################################
+
         for n in range(self.joint.noc):
-            if (self.joint.mesh.eval.interlocks[n]): GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # black
-            else: GL.glUniform3f(self.myColor,1.0,0.0,0.0) # red
-            GL.glLineWidth(3)
-            G1 = self.joint.mesh.indices_fall
-            G0 = self.joint.mesh.indices_arrows[n]
-            d0 = 2.55*self.joint.component_size
-            d1 = 1.55*self.joint.component_size
-            if len(self.joint.fixed.sides[n])==2: d0 = d1
-            for side in self.joint.fixed.sides[n]:
-                vec = d0 * (2*side.dir-1) * self.joint.pos_vecs[side.ax] / np.linalg.norm(self.joint.pos_vecs[side.ax])
-                #draw_geometries_with_excluded_area(window,G0,G1,translation_vec=vec)
-                self.draw_geometries(G0,translation_vec=vec)
+            self._draw_component_arrows(n)
+
+    def _draw_component_arrows(self, component_index):
+        """
+        Draw direction arrows for a specific component.
+
+        Args:
+            component_index: Index of the component
+        """
+        # Set color based on interlock status
+        if self.joint.mesh.eval.interlocks[component_index]:
+            GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
+        else:
+            GL.glUniform3f(self.myColor, 1.0, 0.0, 0.0)  # red
+
+        GL.glLineWidth(3)
+        G1 = self.joint.mesh.indices_fall
+        G0 = self.joint.mesh.indices_arrows[component_index]
+
+        # Calculate arrow positions
+        d0 = 2.55 * self.joint.component_size
+        d1 = 1.55 * self.joint.component_size
+
+        if len(self.joint.fixed.sides[component_index]) == 2:
+            d0 = d1
+
+        # Draw arrows for each side
+        for side in self.joint.fixed.sides[component_index]:
+            vec = d0 * (2 * side.dir - 1) * self.joint.pos_vecs[side.ax] / np.linalg.norm(self.joint.pos_vecs[side.ax])
+            self.draw_geometries(G0, translation_vec=vec)
 
     def nondurable(self):
         # 1. Draw hidden geometry
