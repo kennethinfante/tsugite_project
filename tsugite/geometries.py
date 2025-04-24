@@ -476,7 +476,7 @@ class Geometries:
             sdirs = [0, 1]
 
         # Extract joint faces
-        indices, indices_tops = self._extract_top_joint_faces(n, sdirs)
+        indices, indices_tops = self._extract_top_joint_faces(n, sdirs, offset)
 
         # Extract component base faces
         base_indices = self._extract_top_component_base_faces(n)
@@ -493,7 +493,7 @@ class Geometries:
         # Return properties and updated indices
         return indices_prop, indices_tops_prop, all_indices
 
-    def _extract_top_joint_faces(self, n, sdirs):
+    def _extract_top_joint_faces(self, n, sdirs, offset):
         """Extract joint top faces for picking."""
         indices = []
         indices_tops = []
