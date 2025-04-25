@@ -20,7 +20,7 @@ Here are my recommendations for better organization:
 The `Geometries` class is doing too much. I recommend splitting it into several smaller classes with single responsibilities:
 
 ```python
-import tsugite.utils.geometry_utils
+import tsugite.utils_.geometry_utils
 
 
 class JointGeometry:

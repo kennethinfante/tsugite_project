@@ -7,7 +7,7 @@ from fabrication import *
 from geometries import Geometries
 from fixed_side import FixedSides
 
-import utils as Utils
+import utils_ as Utils
 
 # this remains here for now because it is using other classes
 

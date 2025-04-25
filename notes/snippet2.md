@@ -725,11 +725,13 @@ The remaining functions in `utils.py` fall into several categories:
 I recommend creating these additional modules:
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\model\region_processing.py**
+
 ```python
 import numpy as np
 import copy
 from .fixed_side import FixedSide
-from tsugite.utils.geometry_utils import get_vertex, get_index
+from tsugite.utils_.geometry_utils import get_vertex, get_index
+
 
 class RegionVertex:
     def __init__(self, ind, abs_ind, neighbors, neighbor_values, dia=False, minus_one_neighbor=False):
@@ -738,13 +740,14 @@ class RegionVertex:
         self.j = ind[1]
         self.neighbors = neighbors
         self.flat_neighbors = self.neighbors.flatten()
-        self.region_count = np.sum(self.flat_neighbors==0)
-        self.block_count = np.sum(self.flat_neighbors==1)
-        self.free_count = np.sum(self.flat_neighbors==2)
+        self.region_count = np.sum(self.flat_neighbors == 0)
+        self.block_count = np.sum(self.flat_neighbors == 1)
+        self.free_count = np.sum(self.flat_neighbors == 2)
         self.minus_one_neighbor = minus_one_neighbor
         self.dia = dia
         self.neighbor_values = np.array(neighbor_values)
         self.flat_neighbor_values = self.neighbor_values.flatten()
+
 
 class MillVertex:
     def __init__(self, pt, is_arc=False, arc_ctr=None):
@@ -752,51 +755,59 @@ class MillVertex:
         self.is_arc = is_arc
         self.arc_ctr = arc_ctr
 
+
 def get_same_height_neighbors(hfield, inds):
     dim = len(hfield)
     val = hfield[tuple(inds[0])]
     new_inds = list(inds)
     for ind in inds:
         for ax in range(2):
-            for dir in range(-1,2,2):
+            for dir in range(-1, 2, 2):
                 ind2 = ind.copy()
                 ind2[ax] += dir
-                if np.all(ind2>=0) and np.all(ind2<dim):
+                if np.all(ind2 >= 0) and np.all(ind2 < dim):
                     val2 = hfield[tuple(ind2)]
-                    if val2==val:
+                    if val2 == val:
                         unique = True
                         for ind3 in new_inds:
-                            if ind2[0]==ind3[0] and ind2[1]==ind3[1]:
+                            if ind2[0] == ind3[0] and ind2[1] == ind3[1]:
                                 unique = False
                                 break
                         if unique: new_inds.append(ind2)
-    if len(new_inds)>len(inds):
+    if len(new_inds) > len(inds):
         new_inds = get_same_height_neighbors(hfield, new_inds)
     return new_inds
+
 
 def get_diff_neighbors(mat2, inds, val):
     # Implementation...
     return new_inds
 
+
 def set_starting_vert(verts):
     # Implementation...
     return verts
+
 
 def get_sublist_of_ordered_verts(verts):
     # Implementation...
     return ord_verts, verts, closed
 
+
 def get_outline(type, verts, lay_num, n):
     # Implementation...
     return outline
+
 
 def get_ordered_outline(verts):
     # Implementation...
     return ord_verts
 
+
 def _get_region_outline(reg_inds, lay_mat, fixed_neighbors, n):
     # Implementation...
     return reg_verts
+
 
 def get_region_outline_vertices(reg_inds, lay_mat, org_lay_mat, pad_loc, n):
     # Implementation...
@@ -806,75 +817,79 @@ def get_region_outline_vertices(reg_inds, lay_mat, org_lay_mat, pad_loc, n):
 ```
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\model\joint_analyzer.py**
+
 ```python
 import numpy as np
 import copy
 from .fixed_side import FixedSide
-from tsugite.utils.geometry_utils import _layer_mat
+from tsugite.utils_.geometry_utils import _layer_mat
+
 
 class JointAnalyzer:
     @staticmethod
     def is_connected(mat, n):
         # Implementation...
         return connected
-    
+
     @staticmethod
     def get_sliding_directions(mat, noc):
         # Implementation...
         return sliding_directions, number_of_sliding_directions
-    
+
     @staticmethod
     def get_sliding_directions_of_one_timber(mat, level):
         # Implementation...
         return sliding_directions, number_of_sliding_directions
-    
+
     @staticmethod
     def get_neighbors(mat, ind):
         # Implementation...
         return indices, np.array(values)
-    
+
     @staticmethod
     def get_all_same_connected(mat, indices):
         # Implementation...
         return indices
-    
+
     @staticmethod
     def is_potentially_connected(mat, dim, noc, level):
         # Implementation...
         return potconn
-    
+
     @staticmethod
     def flood_all_nonneg(mat, floodval):
         # Implementation...
         return mat
-    
+
     @staticmethod
     def get_friction_and_contact_areas(mat, slides, fixed_sides, n):
         # Implementation...
         return friction, ffaces, contact, cfaces
-    
+
     @staticmethod
     def get_chessboard_vertics(mat, ax, noc, n):
         # Implementation...
         return chess, verts
-    
+
     @staticmethod
     def is_fab_direction_ok(mat, ax, n):
         # Implementation...
         return is_ok, fab_dir
-    
+
     @staticmethod
     def get_breakable_voxels(mat, fixed_sides, sax, n):
         # Implementation...
         return breakable, outline_indices, voxel_indices
-    
+
     # Other joint analysis methods...
 ```
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\fabrication\milling_utils.py**
+
 ```python
 import numpy as np
-from tsugite.utils.math_utils import angle_between_vectors2, rotate_vector_around_axis
+from tsugite.utils_.math_utils import angle_between_vectors2, rotate_vector_around_axis
+
 
 def connected_arc(mv0, mv1):
     conn_arc = False
@@ -884,6 +899,7 @@ def connected_arc(mv0, mv1):
                 conn_arc = True
     return conn_arc
 
+
 def arc_points(st, en, ctr0, ctr1, ax, astep):
     pts = []
     # numpy arrays
@@ -892,27 +908,29 @@ def arc_points(st, en, ctr0, ctr1, ax, astep):
     ctr0 = np.array(ctr0)
     ctr1 = np.array(ctr1)
     # calculate steps and count and produce in between points
-    v0 = st-ctr0
-    v1 = en-ctr1
+    v0 = st - ctr0
+    v1 = en - ctr1
     cnt = int(0.5 + angle_between_vectors2(v0, v1) / astep)
     if cnt > 0:
         astep = angle_between_vectors2(v0, v1) / cnt
-        zstep = (en[ax]-st[ax])/cnt
+        zstep = (en[ax] - st[ax]) / cnt
     else:
         astep = 0
         zstep = 0
     ax_vec = np.cross(v0, v1)
-    for i in range(1, cnt+1):
+    for i in range(1, cnt + 1):
         rvec = rotate_vector_around_axis(v0, ax_vec, astep * i)
-        zvec = [0, 0, zstep*i]
-        pts.append(ctr0+rvec+zvec)
+        zvec = [0, 0, zstep * i]
+        pts.append(ctr0 + rvec + zvec)
     return pts
+
 
 def set_vector_length(vec, new_norm):
     norm = np.linalg.norm(vec)
-    vec = vec/norm
-    vec = new_norm*vec
+    vec = vec / norm
+    vec = new_norm * vec
     return vec
+
 
 def get_segment_proportions(outline):
     # Implementation...
@@ -924,12 +942,13 @@ def get_segment_proportions(outline):
 After moving all these functions to their appropriate modules, your `utils.py` should be much simpler:
 
 **File: D:\ProgrammingPython\tsugite_project\tsugite\utils.py**
+
 ```python
 # This file is now just a re-export of utility functions from their proper modules
 # for backward compatibility
 
-from tsugite.utils.math_utils import *
-from tsugite.utils.geometry_utils import *
+from tsugite.utils_.math_utils import *
+from tsugite.utils_.geometry_utils import *
 from tsugite.model.region_processing import *
 from tsugite.model.joint_analyzer import *
 from tsugite.fabrication.milling_utils import *
@@ -980,7 +999,7 @@ from tsugite.fixed_side import FixedSide  # Updated import path
 # import ..utils.math_utils  # This is incorrect syntax
 
 # Add these correct imports instead
-from tsugite.utils.math_utils import unitize, angle_between_vectors1
+from tsugite.utils_.math_utils import unitize, angle_between_vectors1
 from tsugite.model.region_processing import get_same_height_neighbors
 ```
 
@@ -1084,7 +1103,7 @@ import numpy as np
 import pyrr
 
 from tsugite.fixed_side import FixedSide
-from tsugite.utils.math_utils import unitize, angle_between_vectors1
+from tsugite.utils_.math_utils import unitize, angle_between_vectors1
 from tsugite.model.region_processing import get_same_height_neighbors
 
 
@@ -1291,7 +1310,7 @@ from tsugite.fixed_side import FixedSide
 # Change this:
 # from .utils.math_utils import *
 # To this:
-from tsugite.utils.math_utils import unitize, angle_between_vectors1
+from tsugite.utils_.math_utils import unitize, angle_between_vectors1
 
 # Add this:
 from tsugite.model.region_processing import get_same_height_neighbors

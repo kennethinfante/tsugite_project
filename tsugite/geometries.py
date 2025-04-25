@@ -8,7 +8,7 @@ from selection import Selection
 from evaluation import Evaluation
 from buffer import ElementProperties
 
-import utils as Utils
+import utils_ as Utils
 
 class Geometries:
     def __init__(self, pjoint, mainmesh=True, hfs=[]):

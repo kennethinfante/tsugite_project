@@ -6,7 +6,7 @@ import pyrr
 
 from fixed_side import FixedSide
 
-import utils as Utils
+import utils_ as Utils
 
 class Selection:
     def __init__(self, pgeom):
