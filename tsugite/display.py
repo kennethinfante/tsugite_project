@@ -4,10 +4,10 @@ from ctypes import c_void_p as buffer_offset
 
 import OpenGL.GL as GL  # imports start with GL
 import OpenGL.GL.shaders as GLSH
-from OpenGL.GLU import gluPerspective
 
 from buffer import ElementProperties
 from view_settings import ViewSettings
+import utils.gl_utils as glu
 
 class Display:
     def __init__(self, pwidget, joint):
@@ -94,36 +94,6 @@ class Display:
         # Compiling the shaders
         self.shader_tex = GLSH.compileProgram(GLSH.compileShader(vertex_shader, GL.GL_VERTEX_SHADER),
                                                   GLSH.compileShader(fragment_shader, GL.GL_FRAGMENT_SHADER))
-
-    # OpenGL setup state methods
-    def _setup_dashed_line_style(self, line_width=3, stipple_factor=2, stipple_pattern=0xAAAA):
-        """
-        Set up OpenGL state for drawing dashed lines.
-
-        Args:
-            line_width: Width of the lines
-            stipple_factor: Stipple factor for dashed lines
-            stipple_pattern: Stipple pattern for dashed lines
-        """
-        GL.glPushAttrib(GL.GL_ENABLE_BIT)
-        GL.glLineWidth(line_width)
-        GL.glEnable(GL.GL_LINE_STIPPLE)
-        GL.glLineStipple(stipple_factor, stipple_pattern)
-
-    def _restore_line_style(self):
-        """
-        Restore OpenGL state after drawing lines.
-        """
-        GL.glPopAttrib()
-
-    def _set_color(self, color):
-        """
-        Set the current drawing color.
-
-        Args:
-            color: RGB color as a list or tuple of 3 values
-        """
-        GL.glUniform3f(self.myColor, color[0], color[1], color[2])
 
     # def update(self):
     #     self.current_program = self.shader_col
@@ -695,10 +665,7 @@ class Display:
         """
         Render the face that is being pulled.
         """
-        GL.glPushAttrib(GL.GL_ENABLE_BIT)
-        GL.glLineWidth(3)
-        GL.glEnable(GL.GL_LINE_STIPPLE)
-        GL.glLineStipple(2, 0xAAAA)
+        glu.setup_dashed_line_style(line_width=3, stipple_factor=2, stipple_pattern=0xAAAA)
 
         for val in range(0, abs(self.joint.mesh.select.val) + 1):
             if self.joint.mesh.select.val < 0:
@@ -712,26 +679,23 @@ class Display:
                 translation_vec=np.array(pulled_vec)
             )
 
-        GL.glPopAttrib()
+        glu.restore_line_style()
 
     def difference_suggestion(self,index):
-        GL.glPushAttrib(GL.GL_ENABLE_BIT)
 
         # draw_faces_for_additional_part(index)
         # draw_faces_for_subtracted_part(index)
 
         # draw outlines
-        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0) # black
-        GL.glLineWidth(3)
-        GL.glEnable(GL.GL_LINE_STIPPLE)
-        GL.glLineStipple(2, 0xAAAA)
+        glu.set_color(self.myColor, (0.0, 0.0, 0.0))
+        glu.setup_dashed_line_style(line_width=3, stipple_factor=2, stipple_pattern=0xAAAA)
 
         for n in range(self.joint.noc):
             G0 = [self.joint.suggestions[index].indices_lns[n]]
             G1 = self.joint.suggestions[index].indices_fall
             self.draw_geometries_with_excluded_area(G0,G1)
 
-        GL.glPopAttrib()
+        glu.restore_line_style()
 
     def draw_faces_for_additional_part(self, index):
         glUniform3f(self.myColor, 1.0, 1.0, 1.0) # white
@@ -756,16 +720,13 @@ class Display:
         if (self.joint.mesh.select.state == 12 and
             self.joint.mesh.outline_selected_component is not None):
 
-            GL.glPushAttrib(GL.GL_ENABLE_BIT)
-            GL.glLineWidth(3)
-            GL.glEnable(GL.GL_LINE_STIPPLE)
-            GL.glLineStipple(2, 0xAAAA)
+            glu.setup_dashed_line_style(line_width=3, stipple_factor=2, stipple_pattern=0xAAAA)
 
             # Draw outline of component being moved/rotated
-            GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
+            glu.set_color(self.myColor, (0.0, 0.0, 0.0))  # black
             self.draw_geometries([self.joint.mesh.outline_selected_component])
 
-            GL.glPopAttrib()
+            glu.restore_line_style()
 
     # def joint_geometry(self,mesh=None,lw=3,hidden=True,zoom=False):
     #
@@ -837,11 +798,10 @@ class Display:
     def _draw_hidden_lines(self, mesh, hidden):
         """Draw hidden lines of the joint with dashed style."""
         GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
-        GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
-        GL.glPushAttrib(GL.GL_ENABLE_BIT)
-        GL.glLineWidth(1)
-        GL.glLineStipple(3, 0xAAAA)  # dashed line
-        GL.glEnable(GL.GL_LINE_STIPPLE)
+
+        glu.set_color(self.myColor, (0.0, 0.0, 0.0))  # black
+        glu.setup_dashed_line_style(line_width=1, stipple_factor=3, stipple_pattern=0xAAAA)
+
 
         if hidden and self.view.show_hidden_lines:
             for n in range(mesh.pjoint.noc):
@@ -849,7 +809,7 @@ class Display:
                 G1 = [mesh.indices_fall[n]]
                 self.draw_geometries_with_excluded_area(G0, G1)
 
-        GL.glPopAttrib()
+        glu.restore_line_style()
 
     def _draw_visible_lines(self, mesh, lw):
         """Draw visible lines of the joint."""
@@ -868,17 +828,15 @@ class Display:
     def _draw_open_joint_lines(self, mesh, hidden):
         """Draw dashed lines when joint is fully open."""
         if hidden and not self.view.hidden[0] and not self.view.hidden[1] and self.view.open_ratio == 1 + 0.5 * (mesh.pjoint.noc - 2):
-            GL.glUniform3f(self.myColor, 0.0, 0.0, 0.0)  # black
-            GL.glPushAttrib(GL.GL_ENABLE_BIT)
-            GL.glLineWidth(2)
-            GL.glLineStipple(1, 0x00FF)
-            GL.glEnable(GL.GL_LINE_STIPPLE)
+
+            glu.set_color(self.myColor, (0.0, 0.0, 0.0))  # black
+            glu.setup_dashed_line_style(line_width=2, stipple_factor=1, stipple_pattern=0x00FF)
 
             G0 = mesh.indices_open_lines
             G1 = mesh.indices_fall
             self.draw_geometries_with_excluded_area(G0, G1)
 
-            GL.glPopAttrib()
+            glu.restore_line_style()
 
     # def unfabricatable(self):
     #     col = [1.0, 0.8, 0.5] # orange
