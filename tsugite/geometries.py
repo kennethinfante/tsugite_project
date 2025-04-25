@@ -939,18 +939,59 @@ class Geometries:
         self.update_voxel_matrix_from_height_fields()
         self.pjoint.combine_and_buffer_indices()
 
-    def edit_height_fields(self,faces,h,n,dir):
+    # def edit_height_fields(self,faces,h,n,dir):
+    #     for ind in faces:
+    #         self.height_fields[n-dir][tuple(ind)] = h
+    #         if dir==0: # If editing top
+    #             # If new height is higher than following hf, update to same height
+    #             for i in range(n-dir+1, self.pjoint.noc - 1):
+    #                 h2 = self.height_fields[i][tuple(ind)]
+    #                 if h>h2: self.height_fields[i][tuple(ind)]=h
+    #         if dir==1: # If editing bottom
+    #             # If new height is lower than previous hf, update to same height
+    #             for i in range(0,n-dir):
+    #                 h2 = self.height_fields[i][tuple(ind)]
+    #                 if h<h2: self.height_fields[i][tuple(ind)]=h
+    #     self.update_voxel_matrix_from_height_fields()
+    #     self.pjoint.combine_and_buffer_indices()
+
+    def edit_height_fields(self, faces, h, n, dir):
+        """Edit height fields for the specified faces.
+
+        Args:
+            faces: List of face indices to edit
+            h: New height value
+            n: Component index
+            dir: Direction (0 for top, 1 for bottom)
+        """
+        # Update the specified height fields
         for ind in faces:
             self.height_fields[n-dir][tuple(ind)] = h
-            if dir==0: # If editing top
-                # If new height is higher than following hf, update to same height
-                for i in range(n-dir+1, self.pjoint.noc - 1):
-                    h2 = self.height_fields[i][tuple(ind)]
-                    if h>h2: self.height_fields[i][tuple(ind)]=h
-            if dir==1: # If editing bottom
-                # If new height is lower than previous hf, update to same height
-                for i in range(0,n-dir):
-                    h2 = self.height_fields[i][tuple(ind)]
-                    if h<h2: self.height_fields[i][tuple(ind)]=h
+
+        # Propagate changes to maintain consistency
+        if dir == 0:  # If editing top
+            self._propagate_height_up(faces, h, n-dir)
+        else:  # If editing bottom
+            self._propagate_height_down(faces, h, n-dir)
+
+        # Update the voxel matrix and buffer indices
         self.update_voxel_matrix_from_height_fields()
         self.pjoint.combine_and_buffer_indices()
+
+    def _propagate_height_up(self, faces, h, start_index):
+        """Propagate height changes upward to maintain consistency."""
+        # If new height is higher than following hf, update to same height
+        for ind in faces:
+            for i in range(start_index + 1, self.pjoint.noc - 1):
+                h2 = self.height_fields[i][tuple(ind)]
+                if h > h2:
+                    self.height_fields[i][tuple(ind)] = h
+
+    def _propagate_height_down(self, faces, h, start_index):
+        """Propagate height changes downward to maintain consistency."""
+        # If new height is lower than previous hf, update to same height
+        for ind in faces:
+            for i in range(0, start_index):
+                h2 = self.height_fields[i][tuple(ind)]
+                if h < h2:
+                    self.height_fields[i][tuple(ind)] = h
