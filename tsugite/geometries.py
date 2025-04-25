@@ -561,11 +561,11 @@ class Geometries:
         for ax in range(3):
             for i in range(self.pjoint.dim):
                 for j in range(self.pjoint.dim):
-                    self._process_top_faces_for_position(n, sdirs, ax, i, j, sax, indices, indices_tops)
+                    self._process_top_faces_for_position(n, sdirs, ax, i, j, sax, indices, indices_tops, offset)
 
         return indices, indices_tops
 
-    def _process_top_faces_for_position(self, n, sdirs, ax, i, j, sax, indices, indices_tops):
+    def _process_top_faces_for_position(self, n, sdirs, ax, i, j, sax, indices, indices_tops, offset):
         """Process top faces for a specific position."""
         top_face_indices_cnt = 0
 
@@ -752,38 +752,100 @@ class Geometries:
 
         return False
 
-    def _component_outline_indices(self,all_indices,fixed_sides,n,offset):
+    # def _component_outline_indices(self,all_indices,fixed_sides,n,offset):
+    #     d = self.pjoint.dim + 1
+    #     indices = []
+    #     start = d*d*d
+    #     #Outline of component base
+    #     #1) Base of first fixed side
+    #     ax = fixed_sides[0].ax
+    #     dir = fixed_sides[0].dir
+    #     step = 2
+    #     if len(fixed_sides)==2: step = 1
+    #     off = 24*ax+12*dir+4*step
+    #     a0,b0,c0,d0 = start+off,start+off+1,start+off+2,start+off+3
+    #     #2) Base of first fixed side OR top of component
+    #     if len(fixed_sides)==2:
+    #         ax = fixed_sides[1].ax
+    #         dir = fixed_sides[1].dir
+    #         off = 24*ax+12*dir+4*step
+    #         a1,b1,c1,d1 = start+off,start+off+1,start+off+2,start+off+3
+    #     else:
+    #         a1,b1,c1,d1 = Utils.get_corner_indices(ax, 1 - dir, self.pjoint.dim)
+    #     # append list of indices
+    #     indices.extend([a0,b0, b0,d0, d0,c0, c0,a0])
+    #     indices.extend([a0,a1, b0,b1, c0,c1, d0,d1])
+    #     indices.extend([a1,b1, b1,d1, d1,c1, c1,a1])
+    #     # Format
+    #     indices = np.array(indices, dtype=np.uint32)
+    #     indices = indices + offset
+    #     # Store
+    #     indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
+    #     all_indices = np.concatenate([all_indices, indices])
+    #     # Return
+    #     return indices_prop, all_indices
+
+    def _component_outline_indices(self, all_indices, fixed_sides, n, offset):
+        """Generate indices for component outline."""
         d = self.pjoint.dim + 1
         indices = []
-        start = d*d*d
-        #Outline of component base
-        #1) Base of first fixed side
+        start = d * d * d
+
+        # Get base corners
+        base_corners = self._get_component_base_corners(fixed_sides, start)
+
+        # Get top corners (either from second fixed side or calculated)
+        top_corners = self._get_component_top_corners(fixed_sides, start)
+
+        # Add outline edges
+        indices = self._add_component_outline_edges(base_corners, top_corners)
+
+        # Format and store indices
+        indices_prop, all_indices = self._process_indices(
+            indices, all_indices, GL.GL_LINES, n, offset)
+
+        return indices_prop, all_indices
+
+    def _get_component_base_corners(self, fixed_sides, start):
+        """Get the corner indices for the component base."""
         ax = fixed_sides[0].ax
         dir = fixed_sides[0].dir
-        step = 2
-        if len(fixed_sides)==2: step = 1
-        off = 24*ax+12*dir+4*step
-        a0,b0,c0,d0 = start+off,start+off+1,start+off+2,start+off+3
-        #2) Base of first fixed side OR top of component
-        if len(fixed_sides)==2:
+        step = 2 if len(fixed_sides) == 1 else 1
+
+        off = 24 * ax + 12 * dir + 4 * step
+        return [start + off, start + off + 1, start + off + 2, start + off + 3]
+
+    def _get_component_top_corners(self, fixed_sides, start):
+        """Get the corner indices for the component top."""
+        if len(fixed_sides) == 2:
+            # Use second fixed side
             ax = fixed_sides[1].ax
             dir = fixed_sides[1].dir
-            off = 24*ax+12*dir+4*step
-            a1,b1,c1,d1 = start+off,start+off+1,start+off+2,start+off+3
+            step = 1
+
+            off = 24 * ax + 12 * dir + 4 * step
+            return [start + off, start + off + 1, start + off + 2, start + off + 3]
         else:
-            a1,b1,c1,d1 = Utils.get_corner_indices(ax, 1 - dir, self.pjoint.dim)
-        # append list of indices
-        indices.extend([a0,b0, b0,d0, d0,c0, c0,a0])
-        indices.extend([a0,a1, b0,b1, c0,c1, d0,d1])
-        indices.extend([a1,b1, b1,d1, d1,c1, c1,a1])
-        # Format
-        indices = np.array(indices, dtype=np.uint32)
-        indices = indices + offset
-        # Store
-        indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
-        all_indices = np.concatenate([all_indices, indices])
-        # Return
-        return indices_prop, all_indices
+            # Calculate from first fixed side
+            ax = fixed_sides[0].ax
+            dir = fixed_sides[0].dir
+            return Utils.get_corner_indices(ax, 1 - dir, self.pjoint.dim)
+
+    def _add_component_outline_edges(self, base, top):
+        """Add edges for component outline."""
+        indices = []
+
+        # Base edges (bottom face)
+        indices.extend([base[0], base[1], base[1], base[3], base[3], base[2], base[2], base[0]])
+
+        # Vertical edges connecting base to top
+        indices.extend([base[0], top[0], base[1], top[1], base[2], top[2], base[3], top[3]])
+
+        # Top edges (top face)
+        indices.extend([top[0], top[1], top[1], top[3], top[3], top[2], top[2], top[0]])
+
+        return indices
+
 
     def _milling_path_indices(self,all_indices,count,start,n):
         indices = []
