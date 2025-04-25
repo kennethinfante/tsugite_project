@@ -643,48 +643,114 @@ class Geometries:
 
         return indices
 
-    def _joint_selected_top_line_indices(self,select,all_indices):
-        # Make indices of lines for drawing method GL_LINES
+    # def _joint_selected_top_line_indices(self,select,all_indices):
+    #     # Make indices of lines for drawing method GL_LINES
+    #     n = select.n
+    #     dir = select.dir
+    #     offset = n*self.pjoint.vn
+    #     sax = self.pjoint.sax
+    #     h = self.height_fields[n-dir][tuple(select.faces[0])]
+    #     # 1. Outline of selected top faces of joint
+    #     indices = []
+    #     for face in select.faces:
+    #         ind = [int(face[0]),int(face[1])]
+    #         ind.insert(sax,h)
+    #         other_axes = [0,1,2]
+    #         other_axes.pop(sax)
+    #         for i in range(2):
+    #             ax = other_axes[i]
+    #             for j in range(2):
+    #                 # Check neighboring faces
+    #                 nface = face.copy()
+    #                 nface[i] += 2*j-1
+    #                 nface = np.array(nface, dtype=np.uint32)
+    #                 if np.all(nface>=0) and np.all(nface<self.pjoint.dim):
+    #                     unique = True
+    #                     for face2 in select.faces:
+    #                         if nface[0]==face2[0] and nface[1]==face2[1]:
+    #                             unique = False
+    #                             break
+    #                     if not unique: continue
+    #                 for k in range(2):
+    #                     add = [k,k,k]
+    #                     add[ax] = j
+    #                     add[sax] = 0
+    #                     index = Utils.get_index(ind, add, self.pjoint.dim)
+    #                     indices.append(index)
+    #     # Format
+    #     indices = np.array(indices, dtype=np.uint32)
+    #     indices = indices + offset
+    #     # Store
+    #     indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
+    #     all_indices = np.concatenate([all_indices, indices])
+    #     # Return
+    #     return indices_prop, all_indices
+
+    def _joint_selected_top_line_indices(self, select, all_indices):
+        """Make indices of lines for drawing selected top faces."""
         n = select.n
         dir = select.dir
-        offset = n*self.pjoint.vn
+        offset = n * self.pjoint.vn
         sax = self.pjoint.sax
         h = self.height_fields[n-dir][tuple(select.faces[0])]
-        # 1. Outline of selected top faces of joint
+
+        # Collect line indices for selected faces
+        indices = self._collect_selected_face_outline_indices(select, sax, h)
+
+        # Format and store indices
+        indices_prop, all_indices = self._process_indices(
+            indices, all_indices, GL.GL_LINES, n, offset)
+
+        return indices_prop, all_indices
+
+    def _collect_selected_face_outline_indices(self, select, sax, h):
+        """Collect outline indices for selected faces."""
         indices = []
+
         for face in select.faces:
-            ind = [int(face[0]),int(face[1])]
-            ind.insert(sax,h)
-            other_axes = [0,1,2]
+            ind = [int(face[0]), int(face[1])]
+            ind.insert(sax, h)
+
+            # Get axes perpendicular to sliding axis
+            other_axes = [0, 1, 2]
             other_axes.pop(sax)
+
+            # Check each perpendicular axis
             for i in range(2):
                 ax = other_axes[i]
-                for j in range(2):
-                    # Check neighboring faces
-                    nface = face.copy()
-                    nface[i] += 2*j-1
-                    nface = np.array(nface, dtype=np.uint32)
-                    if np.all(nface>=0) and np.all(nface<self.pjoint.dim):
-                        unique = True
-                        for face2 in select.faces:
-                            if nface[0]==face2[0] and nface[1]==face2[1]:
-                                unique = False
-                                break
-                        if not unique: continue
-                    for k in range(2):
-                        add = [k,k,k]
-                        add[ax] = j
-                        add[sax] = 0
-                        index = Utils.get_index(ind, add, self.pjoint.dim)
-                        indices.append(index)
-        # Format
-        indices = np.array(indices, dtype=np.uint32)
-        indices = indices + offset
-        # Store
-        indices_prop = ElementProperties(GL.GL_LINES, len(indices), len(all_indices), n)
-        all_indices = np.concatenate([all_indices, indices])
-        # Return
-        return indices_prop, all_indices
+                self._add_face_edge_indices(face, ind, i, ax, sax, select.faces, indices)
+
+        return indices
+
+    def _add_face_edge_indices(self, face, ind, i, ax, sax, all_faces, indices):
+        """Add edge indices for a face if the edge is on the boundary."""
+        for j in range(2):
+            # Check neighboring faces
+            nface = face.copy()
+            nface[i] += 2*j-1
+            nface = np.array(nface, dtype=np.uint32)
+
+            if not self._is_valid_neighboring_face(nface, all_faces):
+                # Add edge indices
+                for k in range(2):
+                    add = [k, k, k]
+                    add[ax] = j
+                    add[sax] = 0
+                    index = Utils.get_index(ind, add, self.pjoint.dim)
+                    indices.append(index)
+
+    def _is_valid_neighboring_face(self, nface, all_faces):
+        """Check if a neighboring face is valid and in the selection."""
+        # Check if face is within bounds
+        if not (np.all(nface >= 0) and np.all(nface < self.pjoint.dim)):
+            return False
+
+        # Check if face is in the selection
+        for face2 in all_faces:
+            if nface[0] == face2[0] and nface[1] == face2[1]:
+                return True
+
+        return False
 
     def _component_outline_indices(self,all_indices,fixed_sides,n,offset):
         d = self.pjoint.dim + 1
