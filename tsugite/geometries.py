@@ -199,48 +199,87 @@ class Geometries:
             ])
         return indices
 
+    # def _extract_joint_faces(self, mat, fixed_sides, n):
+    #     """Extract indices for joint faces.
+    #
+    #     Args:
+    #         mat: The voxel matrix to extract faces from
+    #         fixed_sides: List of fixed sides for this component
+    #         n: Component index
+    #
+    #     Returns:
+    #         tuple: (indices, indices_ends) Lists of indices for regular faces and end faces
+    #     """
+    #     indices = []
+    #     indices_ends = []
+    #     d = self.pjoint.dim + 1
+    #
+    #     for i in range(d):
+    #         for j in range(d):
+    #             for k in range(d):
+    #                 ind = [i, j, k]
+    #                 for ax in range(3):
+    #                     test_ind = np.array([i, j, k])
+    #                     test_ind = np.delete(test_ind, ax)
+    #                     if np.any(test_ind == self.pjoint.dim):
+    #                         continue
+    #
+    #                     cnt, vals = Utils.face_neighbors(mat, ind, ax, n, fixed_sides)
+    #                     if cnt == 1:
+    #                         for x in range(2):
+    #                             for y in range(2):
+    #                                 add = [x, abs(y-x)]
+    #                                 add.insert(ax, 0)
+    #                                 index = Utils.get_index(ind, add, self.pjoint.dim)
+    #
+    #                                 if len(fixed_sides) > 0:
+    #                                     if fixed_sides[0].ax == ax:
+    #                                         indices_ends.append(index)
+    #                                     else:
+    #                                         indices.append(index)
+    #                                 else:
+    #                                     indices.append(index)
+    #
+    #     return indices, indices_ends
+
     def _extract_joint_faces(self, mat, fixed_sides, n):
-        """Extract indices for joint faces.
-
-        Args:
-            mat: The voxel matrix to extract faces from
-            fixed_sides: List of fixed sides for this component
-            n: Component index
-
-        Returns:
-            tuple: (indices, indices_ends) Lists of indices for regular faces and end faces
-        """
+        """Extract indices for joint faces."""
         indices = []
         indices_ends = []
         d = self.pjoint.dim + 1
 
+        # Extract face indices
         for i in range(d):
             for j in range(d):
                 for k in range(d):
-                    ind = [i, j, k]
-                    for ax in range(3):
-                        test_ind = np.array([i, j, k])
-                        test_ind = np.delete(test_ind, ax)
-                        if np.any(test_ind == self.pjoint.dim):
-                            continue
-
-                        cnt, vals = Utils.face_neighbors(mat, ind, ax, n, fixed_sides)
-                        if cnt == 1:
-                            for x in range(2):
-                                for y in range(2):
-                                    add = [x, abs(y-x)]
-                                    add.insert(ax, 0)
-                                    index = Utils.get_index(ind, add, self.pjoint.dim)
-
-                                    if len(fixed_sides) > 0:
-                                        if fixed_sides[0].ax == ax:
-                                            indices_ends.append(index)
-                                        else:
-                                            indices.append(index)
-                                    else:
-                                        indices.append(index)
+                    self._process_voxel_faces(mat, [i, j, k], fixed_sides, n, indices, indices_ends)
 
         return indices, indices_ends
+
+    def _process_voxel_faces(self, mat, ind, fixed_sides, n, indices, indices_ends):
+        """Process faces for a single voxel position."""
+        for ax in range(3):
+            test_ind = np.array(ind)
+            test_ind = np.delete(test_ind, ax)
+            if np.any(test_ind == self.pjoint.dim):
+                continue
+
+            cnt, vals = Utils.face_neighbors(mat, ind, ax, n, fixed_sides)
+            if cnt == 1:
+                self._add_face_indices(ind, ax, fixed_sides, indices, indices_ends)
+
+    def _add_face_indices(self, ind, ax, fixed_sides, indices, indices_ends):
+        """Add face indices for a specific position and axis."""
+        for x in range(2):
+            for y in range(2):
+                add = [x, abs(y-x)]
+                add.insert(ax, 0)
+                index = Utils.get_index(ind, add, self.pjoint.dim)
+
+                if len(fixed_sides) > 0 and fixed_sides[0].ax == ax:
+                    indices_ends.append(index)
+                else:
+                    indices.append(index)
 
     def _extract_component_base_faces(self, fixed_sides, n):
         """Extract indices for component base faces.
@@ -425,6 +464,55 @@ class Geometries:
         # Return properties and updated indices
         return indices_prop, indices_tops_prop, all_indices
 
+    # def _extract_top_joint_faces(self, n, sdirs, offset):
+    #     """Extract joint top faces for picking."""
+    #     indices = []
+    #     indices_tops = []
+    #     sax = self.pjoint.sax
+    #
+    #     for ax in range(3):
+    #         for i in range(self.pjoint.dim):
+    #             for j in range(self.pjoint.dim):
+    #                 top_face_indices_cnt = 0
+    #                 for k in range(self.pjoint.dim + 1):
+    #                     if sdirs[0] == 0:
+    #                         k = self.pjoint.dim - k
+    #
+    #                     ind = [i, j]
+    #                     ind.insert(ax, k)
+    #
+    #                     # Count number of neighbors (0, 1, or 2)
+    #                     cnt, vals = Utils.face_neighbors(self.voxel_matrix, ind, ax, n, self.pjoint.fixed.sides[n])
+    #                     on_free_base = False
+    #
+    #                     # Add base if edge component
+    #                     if ax == sax and ax != self.pjoint.fixed.sides[n][0].ax and len(sdirs) == 1:
+    #                         base = sdirs[0] * self.pjoint.dim
+    #                         if ind[ax] == base:
+    #                             on_free_base = True
+    #
+    #                     if cnt == 1 or on_free_base:
+    #                         for x in range(2):
+    #                             for y in range(2):
+    #                                 add = [x, abs(y-x)]
+    #                                 add.insert(ax, 0)
+    #                                 index = Utils.get_index(ind, add, self.pjoint.dim)
+    #
+    #                                 # Determine if this is a top face for picking
+    #                                 if ax == sax and top_face_indices_cnt < 4 * len(sdirs):
+    #                                     indices_tops.append(index)
+    #                                     top_face_indices_cnt += 1
+    #                                 else:
+    #                                     indices.append(index)
+    #
+    #                 # Add padding indices if needed
+    #                 if top_face_indices_cnt < 4 * len(sdirs) and ax == sax:
+    #                     neg_i = -offset - 1
+    #                     for k in range(4 * len(sdirs) - top_face_indices_cnt):
+    #                         indices_tops.append(neg_i)
+    #
+    #     return indices, indices_tops
+
     def _extract_top_joint_faces(self, n, sdirs, offset):
         """Extract joint top faces for picking."""
         indices = []
@@ -434,45 +522,63 @@ class Geometries:
         for ax in range(3):
             for i in range(self.pjoint.dim):
                 for j in range(self.pjoint.dim):
-                    top_face_indices_cnt = 0
-                    for k in range(self.pjoint.dim + 1):
-                        if sdirs[0] == 0:
-                            k = self.pjoint.dim - k
-
-                        ind = [i, j]
-                        ind.insert(ax, k)
-
-                        # Count number of neighbors (0, 1, or 2)
-                        cnt, vals = Utils.face_neighbors(self.voxel_matrix, ind, ax, n, self.pjoint.fixed.sides[n])
-                        on_free_base = False
-
-                        # Add base if edge component
-                        if ax == sax and ax != self.pjoint.fixed.sides[n][0].ax and len(sdirs) == 1:
-                            base = sdirs[0] * self.pjoint.dim
-                            if ind[ax] == base:
-                                on_free_base = True
-
-                        if cnt == 1 or on_free_base:
-                            for x in range(2):
-                                for y in range(2):
-                                    add = [x, abs(y-x)]
-                                    add.insert(ax, 0)
-                                    index = Utils.get_index(ind, add, self.pjoint.dim)
-
-                                    # Determine if this is a top face for picking
-                                    if ax == sax and top_face_indices_cnt < 4 * len(sdirs):
-                                        indices_tops.append(index)
-                                        top_face_indices_cnt += 1
-                                    else:
-                                        indices.append(index)
-
-                    # Add padding indices if needed
-                    if top_face_indices_cnt < 4 * len(sdirs) and ax == sax:
-                        neg_i = -offset - 1
-                        for k in range(4 * len(sdirs) - top_face_indices_cnt):
-                            indices_tops.append(neg_i)
+                    self._process_top_faces_for_position(n, sdirs, ax, i, j, sax, indices, indices_tops)
 
         return indices, indices_tops
+
+    def _process_top_faces_for_position(self, n, sdirs, ax, i, j, sax, indices, indices_tops):
+        """Process top faces for a specific position."""
+        top_face_indices_cnt = 0
+
+        for k in range(self.pjoint.dim + 1):
+            k_value = self.pjoint.dim - k if sdirs[0] == 0 else k
+
+            ind = [i, j]
+            ind.insert(ax, k_value)
+
+            # Check if this is a visible face
+            if self._is_visible_face(ind, ax, n, sax, sdirs):
+                top_face_indices_cnt = self._add_top_face_indices(
+                    ind, ax, sax, top_face_indices_cnt, len(sdirs), indices, indices_tops)
+
+        # Add padding indices if needed
+        if top_face_indices_cnt < 4 * len(sdirs) and ax == sax:
+            self._add_padding_indices(top_face_indices_cnt, len(sdirs), indices_tops, -offset - 1)
+
+    def _is_visible_face(self, ind, ax, n, sax, sdirs):
+        """Check if a face is visible and should be rendered."""
+        cnt, vals = Utils.face_neighbors(self.voxel_matrix, ind, ax, n, self.pjoint.fixed.sides[n])
+        on_free_base = False
+
+        # Check if on free base
+        if ax == sax and ax != self.pjoint.fixed.sides[n][0].ax and len(sdirs) == 1:
+            base = sdirs[0] * self.pjoint.dim
+            if ind[ax] == base:
+                on_free_base = True
+
+        return cnt == 1 or on_free_base
+
+    def _add_top_face_indices(self, ind, ax, sax, count, sdirs_len, indices, indices_tops):
+        """Add indices for a top face."""
+        for x in range(2):
+            for y in range(2):
+                add = [x, abs(y-x)]
+                add.insert(ax, 0)
+                index = Utils.get_index(ind, add, self.pjoint.dim)
+
+                # Determine if this is a top face for picking
+                if ax == sax and count < 4 * sdirs_len:
+                    indices_tops.append(index)
+                    count += 1
+                else:
+                    indices.append(index)
+
+        return count
+
+    def _add_padding_indices(self, count, sdirs_len, indices_tops, padding_value):
+        """Add padding indices to ensure consistent array size."""
+        for k in range(4 * sdirs_len - count):
+            indices_tops.append(padding_value)
 
     def _extract_top_component_base_faces(self, n):
         """Extract component base faces for top face picking."""
