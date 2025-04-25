@@ -140,73 +140,6 @@ class GLWidget(qgl.QGLWidget):
         self.wstep = int(0.5+w/5)
         self.hstep = int(0.5+h/4)
 
-    # def paintGL(self):
-    #     self.clear()
-    #
-    #     # technically not needed because it is part of fixed pipeline
-    #     # https://stackoverflow.com/questions/21112570/opengl-changing-from-fixed-functions-to-programmable-pipeline
-    #     GL.glLoadIdentity()
-    #
-    #     self.display.update()
-    #
-    #     GL.glViewport(0, 0, self.width - self.wstep, self.height)
-    #
-    #     # Color picking / editing
-    #     # Pick faces -1: nothing, 0: hovered, 1: adding, 2: pulling
-    #
-    #     # Draw back buffer colors
-    #     if not self.joint.mesh.select.state == 2 and not self.joint.mesh.select.state == 12:
-    #         self.display.pick(self.x, self.y, self.height)
-    #         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT | GL.GL_STENCIL_BUFFER_BIT)
-    #     elif self.joint.mesh.select.state == 2:  # Edit joint geometry
-    #         self.joint.mesh.select.edit([self.x, self.y], self.display.view.xrot, self.display.view.yrot, w=self.width,
-    #                                     h=self.height)
-    #     elif self.joint.mesh.select.state == 12:  # Edit timber orientation/position
-    #         self.joint.mesh.select.move([self.x, self.y], self.display.view.xrot, self.display.view.yrot)
-    #
-    #     # Display main geometry
-    #     self.display.end_grains()
-    #     if self.display.view.show_feedback:
-    #         self.display.unfabricatable()
-    #         self.display.nondurable()
-    #         self.display.unconnected()
-    #         self.display.unbridged()
-    #         self.display.checker()
-    #         self.display.arrows()
-    #         show_area = False  # <--replace by checkbox...
-    #         if show_area:
-    #             self.display.area()
-    #     self.display.joint_geometry()
-    #
-    #     if self.joint.mesh.select.sugg_state >= 0:
-    #         index = self.joint.mesh.select.sugg_state
-    #         if len(self.joint.suggestions) > index:
-    #             self.display.difference_suggestion(index)
-    #
-    #     # Display editing in action
-    #     self.display.selected()
-    #     self.display.moving_rotating()
-    #
-    #     # Display milling paths
-    #     self.display.milling_paths()
-    #
-    #     # Suggestions
-    #     if self.display.view.show_suggestions:
-    #         for i in range(len(self.joint.suggestions)):
-    #             # hquater = self.height / 4
-    #             # wquater = self.width / 5
-    #             GL.glViewport(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
-    #
-    #             if i == self.joint.mesh.select.sugg_state:
-    #                 GL.glEnable(GL.GL_SCISSOR_TEST)
-    #                 # glClear is determined by the scissor box.
-    #                 GL.glScissor(self.width - self.wstep, self.height - self.hstep * (i + 1), self.wstep, self.hstep)
-    #                 GL.glClearDepth(1.0)
-    #                 GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
-    #                 GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-    #                 GL.glDisable(GL.GL_SCISSOR_TEST)
-    #             self.display.joint_geometry(mesh=self.joint.suggestions[i], lw=2, hidden=False)
-
     def paintGL(self):
         """Main rendering function."""
         self.clear()
@@ -324,35 +257,6 @@ class GLWidget(qgl.QGLWidget):
         GL.glClearColor(0.9, 0.9, 0.9, 1.0)  # light grey
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         GL.glDisable(GL.GL_SCISSOR_TEST)
-
-    # def mousePressEvent(self, e):
-    #     if e.button() == qtc.Qt.LeftButton:
-    #         if time.time() - self.click_time < 0.2:
-    #             self.display.view.open_joint = not self.display.view.open_joint
-    #         elif self.joint.mesh.select.state==0: #face hovered
-    #             self.joint.mesh.select.start_pull([self.parent.scaling * e.x(), self.parent.scaling * e.y()])
-    #         elif self.joint.mesh.select.state==10: #body hovered
-    #             self.joint.mesh.select.start_move([self.parent.scaling * e.x(), self.parent.scaling * e.y()], h=self.height)
-    #         #SUGGESTION PICK
-    #         elif self.joint.mesh.select.sugg_state>=0:
-    #             index = self.joint.mesh.select.sugg_state
-    #             if len(self.joint.suggestions)>index:
-    #                 self.joint.mesh = Geometries(self.joint, hfs=self.joint.suggestions[index].height_fields)
-    #                 self.joint.suggestions = []
-    #                 self.joint.combine_and_buffer_indices()
-    #                 self.joint.mesh.select.sugg_state=-1
-    #         #GALLERY PICK -- not implemented currently
-    #         #elif joint.mesh.select.gallstate>=0:
-    #         #    index = joint.mesh.select.gallstate
-    #         #    if index<len(joint.gals):
-    #         #        joint.mesh = Geometries(joint,hfs=joint.gals[index].height_fields)
-    #         #        joint.gals = []
-    #         #        view_opt.gallery=False
-    #         #        joint.gallary_start_index = -20
-    #         #        joint.combine_and_buffer_indices()
-    #         else: self.click_time = time.time()
-    #     elif e.button() == qtc.Qt.RightButton:
-    #         self.display.view.start_rotation_xy(self.parent.scaling*e.x(),self.parent.scaling*e.y())
 
     def mousePressEvent(self, e):
         """Handle mouse press events."""
