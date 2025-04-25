@@ -654,124 +654,335 @@ class Geometries:
         # Return
         return indices_prop, all_indices
 
+    # def create_indices(self, glo_off=0, milling_path=False):
+    #     #shared lists
+    #     all_inds = []
+    #     self.indices_fall = []
+    #     self.indices_lns = []
+    #     #suggestion geometries
+    #     if not self.mainmesh: # for suggestions and gallery - just show basic geometry - no feedback - global offset necessary
+    #         for n in range(self.pjoint.noc):
+    #             ax = self.pjoint.fixed.sides[n][0].ax
+    #             nend,end,all,all_inds = self.generate_joint_face_indices(all_inds,
+    #                                                                      self.voxel_matrix, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn, global_offset=glo_off)
+    #             lns,all_inds = self._joint_line_indices(all_inds, n, ax * self.pjoint.vn, global_offset=glo_off)
+    #             self.indices_fall.append(all)
+    #             self.indices_lns.append(lns)
+    #     #current geometry (main including feedback)
+    #     else:
+    #         self.indices_fend=[]
+    #         self.indices_not_fend=[]
+    #         self.indices_fcon = []
+    #         self.indices_not_fcon = []
+    #         self.indices_fbrk = []
+    #         self.indices_not_fbrk = []
+    #         self.indices_open_lines = []
+    #         self.indices_not_fbridge = []
+    #         self.indices_ffric = []
+    #         self.indices_not_ffric = []
+    #         self.indices_fcont = []
+    #         self.indices_not_fcont = []
+    #         self.indices_arrows = []
+    #         self.indices_fpick_top = []
+    #         self.indices_fpick_not_top = []
+    #         self.outline_selected_faces = None
+    #         self.outline_selected_component = None
+    #         self.indices_chess_lines = []
+    #         self.indices_breakable_lines = []
+    #         self.indices_milling_path = []
+    #         for n in range(self.pjoint.noc):
+    #             ax = self.pjoint.fixed.sides[n][0].ax
+    #             #Faces
+    #             nend,end,con,all_inds = self.generate_joint_face_indices(all_inds,
+    #                                                                      self.eval.voxel_matrix_connected, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn)
+    #             if not self.eval.connected[n]:
+    #                 fne,fe,uncon,all_inds = self.generate_joint_face_indices(all_inds, self.eval.voxel_matrix_unconnected, [], n, ax * self.pjoint.vn)
+    #                 self.indices_not_fcon.append(uncon)
+    #                 all = ElementProperties(GL.GL_QUADS, con.count+uncon.count, con.start_index, n)
+    #             else:
+    #                 self.indices_not_fcon.append(None)
+    #                 all = con
+    #
+    #             #breakable and not breakable faces
+    #             fne,fe,brk_faces,all_inds = self.generate_joint_face_indices(all_inds, self.eval.breakable_voxmat, [], n, ax * self.pjoint.vn)
+    #             fne,fe,not_brk_faces,all_inds = self.generate_joint_face_indices(all_inds, self.eval.non_breakable_voxmat, self.pjoint.fixed.sides[n], n, n * self.pjoint.vn)
+    #
+    #             if not self.eval.bridged[n]:
+    #                 unbris = []
+    #                 for m in range(2):
+    #                     fne,fe,unbri,all_inds = self.generate_joint_face_indices(all_inds, self.eval.voxel_matrices_unbridged[n][m], [self.pjoint.fixed.sides[n][m]], n, n * self.pjoint.vn)
+    #                     unbris.append(unbri)
+    #             else: unbris = None
+    #
+    #             # Friction ad contact faces
+    #             fric,nfric,all_inds = self._joint_area_face_indices(all_inds, self.voxel_matrix, self.eval.friction_faces[n], n)
+    #             cont,ncont,all_inds = self._joint_area_face_indices(all_inds, self.voxel_matrix, self.eval.contact_faces[n], n)
+    #
+    #             #picking faces
+    #             faces_pick_not_tops, faces_pick_tops, all_inds = self._joint_top_face_indices(all_inds, n, self.pjoint.noc, ax * self.pjoint.vn)
+    #
+    #             #Lines
+    #             lns,all_inds = self._joint_line_indices(all_inds, n, ax * self.pjoint.vn)
+    #
+    #             # Chessboard feedback lines
+    #             if self.eval.checker[n]:
+    #                 chess,all_inds = self._chess_line_indices(all_inds, self.eval.checker_vertices[n], n, ax * self.pjoint.vn)
+    #             else: chess = []
+    #             # Breakable lines
+    #             if self.eval.breakable:
+    #                 break_lns, all_inds = self._break_line_indices(all_inds, self.eval.breakable_outline_inds[n], n, ax * self.pjoint.vn)
+    #
+    #             # Opening lines
+    #             open,all_inds = self._open_line_indices(all_inds, n, ax * self.pjoint.vn)
+    #             self.indices_open_lines.append(open)
+    #
+    #             #arrows
+    #             larr, farr, all_inds = self._arrow_indices(all_inds, self.eval.slides[n], n, 3 * self.pjoint.vn)
+    #             arrows = [larr,farr]
+    #
+    #             if milling_path and len(self.pjoint.mverts[0])>0:
+    #                 mill,all_inds = self._milling_path_indices(all_inds, int(len(self.pjoint.mverts[n]) / 8), self.pjoint.m_start[n], n)
+    #
+    #             # Append lists
+    #             self.indices_fend.append(end)
+    #             self.indices_not_fend.append(nend)
+    #             self.indices_fcon.append(con)
+    #             self.indices_fall.append(all)
+    #             self.indices_lns.append(lns)
+    #             self.indices_not_fbridge.append(unbris)
+    #             self.indices_arrows.append(arrows)
+    #             self.indices_fpick_top.append(faces_pick_tops)
+    #             self.indices_fpick_not_top.append(faces_pick_not_tops)
+    #             self.indices_chess_lines.append(chess)
+    #             if self.eval.breakable:
+    #                 self.indices_breakable_lines.append(break_lns)
+    #                 self.indices_fbrk.append(brk_faces)
+    #                 self.indices_not_fbrk.append(not_brk_faces)
+    #             if milling_path and len(self.pjoint.mverts[0])>0:
+    #                 self.indices_milling_path.append(mill)
+    #             self.indices_ffric.append(fric)
+    #             self.indices_not_ffric.append(nfric)
+    #             self.indices_fcont.append(cont)
+    #             self.indices_not_fcont.append(ncont)
+    #
+    #         #outline of selected faces
+    #         if self.select.state==2:
+    #             self.outline_selected_faces, all_inds = self._joint_selected_top_line_indices(self.select,all_inds)
+    #
+    #         if self.select.n!=None and self.select.new_fixed_sides_for_display!=None:
+    #             self.outline_selected_component, all_inds = self._component_outline_indices(all_inds, self.select.new_fixed_sides_for_display, self.select.n, self.select.n * self.pjoint.vn)
+    #     self.indices = all_inds
+
+
     def create_indices(self, glo_off=0, milling_path=False):
-        #shared lists
+        """Create all indices for rendering the joint geometry."""
+        # Shared lists
         all_inds = []
         self.indices_fall = []
         self.indices_lns = []
-        #suggestion geometries
-        if not self.mainmesh: # for suggestions and gallery - just show basic geometry - no feedback - global offset necessary
-            for n in range(self.pjoint.noc):
-                ax = self.pjoint.fixed.sides[n][0].ax
-                nend,end,all,all_inds = self.generate_joint_face_indices(all_inds,
-                                                                         self.voxel_matrix, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn, global_offset=glo_off)
-                lns,all_inds = self._joint_line_indices(all_inds, n, ax * self.pjoint.vn, global_offset=glo_off)
-                self.indices_fall.append(all)
-                self.indices_lns.append(lns)
-        #current geometry (main including feedback)
+
+        if not self.mainmesh:
+            # For suggestions and gallery - just show basic geometry - no feedback
+            all_inds = self._create_suggestion_indices(all_inds, glo_off)
         else:
-            self.indices_fend=[]
-            self.indices_not_fend=[]
-            self.indices_fcon = []
-            self.indices_not_fcon = []
-            self.indices_fbrk = []
-            self.indices_not_fbrk = []
-            self.indices_open_lines = []
-            self.indices_not_fbridge = []
-            self.indices_ffric = []
-            self.indices_not_ffric = []
-            self.indices_fcont = []
-            self.indices_not_fcont = []
-            self.indices_arrows = []
-            self.indices_fpick_top = []
-            self.indices_fpick_not_top = []
-            self.outline_selected_faces = None
-            self.outline_selected_component = None
-            self.indices_chess_lines = []
-            self.indices_breakable_lines = []
-            self.indices_milling_path = []
-            for n in range(self.pjoint.noc):
-                ax = self.pjoint.fixed.sides[n][0].ax
-                #Faces
-                nend,end,con,all_inds = self.generate_joint_face_indices(all_inds,
-                                                                         self.eval.voxel_matrix_connected, self.pjoint.fixed.sides[n], n, ax * self.pjoint.vn)
-                if not self.eval.connected[n]:
-                    fne,fe,uncon,all_inds = self.generate_joint_face_indices(all_inds, self.eval.voxel_matrix_unconnected, [], n, ax * self.pjoint.vn)
-                    self.indices_not_fcon.append(uncon)
-                    all = ElementProperties(GL.GL_QUADS, con.count+uncon.count, con.start_index, n)
-                else:
-                    self.indices_not_fcon.append(None)
-                    all = con
+            # Current geometry (main including feedback)
+            all_inds = self._create_main_mesh_indices(all_inds, milling_path)
 
-                #breakable and not breakable faces
-                fne,fe,brk_faces,all_inds = self.generate_joint_face_indices(all_inds, self.eval.breakable_voxmat, [], n, ax * self.pjoint.vn)
-                fne,fe,not_brk_faces,all_inds = self.generate_joint_face_indices(all_inds, self.eval.non_breakable_voxmat, self.pjoint.fixed.sides[n], n, n * self.pjoint.vn)
-
-                if not self.eval.bridged[n]:
-                    unbris = []
-                    for m in range(2):
-                        fne,fe,unbri,all_inds = self.generate_joint_face_indices(all_inds, self.eval.voxel_matrices_unbridged[n][m], [self.pjoint.fixed.sides[n][m]], n, n * self.pjoint.vn)
-                        unbris.append(unbri)
-                else: unbris = None
-
-                # Friction ad contact faces
-                fric,nfric,all_inds = self._joint_area_face_indices(all_inds, self.voxel_matrix, self.eval.friction_faces[n], n)
-                cont,ncont,all_inds = self._joint_area_face_indices(all_inds, self.voxel_matrix, self.eval.contact_faces[n], n)
-
-                #picking faces
-                faces_pick_not_tops, faces_pick_tops, all_inds = self._joint_top_face_indices(all_inds, n, self.pjoint.noc, ax * self.pjoint.vn)
-
-                #Lines
-                lns,all_inds = self._joint_line_indices(all_inds, n, ax * self.pjoint.vn)
-
-                # Chessboard feedback lines
-                if self.eval.checker[n]:
-                    chess,all_inds = self._chess_line_indices(all_inds, self.eval.checker_vertices[n], n, ax * self.pjoint.vn)
-                else: chess = []
-                # Breakable lines
-                if self.eval.breakable:
-                    break_lns, all_inds = self._break_line_indices(all_inds, self.eval.breakable_outline_inds[n], n, ax * self.pjoint.vn)
-
-                # Opening lines
-                open,all_inds = self._open_line_indices(all_inds, n, ax * self.pjoint.vn)
-                self.indices_open_lines.append(open)
-
-                #arrows
-                larr, farr, all_inds = self._arrow_indices(all_inds, self.eval.slides[n], n, 3 * self.pjoint.vn)
-                arrows = [larr,farr]
-
-                if milling_path and len(self.pjoint.mverts[0])>0:
-                    mill,all_inds = self._milling_path_indices(all_inds, int(len(self.pjoint.mverts[n]) / 8), self.pjoint.m_start[n], n)
-
-                # Append lists
-                self.indices_fend.append(end)
-                self.indices_not_fend.append(nend)
-                self.indices_fcon.append(con)
-                self.indices_fall.append(all)
-                self.indices_lns.append(lns)
-                self.indices_not_fbridge.append(unbris)
-                self.indices_arrows.append(arrows)
-                self.indices_fpick_top.append(faces_pick_tops)
-                self.indices_fpick_not_top.append(faces_pick_not_tops)
-                self.indices_chess_lines.append(chess)
-                if self.eval.breakable:
-                    self.indices_breakable_lines.append(break_lns)
-                    self.indices_fbrk.append(brk_faces)
-                    self.indices_not_fbrk.append(not_brk_faces)
-                if milling_path and len(self.pjoint.mverts[0])>0:
-                    self.indices_milling_path.append(mill)
-                self.indices_ffric.append(fric)
-                self.indices_not_ffric.append(nfric)
-                self.indices_fcont.append(cont)
-                self.indices_not_fcont.append(ncont)
-
-            #outline of selected faces
-            if self.select.state==2:
-                self.outline_selected_faces, all_inds = self._joint_selected_top_line_indices(self.select,all_inds)
-
-            if self.select.n!=None and self.select.new_fixed_sides_for_display!=None:
-                self.outline_selected_component, all_inds = self._component_outline_indices(all_inds, self.select.new_fixed_sides_for_display, self.select.n, self.select.n * self.pjoint.vn)
         self.indices = all_inds
+
+    def _create_suggestion_indices(self, all_inds, glo_off=0):
+        """Create indices for suggestion geometries (simplified version)."""
+        for n in range(self.pjoint.noc):
+            ax = self.pjoint.fixed.sides[n][0].ax
+            offset = ax * self.pjoint.vn
+
+            # Generate face indices
+            nend, end, all_faces, all_inds = self.generate_joint_face_indices(
+                all_inds, self.voxel_matrix, self.pjoint.fixed.sides[n],
+                n, offset, global_offset=glo_off
+            )
+
+            # Generate line indices
+            lns, all_inds = self._joint_line_indices(
+                all_inds, n, offset, global_offset=glo_off
+            )
+
+            # Store indices
+            self.indices_fall.append(all_faces)
+            self.indices_lns.append(lns)
+
+        return all_inds
+
+    def _create_main_mesh_indices(self, all_inds, milling_path=False):
+        """Create indices for the main mesh with all feedback visualizations."""
+        # Initialize all index lists
+        self._initialize_main_mesh_index_lists()
+
+        # Create component-specific indices
+        for n in range(self.pjoint.noc):
+            all_inds = self._create_component_indices(n, all_inds, milling_path)
+
+        # Create selection-related indices
+        all_inds = self._create_selection_indices(all_inds)
+
+        return all_inds
+
+    def _initialize_main_mesh_index_lists(self):
+        """Initialize all the index lists used for the main mesh."""
+        self.indices_fend = []
+        self.indices_not_fend = []
+        self.indices_fcon = []
+        self.indices_not_fcon = []
+        self.indices_fbrk = []
+        self.indices_not_fbrk = []
+        self.indices_open_lines = []
+        self.indices_not_fbridge = []
+        self.indices_ffric = []
+        self.indices_not_ffric = []
+        self.indices_fcont = []
+        self.indices_not_fcont = []
+        self.indices_arrows = []
+        self.indices_fpick_top = []
+        self.indices_fpick_not_top = []
+        self.outline_selected_faces = None
+        self.outline_selected_component = None
+        self.indices_chess_lines = []
+        self.indices_breakable_lines = []
+        self.indices_milling_path = []
+
+    def _create_component_indices(self, n, all_inds, milling_path=False):
+        """Create indices for a specific component."""
+        ax = self.pjoint.fixed.sides[n][0].ax
+        offset = ax * self.pjoint.vn
+
+        # Generate face indices
+        nend, end, con, all_inds = self.generate_joint_face_indices(
+            all_inds, self.eval.voxel_matrix_connected,
+            self.pjoint.fixed.sides[n], n, offset
+        )
+
+        # Handle connected/disconnected components
+        if not self.eval.connected[n]:
+            fne, fe, uncon, all_inds = self.generate_joint_face_indices(
+                all_inds, self.eval.voxel_matrix_unconnected, [], n, offset
+            )
+            self.indices_not_fcon.append(uncon)
+            all_faces = ElementProperties(GL.GL_QUADS, con.count + uncon.count, con.start_index, n)
+        else:
+            self.indices_not_fcon.append(None)
+            all_faces = con
+
+        # Generate breakable and non-breakable face indices
+        fne, fe, brk_faces, all_inds = self.generate_joint_face_indices(
+            all_inds, self.eval.breakable_voxmat, [], n, n * self.pjoint.vn
+        )
+        fne, fe, not_brk_faces, all_inds = self.generate_joint_face_indices(
+            all_inds, self.eval.non_breakable_voxmat, self.pjoint.fixed.sides[n],
+            n, n * self.pjoint.vn
+        )
+
+        # Handle unbridged components
+        if not self.eval.bridged[n]:
+            unbris = []
+            for m in range(2):
+                fne, fe, unbri, all_inds = self.generate_joint_face_indices(
+                    all_inds, self.eval.voxel_matrices_unbridged[n][m],
+                    [self.pjoint.fixed.sides[n][m]], n, n * self.pjoint.vn
+                )
+                unbris.append(unbri)
+        else:
+            unbris = None
+
+        # Generate friction and contact face indices
+        fric, nfric, all_inds = self._joint_area_face_indices(
+            all_inds, self.voxel_matrix, self.eval.friction_faces[n], n
+        )
+        cont, ncont, all_inds = self._joint_area_face_indices(
+            all_inds, self.voxel_matrix, self.eval.contact_faces[n], n
+        )
+
+        # Generate picking face indices
+        faces_pick_not_tops, faces_pick_tops, all_inds = self._joint_top_face_indices(
+            all_inds, n, self.pjoint.noc, offset
+        )
+
+        # Generate line indices
+        lns, all_inds = self._joint_line_indices(all_inds, n, offset)
+
+        # Generate chessboard feedback line indices
+        if self.eval.checker[n]:
+            chess, all_inds = self._chess_line_indices(
+                all_inds, self.eval.checker_vertices[n], n, offset
+            )
+        else:
+            chess = []
+
+        # Generate breakable line indices
+        if self.eval.breakable:
+            break_lns, all_inds = self._break_line_indices(
+                all_inds, self.eval.breakable_outline_inds[n], n, offset
+            )
+
+        # Generate opening line indices
+        open_lines, all_inds = self._open_line_indices(all_inds, n, offset)
+        self.indices_open_lines.append(open_lines)
+
+        # Generate arrow indices
+        larr, farr, all_inds = self._arrow_indices(
+            all_inds, self.eval.slides[n], n, 3 * self.pjoint.vn
+        )
+        arrows = [larr, farr]
+
+        # Generate milling path indices if needed
+        if milling_path and len(self.pjoint.mverts[0]) > 0:
+            mill, all_inds = self._milling_path_indices(
+                all_inds, int(len(self.pjoint.mverts[n]) / 8),
+                self.pjoint.m_start[n], n
+            )
+
+        # Store all indices
+        self.indices_fend.append(end)
+        self.indices_not_fend.append(nend)
+        self.indices_fcon.append(con)
+        self.indices_fall.append(all_faces)
+        self.indices_lns.append(lns)
+        self.indices_not_fbridge.append(unbris)
+        self.indices_arrows.append(arrows)
+        self.indices_fpick_top.append(faces_pick_tops)
+        self.indices_fpick_not_top.append(faces_pick_not_tops)
+        self.indices_chess_lines.append(chess)
+
+        if self.eval.breakable:
+            self.indices_breakable_lines.append(break_lns)
+            self.indices_fbrk.append(brk_faces)
+            self.indices_not_fbrk.append(not_brk_faces)
+
+        if milling_path and len(self.pjoint.mverts[0]) > 0:
+            self.indices_milling_path.append(mill)
+
+        self.indices_ffric.append(fric)
+        self.indices_not_ffric.append(nfric)
+        self.indices_fcont.append(cont)
+        self.indices_not_fcont.append(ncont)
+
+        return all_inds
+
+    def _create_selection_indices(self, all_inds):
+        """Create indices for selection visualization."""
+        # Generate outline of selected faces
+        if self.select.state == 2:
+            self.outline_selected_faces, all_inds = self._joint_selected_top_line_indices(
+                self.select, all_inds
+            )
+
+        # Generate outline of selected component
+        if self.select.n is not None and self.select.new_fixed_sides_for_display is not None:
+            self.outline_selected_component, all_inds = self._component_outline_indices(
+                all_inds, self.select.new_fixed_sides_for_display,
+                self.select.n, self.select.n * self.pjoint.vn
+            )
+
+        return all_inds
 
     def randomize_height_fields(self):
         self.height_fields = Utils.get_random_height_fields(self.pjoint.dim, self.pjoint.noc)
