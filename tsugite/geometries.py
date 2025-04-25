@@ -378,6 +378,37 @@ class Geometries:
 
         return indices_prop, indices_ends_prop, all_indices
 
+    # def _extract_area_joint_faces(self, mat, area_faces, n):
+    #     """Extract joint faces for area visualization."""
+    #     indices = []
+    #     indices_ends = []
+    #     d = self.pjoint.dim + 1
+    #
+    #     for i in range(d):
+    #         for j in range(d):
+    #             for k in range(d):
+    #                 ind = [i, j, k]
+    #                 for ax in range(3):
+    #                     offset = ax * self.pjoint.vn
+    #                     test_ind = np.array([i, j, k])
+    #                     test_ind = np.delete(test_ind, ax)
+    #                     if np.any(test_ind == self.pjoint.dim):
+    #                         continue
+    #
+    #                     cnt, vals = Utils.face_neighbors(mat, ind, ax, n, self.pjoint.fixed.sides[n])
+    #                     if cnt == 1:
+    #                         for x in range(2):
+    #                             for y in range(2):
+    #                                 add = [x, abs(y-x)]
+    #                                 add.insert(ax, 0)
+    #                                 index = Utils.get_index(ind, add, self.pjoint.dim)
+    #                                 if [ax, ind] in area_faces:
+    #                                     indices.append(index + offset)
+    #                                 else:
+    #                                     indices_ends.append(index + offset)
+    #
+    #     return indices, indices_ends
+
     def _extract_area_joint_faces(self, mat, area_faces, n):
         """Extract joint faces for area visualization."""
         indices = []
@@ -387,27 +418,35 @@ class Geometries:
         for i in range(d):
             for j in range(d):
                 for k in range(d):
-                    ind = [i, j, k]
-                    for ax in range(3):
-                        offset = ax * self.pjoint.vn
-                        test_ind = np.array([i, j, k])
-                        test_ind = np.delete(test_ind, ax)
-                        if np.any(test_ind == self.pjoint.dim):
-                            continue
-
-                        cnt, vals = Utils.face_neighbors(mat, ind, ax, n, self.pjoint.fixed.sides[n])
-                        if cnt == 1:
-                            for x in range(2):
-                                for y in range(2):
-                                    add = [x, abs(y-x)]
-                                    add.insert(ax, 0)
-                                    index = Utils.get_index(ind, add, self.pjoint.dim)
-                                    if [ax, ind] in area_faces:
-                                        indices.append(index + offset)
-                                    else:
-                                        indices_ends.append(index + offset)
+                    self._process_area_voxel_faces(mat, [i, j, k], area_faces, n, indices, indices_ends)
 
         return indices, indices_ends
+
+    def _process_area_voxel_faces(self, mat, ind, area_faces, n, indices, indices_ends):
+        """Process area faces for a single voxel position."""
+        for ax in range(3):
+            offset = ax * self.pjoint.vn
+            test_ind = np.array(ind)
+            test_ind = np.delete(test_ind, ax)
+            if np.any(test_ind == self.pjoint.dim):
+                continue
+
+            cnt, vals = Utils.face_neighbors(mat, ind, ax, n, self.pjoint.fixed.sides[n])
+            if cnt == 1:
+                self._add_area_face_indices(ind, ax, area_faces, offset, indices, indices_ends)
+
+    def _add_area_face_indices(self, ind, ax, area_faces, offset, indices, indices_ends):
+        """Add area face indices for a specific position and axis."""
+        for x in range(2):
+            for y in range(2):
+                add = [x, abs(y-x)]
+                add.insert(ax, 0)
+                index = Utils.get_index(ind, add, self.pjoint.dim)
+
+                if [ax, ind] in area_faces:
+                    indices.append(index + offset)
+                else:
+                    indices_ends.append(index + offset)
 
     def _extract_area_component_base_faces(self, n):
         """Extract component base faces for area visualization."""
