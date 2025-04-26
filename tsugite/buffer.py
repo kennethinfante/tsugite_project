@@ -57,6 +57,7 @@ class Buffer:
 
     def _setup_vertex_attributes(self):
         """Configure vertex attribute pointers."""
+        # for each array of len 8, do the ff
         # Calculate stride and offsets
         stride = int(8 * 32 / 8)  # 8 floats * 4 bytes per float
         color_offset = int(3 * 32 / 8)  # Skip 3 position values
