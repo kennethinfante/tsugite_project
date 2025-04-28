@@ -1090,58 +1090,148 @@ def flood_all_nonneg(mat: ndarray, floodval: int) -> np.ndarray:
         mat = flood_all_nonneg(mat, floodval)
     return mat
 
-def is_potentially_connected(mat: ndarray, dim: int, noc: int, level: int) -> bool:
-    potconn = True
-    mat[mat == level] = -1
-    mat[mat == level + 10] = -1
+# def is_potentially_connected(mat: ndarray, dim: int, noc: int, level: int) -> bool:
+#     potconn = True
+#     mat[mat == level] = -1
+#     mat[mat == level + 10] = -1
+#
+#     # 1. Check for connectivity
+#     floodval = 99
+#     mat_conn = np.copy(mat)
+#     flood_start_vals = []
+#     for n in range(noc):
+#         if n != level: mat_conn[mat_conn == n + 10] = floodval
+#
+#     # Recursively add all positive neigbors
+#     mat_conn = flood_all_nonneg(mat_conn, floodval)
+#
+#     # Get the count of all uncovered voxels
+#     uncovered_inds = np.argwhere((mat_conn != floodval) & (mat_conn >= 0))
+#     if len(uncovered_inds) > 0: potconn = False
+#
+#     if potconn:
+#         # 3. Check so that there are at least some (3) voxels that could connect to each fixed side
+#         for n in range(noc):
+#             if n == level: continue
+#             mat_conn = np.copy(mat)
+#             mat_conn[mat_conn == n + 10] = floodval
+#             for n2 in range(noc):
+#                 if n2 == level or n2 == n: continue
+#                 mat_conn[mat_conn == n2 + 10] = -1
+#             start_len = len(np.argwhere(mat_conn == floodval))
+#             # Recursively add all positive neigbors
+#             mat_conn = flood_all_nonneg(mat_conn, floodval)
+#             end_len = len(np.argwhere(mat_conn == floodval))
+#             if end_len - start_len < 3:
+#                 potconn = False
+#                 break
+#         # 3. Check for potential bridging
+#         for n in range(noc):
+#             if n == level: continue
+#             inds = np.argwhere(mat == n + 10)
+#             if len(inds) > dim * dim * dim:  # i.e. if there are more than 1 fixed side
+#                 mat_conn = np.copy(mat)
+#                 mat_conn[tuple(inds[0])] = floodval  # make 1 item 99
+#                 for n2 in range(noc):
+#                     if n2 == level or n2 == n: continue
+#                     mat_conn[mat_conn == n2 + 10] = -1
+#                 # Recursively add all positive neigbors
+#                 mat_conn = flood_all_nonneg(mat_conn, floodval)
+#                 for ind in inds:
+#                     if mat_conn[tuple(ind)] != floodval:
+#                         potconn = False
+#                         break
+#     return potconn
 
-    # 1. Check for connectivity
-    floodval = 99
-    mat_conn = np.copy(mat)
-    flood_start_vals = []
-    for n in range(noc):
-        if n != level: mat_conn[mat_conn == n + 10] = floodval
-
-    # Recursively add all positive neigbors
-    mat_conn = flood_all_nonneg(mat_conn, floodval)
+def _check_full_connectivity(mat: ndarray, floodval: int) -> bool:
+    """Check if all components are connected."""
+    # Recursively add all positive neighbors
+    mat_conn = flood_all_nonneg(mat, floodval)
 
     # Get the count of all uncovered voxels
     uncovered_inds = np.argwhere((mat_conn != floodval) & (mat_conn >= 0))
-    if len(uncovered_inds) > 0: potconn = False
 
-    if potconn:
-        # 3. Check so that there are at least some (3) voxels that could connect to each fixed side
-        for n in range(noc):
-            if n == level: continue
+    return len(uncovered_inds) == 0
+
+def _check_fixed_side_connectivity(mat: ndarray, level: int, noc: int, floodval: int) -> bool:
+    """Check if there are enough voxels connecting to each fixed side."""
+    for n in range(noc):
+        if n == level:
+            continue
+
+        mat_conn = np.copy(mat)
+        mat_conn[mat_conn == n + 10] = floodval
+
+        for n2 in range(noc):
+            if n2 == level or n2 == n:
+                continue
+            mat_conn[mat_conn == n2 + 10] = -1
+
+        start_len = len(np.argwhere(mat_conn == floodval))
+
+        # Recursively add all positive neighbors
+        mat_conn = flood_all_nonneg(mat_conn, floodval)
+
+        end_len = len(np.argwhere(mat_conn == floodval))
+
+        if end_len - start_len < 3:
+            return False
+
+    return True
+
+def _check_no_bridging(mat: ndarray, level: int, noc: int, dim: int, floodval: int) -> bool:
+    """Check that there's no bridging between fixed sides."""
+    for n in range(noc):
+        if n == level:
+            continue
+
+        inds = np.argwhere(mat == n + 10)
+
+        if len(inds) > dim * dim * dim:  # i.e. if there are more than 1 fixed side
             mat_conn = np.copy(mat)
-            mat_conn[mat_conn == n + 10] = floodval
+            mat_conn[tuple(inds[0])] = floodval
+
             for n2 in range(noc):
-                if n2 == level or n2 == n: continue
+                if n2 == level or n2 == n:
+                    continue
                 mat_conn[mat_conn == n2 + 10] = -1
-            start_len = len(np.argwhere(mat_conn == floodval))
-            # Recursively add all positive neigbors
+
+            # Recursively add all positive neighbors
             mat_conn = flood_all_nonneg(mat_conn, floodval)
-            end_len = len(np.argwhere(mat_conn == floodval))
-            if end_len - start_len < 3:
-                potconn = False
-                break
-        # 3. Check for potential bridging
-        for n in range(noc):
-            if n == level: continue
-            inds = np.argwhere(mat == n + 10)
-            if len(inds) > dim * dim * dim:  # i.e. if there are more than 1 fixed side
-                mat_conn = np.copy(mat)
-                mat_conn[tuple(inds[0])] = floodval  # make 1 item 99
-                for n2 in range(noc):
-                    if n2 == level or n2 == n: continue
-                    mat_conn[mat_conn == n2 + 10] = -1
-                # Recursively add all positive neigbors
-                mat_conn = flood_all_nonneg(mat_conn, floodval)
-                for ind in inds:
-                    if mat_conn[tuple(ind)] != floodval:
-                        potconn = False
-                        break
-    return potconn
+
+            for ind in inds:
+                if mat_conn[tuple(ind)] != floodval:
+                    return False
+
+    return True
+
+def is_potentially_connected(mat: ndarray, dim: int, noc: int, level: int) -> bool:
+    """Check if the joint is potentially connected."""
+    # Prepare matrix
+    mat_copy = np.copy(mat)
+    mat_copy[mat_copy == level] = -1
+    mat_copy[mat_copy == level + 10] = -1
+
+    floodval = 99
+
+    # Prepare flood starting points
+    for n in range(noc):
+        if n != level:
+            mat_copy[mat_copy == n + 10] = floodval
+
+    # Check full connectivity
+    if not _check_full_connectivity(mat_copy, floodval):
+        return False
+
+    # Check fixed side connectivity
+    if not _check_fixed_side_connectivity(mat_copy, level, noc, floodval):
+        return False
+
+    # Check no bridging
+    if not _check_no_bridging(mat_copy, level, noc, dim, floodval):
+        return False
+
+    return True
 
 def get_region_outline_vertices(reg_inds: List[List[int]], lay_mat: ndarray,
                                org_lay_mat: ndarray, pad_loc: List[List[int]],
