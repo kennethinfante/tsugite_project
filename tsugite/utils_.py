@@ -1021,31 +1021,79 @@ def get_friction_and_contact_areas(mat: ndarray, slides: List[List[int]],
                             ffaces.append([side.ax, list(find)])
     return friction, ffaces, contact, cfaces
 
-def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int = 0) -> np.ndarray:
-    dim = len(mat)
+# def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int = 0) -> np.ndarray:
+#     dim = len(mat)
+#     pad_loc = [[0, 0], [0, 0], [0, 0]]
+#     pad_val = [[-1, -1], [-1, -1], [-1, -1]]
+#     for n in range(len(fixed_sides)):
+#         for side in fixed_sides[n]:
+#             pad_loc[side.ax][side.dir] = 1
+#             pad_val[side.ax][side.dir] = n + add
+#     pad_loc = tuple(map(tuple, pad_loc))
+#     pad_val = tuple(map(tuple, pad_val))
+#     mat = np.pad(mat, pad_loc, 'constant', constant_values=pad_val)
+#     # Take care of corners ########################needs to be adjusted for 3 components....!!!!!!!!!!!!!!!!!!
+#     for fixed_sides_1 in fixed_sides:
+#         for fixed_sides_2 in fixed_sides:
+#             for side in fixed_sides_1:
+#                 for side2 in fixed_sides_2:
+#                     if side.ax == side2.ax: continue
+#                     for i in range(dim + 2):
+#                         ind = [i, i, i]
+#                         ind[side.ax] = side.dir * (mat.shape[side.ax] - 1)
+#                         ind[side2.ax] = side2.dir * (mat.shape[side2.ax] - 1)
+#                         try:
+#                             mat[tuple(ind)] = -1
+#                         except:
+#                             a = 0
+#     return mat
+
+def _prepare_padding_config(fixed_sides: List[List[FixedSide]], add: int) -> Tuple[tuple, tuple]:
+    """Prepare padding configuration for fixed sides."""
     pad_loc = [[0, 0], [0, 0], [0, 0]]
     pad_val = [[-1, -1], [-1, -1], [-1, -1]]
+
     for n in range(len(fixed_sides)):
         for side in fixed_sides[n]:
             pad_loc[side.ax][side.dir] = 1
             pad_val[side.ax][side.dir] = n + add
-    pad_loc = tuple(map(tuple, pad_loc))
-    pad_val = tuple(map(tuple, pad_val))
-    mat = np.pad(mat, pad_loc, 'constant', constant_values=pad_val)
-    # Take care of corners ########################needs to be adjusted for 3 components....!!!!!!!!!!!!!!!!!!
+
+    return tuple(map(tuple, pad_loc)), tuple(map(tuple, pad_val))
+
+def _handle_corners(mat: ndarray, fixed_sides: List[List[FixedSide]], dim: int) -> ndarray:
+    """Handle corner cases when adding fixed sides."""
     for fixed_sides_1 in fixed_sides:
         for fixed_sides_2 in fixed_sides:
             for side in fixed_sides_1:
                 for side2 in fixed_sides_2:
-                    if side.ax == side2.ax: continue
+                    if side.ax == side2.ax:
+                        continue
+
                     for i in range(dim + 2):
                         ind = [i, i, i]
                         ind[side.ax] = side.dir * (mat.shape[side.ax] - 1)
                         ind[side2.ax] = side2.dir * (mat.shape[side2.ax] - 1)
+
                         try:
                             mat[tuple(ind)] = -1
                         except:
-                            a = 0
+                            pass  # Index out of bounds, skip
+
+    return mat
+
+def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int = 0) -> np.ndarray:
+    """Add fixed sides to the matrix."""
+    dim = len(mat)
+
+    # Prepare padding configuration
+    pad_loc, pad_val = _prepare_padding_config(fixed_sides, add)
+
+    # Pad the matrix
+    mat = np.pad(mat, pad_loc, 'constant', constant_values=pad_val)
+
+    # Handle corner cases
+    mat = _handle_corners(mat, fixed_sides, dim)
+
     return mat
 
 def get_chessboard_vertics(mat: ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
