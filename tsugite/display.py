@@ -487,7 +487,7 @@ class Display:
         glu.restore_line_style()
 
     def draw_faces_for_additional_part(self, index):
-        glUniform3f(self.myColor, 1.0, 1.0, 1.0) # white
+        GL.glUniform3f(self.myColor, 1.0, 1.0, 1.0) # white
 
         for n in range(self.joint.noc):
             G0 = [self.joint.suggestions[index].indices_fall[n]]
@@ -495,7 +495,7 @@ class Display:
             self.draw_geometries_with_excluded_area(G0,G1)
 
     def draw_faces_for_subtracted_part(self, index):
-        glUniform3f(self.myColor, 1.0, 0.5, 0.5) # pink/red
+        GL.glUniform3f(self.myColor, 1.0, 0.5, 0.5) # pink/red
 
         for n in range(self.joint.noc):
             G0 = [self.joint.mesh.indices_fall[n]]
