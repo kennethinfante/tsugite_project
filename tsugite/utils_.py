@@ -159,82 +159,6 @@ def set_starting_vert(verts: List[RegionVertex]) -> List[RegionVertex]:
     verts.pop(first_i + 1)
     return verts
 
-def get_sublist_of_ordered_verts(verts: List[RegionVertex]) -> Tuple[List[RegionVertex], List[RegionVertex], bool]:
-    ord_verts = []
-
-    # Start ordered vertices with the first item (simultaneously remove from main list)
-    ord_verts.append(verts[0])
-    verts.remove(verts[0])
-
-    browse_num = len(verts)
-    for i in range(browse_num):
-        found_next = False
-        #try all directions to look for next vertex
-        for vax in range(2):
-            for vdir in range(-1, 2, 2):
-                # check if there is an available vertex
-                next_ind = ord_verts[-1].ind.copy()
-                next_ind[vax] += vdir
-                next_rv = None
-                for rv in verts:
-                    if rv.ind == next_ind:
-                        if len(ord_verts) > 1 and rv.ind == ord_verts[-2].ind: break # prevent going back
-                        # check so that it is not crossing a blocked region etc
-                        # 1) from point of view of previous point
-                        p_neig = ord_verts[-1].neighbors
-                        vaxval = int(0.5 * (vdir + 1))
-                        nind0 = [0, 0]
-                        nind0[vax] = vaxval
-                        nind1 = [1, 1]
-                        nind1[vax] = vaxval
-                        ne0 = p_neig[nind0[0]][nind0[1]]
-                        ne1 = p_neig[nind1[0]][nind1[1]]
-                        if ne0 != 1 and ne1 != 1: continue # no block
-                        if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
-                        # 2) from point of view of point currently tested
-                        nind0 = [0, 0]
-                        nind0[vax] = 1 - vaxval
-                        nind1 = [1, 1]
-                        nind1[vax] = 1 - vaxval
-                        ne0 = rv.neighbors[nind0[0]][nind0[1]]
-                        ne1 = rv.neighbors[nind1[0]][nind1[1]]
-                        if ne0 != 1 and ne1 != 1: continue # no block
-                        if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
-                        # If you made it here, you found the next vertex!
-                        found_next = True
-                        ord_verts.append(rv)
-                        verts.remove(rv)
-                        break
-                if found_next: break
-            if found_next: break
-        if found_next: continue
-
-    # check if outline is closed by ckecing if endpoint finds startpoint
-    closed = False
-    if len(ord_verts) > 3:  # needs to be at least 4 vertices to be able to close
-        start_ind = np.array(ord_verts[0].ind.copy())
-        end_ind = np.array(ord_verts[-1].ind.copy())
-        diff_ind = start_ind - end_ind  ###reverse?
-        if len(np.argwhere(diff_ind == 0)) == 1:  # difference only in one axis
-            vax = np.argwhere(diff_ind != 0)[0][0]
-            if abs(diff_ind[vax]) == 1:  # difference is only one step
-                vdir = diff_ind[vax]
-                # check so that it is not crossing a blocked region etc
-                p_neig = ord_verts[-1].neighbors
-                vaxval = int(0.5 * (vdir + 1))
-                nind0 = [0, 0]
-                nind0[vax] = vaxval
-                nind1 = [1, 1]
-                nind1[vax] = vaxval
-                ne0 = p_neig[nind0[0]][nind0[1]]
-                ne1 = p_neig[nind1[0]][nind1[1]]
-                if ne0 == 1 or ne1 == 1:
-                    if int(0.5 * (ne0 + 1)) != int(0.5 * (ne1 + 1)):
-                        # If you made it here, you found the next vertex!
-                        closed = True
-
-    return ord_verts, verts, closed
-
 def get_outline(type: Any, verts: List[RegionVertex], lay_num: int, n: int) -> List[MillVertex]:
     fdir = type.mesh.fab_directions[n]
     outline = []
@@ -514,56 +438,223 @@ def get_all_same_connected(mat: ndarray, indices: List[Tuple[int, ...]]) -> List
         if len(indices) > start_n: indices = get_all_same_connected(mat, indices)
     return indices
 
+# def get_ordered_outline(verts: List[RegionVertex]) -> List[RegionVertex]:
+#     ord_verts = []
+#
+#     # Start ordered vertices with the first item (simultaneously remove from main list)
+#     ord_verts.append(verts[0])
+#     verts.remove(verts[0])
+#
+#     browse_num = len(verts)
+#     for i in range(browse_num):
+#         found_next = False
+#         #try all directions to look for next vertex
+#         for vax in range(2):
+#             for vdir in range(-1, 2, 2):
+#                 # check if there is an available vertex
+#                 next_ind = ord_verts[-1].ind.copy()
+#                 next_ind[vax] += vdir
+#                 next_rv = None
+#                 for rv in verts:
+#                     if rv.ind == next_ind:
+#                         if len(ord_verts) > 1 and rv.ind == ord_verts[-2].ind: break # prevent going back
+#                         # check so that it is not crossing a blocked region etc
+#                         # 1) from point of view of previous point
+#                         p_neig = ord_verts[-1].neighbors
+#                         vaxval = int(0.5 * (vdir + 1))
+#                         nind0 = [0, 0]
+#                         nind0[vax] = vaxval
+#                         nind1 = [1, 1]
+#                         nind1[vax] = vaxval
+#                         ne0 = p_neig[nind0[0]][nind0[1]]
+#                         ne1 = p_neig[nind1[0]][nind1[1]]
+#                         if ne0 != 1 and ne1 != 1: continue # no block
+#                         if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
+#                         # 2) from point of view of point currently tested
+#                         nind0 = [0, 0]
+#                         nind0[vax] = 1 - vaxval
+#                         nind1 = [1, 1]
+#                         nind1[vax] = 1 - vaxval
+#                         ne0 = rv.neighbors[nind0[0]][nind0[1]]
+#                         ne1 = rv.neighbors[nind1[0]][nind1[1]]
+#                         if ne0 != 1 and ne1 != 1: continue # no block
+#                         if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
+#                         # If you made it here, you found the next vertex!
+#                         found_next = True
+#                         ord_verts.append(rv)
+#                         verts.remove(rv)
+#                         break
+#                 if found_next: break
+#             if found_next: break
+#         if found_next: continue
+#     return ord_verts
+
+# def get_sublist_of_ordered_verts(verts: List[RegionVertex]) -> Tuple[List[RegionVertex], List[RegionVertex], bool]:
+#     ord_verts = []
+#
+#     # Start ordered vertices with the first item (simultaneously remove from main list)
+#     ord_verts.append(verts[0])
+#     verts.remove(verts[0])
+#
+#     browse_num = len(verts)
+#     for i in range(browse_num):
+#         found_next = False
+#         #try all directions to look for next vertex
+#         for vax in range(2):
+#             for vdir in range(-1, 2, 2):
+#                 # check if there is an available vertex
+#                 next_ind = ord_verts[-1].ind.copy()
+#                 next_ind[vax] += vdir
+#                 next_rv = None
+#                 for rv in verts:
+#                     if rv.ind == next_ind:
+#                         if len(ord_verts) > 1 and rv.ind == ord_verts[-2].ind: break # prevent going back
+#                         # check so that it is not crossing a blocked region etc
+#                         # 1) from point of view of previous point
+#                         p_neig = ord_verts[-1].neighbors
+#                         vaxval = int(0.5 * (vdir + 1))
+#                         nind0 = [0, 0]
+#                         nind0[vax] = vaxval
+#                         nind1 = [1, 1]
+#                         nind1[vax] = vaxval
+#                         ne0 = p_neig[nind0[0]][nind0[1]]
+#                         ne1 = p_neig[nind1[0]][nind1[1]]
+#                         if ne0 != 1 and ne1 != 1: continue # no block
+#                         if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
+#                         # 2) from point of view of point currently tested
+#                         nind0 = [0, 0]
+#                         nind0[vax] = 1 - vaxval
+#                         nind1 = [1, 1]
+#                         nind1[vax] = 1 - vaxval
+#                         ne0 = rv.neighbors[nind0[0]][nind0[1]]
+#                         ne1 = rv.neighbors[nind1[0]][nind1[1]]
+#                         if ne0 != 1 and ne1 != 1: continue # no block
+#                         if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
+#                         # If you made it here, you found the next vertex!
+#                         found_next = True
+#                         ord_verts.append(rv)
+#                         verts.remove(rv)
+#                         break
+#                 if found_next: break
+#             if found_next: break
+#         if found_next: continue
+#
+#     # check if outline is closed by ckecing if endpoint finds startpoint
+#     closed = False
+#     if len(ord_verts) > 3:  # needs to be at least 4 vertices to be able to close
+#         start_ind = np.array(ord_verts[0].ind.copy())
+#         end_ind = np.array(ord_verts[-1].ind.copy())
+#         diff_ind = start_ind - end_ind  ###reverse?
+#         if len(np.argwhere(diff_ind == 0)) == 1:  # difference only in one axis
+#             vax = np.argwhere(diff_ind != 0)[0][0]
+#             if abs(diff_ind[vax]) == 1:  # difference is only one step
+#                 vdir = diff_ind[vax]
+#                 # check so that it is not crossing a blocked region etc
+#                 p_neig = ord_verts[-1].neighbors
+#                 vaxval = int(0.5 * (vdir + 1))
+#                 nind0 = [0, 0]
+#                 nind0[vax] = vaxval
+#                 nind1 = [1, 1]
+#                 nind1[vax] = vaxval
+#                 ne0 = p_neig[nind0[0]][nind0[1]]
+#                 ne1 = p_neig[nind1[0]][nind1[1]]
+#                 if ne0 == 1 or ne1 == 1:
+#                     if int(0.5 * (ne0 + 1)) != int(0.5 * (ne1 + 1)):
+#                         # If you made it here, you found the next vertex!
+#                         closed = True
+#
+#     return ord_verts, verts, closed
+
+def _find_next_vertex(ord_verts: List[RegionVertex], verts: List[RegionVertex]) -> Tuple[bool, RegionVertex]:
+    """Helper function to find the next vertex in an outline."""
+    for vax in range(2):
+        for vdir in range(-1, 2, 2):
+            # check if there is an available vertex
+            next_ind = ord_verts[-1].ind.copy()
+            next_ind[vax] += vdir
+            for rv in verts:
+                if rv.ind == next_ind:
+                    if len(ord_verts) > 1 and rv.ind == ord_verts[-2].ind:
+                        break  # prevent going back
+
+                    # Check crossing conditions
+                    p_neig = ord_verts[-1].neighbors
+                    vaxval = int(0.5 * (vdir + 1))
+
+                    # 1) from point of view of previous point
+                    nind0 = [0, 0]
+                    nind0[vax] = vaxval
+                    nind1 = [1, 1]
+                    nind1[vax] = vaxval
+                    ne0 = p_neig[nind0[0]][nind0[1]]
+                    ne1 = p_neig[nind1[0]][nind1[1]]
+                    if ne0 != 1 and ne1 != 1:
+                        continue  # no block
+                    if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)):
+                        continue  # trying to cross blocked material
+
+                    # 2) from point of view of point currently tested
+                    nind0 = [0, 0]
+                    nind0[vax] = 1 - vaxval
+                    nind1 = [1, 1]
+                    nind1[vax] = 1 - vaxval
+                    ne0 = rv.neighbors[nind0[0]][nind0[1]]
+                    ne1 = rv.neighbors[nind1[0]][nind1[1]]
+                    if ne0 != 1 and ne1 != 1:
+                        continue  # no block
+                    if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)):
+                        continue  # trying to cross blocked material
+
+                    # If you made it here, you found the next vertex!
+                    return True, rv
+    return False, None
+
 def get_ordered_outline(verts: List[RegionVertex]) -> List[RegionVertex]:
-    ord_verts = []
+    """Order vertices to form an outline."""
+    verts_copy = verts.copy()
+    ord_verts = [verts_copy.pop(0)]
 
-    # Start ordered vertices with the first item (simultaneously remove from main list)
-    ord_verts.append(verts[0])
-    verts.remove(verts[0])
+    while verts_copy:
+        found_next, next_vertex = _find_next_vertex(ord_verts, verts_copy)
+        if found_next:
+            ord_verts.append(next_vertex)
+            verts_copy.remove(next_vertex)
+        else:
+            break
 
-    browse_num = len(verts)
-    for i in range(browse_num):
-        found_next = False
-        #try all directions to look for next vertex
-        for vax in range(2):
-            for vdir in range(-1, 2, 2):
-                # check if there is an available vertex
-                next_ind = ord_verts[-1].ind.copy()
-                next_ind[vax] += vdir
-                next_rv = None
-                for rv in verts:
-                    if rv.ind == next_ind:
-                        if len(ord_verts) > 1 and rv.ind == ord_verts[-2].ind: break # prevent going back
-                        # check so that it is not crossing a blocked region etc
-                        # 1) from point of view of previous point
-                        p_neig = ord_verts[-1].neighbors
-                        vaxval = int(0.5 * (vdir + 1))
-                        nind0 = [0, 0]
-                        nind0[vax] = vaxval
-                        nind1 = [1, 1]
-                        nind1[vax] = vaxval
-                        ne0 = p_neig[nind0[0]][nind0[1]]
-                        ne1 = p_neig[nind1[0]][nind1[1]]
-                        if ne0 != 1 and ne1 != 1: continue # no block
-                        if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
-                        # 2) from point of view of point currently tested
-                        nind0 = [0, 0]
-                        nind0[vax] = 1 - vaxval
-                        nind1 = [1, 1]
-                        nind1[vax] = 1 - vaxval
-                        ne0 = rv.neighbors[nind0[0]][nind0[1]]
-                        ne1 = rv.neighbors[nind1[0]][nind1[1]]
-                        if ne0 != 1 and ne1 != 1: continue # no block
-                        if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)): continue # trying to cross blocked material
-                        # If you made it here, you found the next vertex!
-                        found_next = True
-                        ord_verts.append(rv)
-                        verts.remove(rv)
-                        break
-                if found_next: break
-            if found_next: break
-        if found_next: continue
-    return ord_verts
+    return ord_verts, verts_copy
+
+def get_sublist_of_ordered_verts(verts: List[RegionVertex]) -> Tuple[List[RegionVertex], List[RegionVertex], bool]:
+    """Get a sublist of ordered vertices and check if the outline is closed."""
+    ord_verts, verts_copy = get_ordered_outline(verts)
+
+    # Check if outline is closed
+    closed = False
+    if len(ord_verts) > 3:  # needs to be at least 4 vertices to be able to close
+        start_ind = np.array(ord_verts[0].ind.copy())
+        end_ind = np.array(ord_verts[-1].ind.copy())
+        diff_ind = start_ind - end_ind
+
+        if len(np.argwhere(diff_ind == 0)) == 1:  # difference only in one axis
+            vax = np.argwhere(diff_ind != 0)[0][0]
+            if abs(diff_ind[vax]) == 1:  # difference is only one step
+                vdir = diff_ind[vax]
+
+                # Check crossing conditions
+                p_neig = ord_verts[-1].neighbors
+                vaxval = int(0.5 * (vdir + 1))
+                nind0 = [0, 0]
+                nind0[vax] = vaxval
+                nind1 = [1, 1]
+                nind1[vax] = vaxval
+                ne0 = p_neig[nind0[0]][nind0[1]]
+                ne1 = p_neig[nind1[0]][nind1[1]]
+
+                if ne0 == 1 or ne1 == 1:
+                    if int(0.5 * (ne0 + 1)) != int(0.5 * (ne1 + 1)):
+                        closed = True
+
+    return ord_verts, verts_copy, closed
 
 def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.ndarray:
     d = len(mat)
@@ -804,7 +895,7 @@ def get_breakable_voxels(mat: ndarray, fixed_sides: List[List[FixedSide]],
                         outline = _get_region_outline(reg_inds, lay_mat, fixed_neighbors, n)
 
                         # Order region outline
-                        outline = get_ordered_outline(outline)
+                        outline, _ = get_ordered_outline(outline)
                         outline.append(outline[0])
 
                         for dir in range(0, 2):
