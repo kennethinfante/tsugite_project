@@ -348,65 +348,121 @@ def is_connected(mat: ndarray, n: int) -> bool:
         if connected_same == all_same: connected = True
     return connected
 
+# def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
+#     sliding_directions = []
+#     number_of_sliding_directions = []
+#     for n in range(noc):  # Browse the components
+#         mat_sliding = []
+#         for ax in range(3):  # Browse the three possible sliding axes
+#             oax = [0, 1, 2]
+#             oax.remove(ax)
+#             for dir in range(2):  # Browse the two possible directions of the axis
+#                 slides_in_this_direction = True
+#                 for i in range(mat.shape[oax[0]]):
+#                     for j in range(mat.shape[oax[1]]):
+#                         first_same = False
+#                         for k in range(mat.shape[ax]):
+#                             if dir == 0: k = mat.shape[ax]-k-1
+#                             ind = [i, j]
+#                             ind.insert(ax, k)
+#                             val = mat[tuple(ind)]
+#                             if val == n:
+#                                 first_same = True
+#                                 continue
+#                             elif first_same and val != -1:
+#                                 slides_in_this_direction = False
+#                                 break
+#                         if slides_in_this_direction == False: break
+#                     if slides_in_this_direction == False: break
+#                 if slides_in_this_direction == True:
+#                     mat_sliding.append([ax, dir])
+#         sliding_directions.append(mat_sliding)
+#         number_of_sliding_directions.append(len(mat_sliding))
+#     return sliding_directions, number_of_sliding_directions
+#
+# def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
+#     sliding_directions = []
+#     n = level
+#     for ax in range(3):  # Browse the three possible sliding axes
+#         oax = [0, 1, 2]
+#         oax.remove(ax)
+#         for dir in range(2):  # Browse the two possible directions of the axis
+#             slides_in_this_direction = True
+#             for i in range(mat.shape[oax[0]]):
+#                 for j in range(mat.shape[oax[1]]):
+#                     first_same = False
+#                     for k in range(mat.shape[ax]):
+#                         if dir == 0: k = mat.shape[ax]-k-1
+#                         ind = [i, j]
+#                         ind.insert(ax, k)
+#                         val = mat[tuple(ind)]
+#                         if val == n:
+#                             first_same = True
+#                             continue
+#                         elif first_same and val != -1:
+#                             slides_in_this_direction = False
+#                             break
+#                     if slides_in_this_direction == False: break
+#                 if slides_in_this_direction == False: break
+#             if slides_in_this_direction == True:
+#                 sliding_directions.append([ax, dir])
+#     number_of_sliding_directions = len(sliding_directions)
+#     return sliding_directions, number_of_sliding_directions
+
+def _check_sliding_direction(mat: ndarray, ax: int, dir: int, n: int) -> bool:
+    """Check if a component can slide in a specific direction."""
+    oax = [0, 1, 2]
+    oax.remove(ax)
+
+    for i in range(mat.shape[oax[0]]):
+        for j in range(mat.shape[oax[1]]):
+            first_same = False
+
+            for k in range(mat.shape[ax]):
+                if dir == 0:
+                    k = mat.shape[ax] - k - 1
+
+                ind = [i, j]
+                ind.insert(ax, k)
+                val = mat[tuple(ind)]
+
+                if val == n:
+                    first_same = True
+                    continue
+                elif first_same and val != -1:
+                    return False
+
+    return True
+
 def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
+    """Get possible sliding directions for each component."""
     sliding_directions = []
     number_of_sliding_directions = []
-    for n in range(noc):  # Browse the components
-        mat_sliding = []
-        for ax in range(3):  # Browse the three possible sliding axes
-            oax = [0, 1, 2]
-            oax.remove(ax)
-            for dir in range(2):  # Browse the two possible directions of the axis
-                slides_in_this_direction = True
-                for i in range(mat.shape[oax[0]]):
-                    for j in range(mat.shape[oax[1]]):
-                        first_same = False
-                        for k in range(mat.shape[ax]):
-                            if dir == 0: k = mat.shape[ax]-k-1
-                            ind = [i, j]
-                            ind.insert(ax, k)
-                            val = mat[tuple(ind)]
-                            if val == n:
-                                first_same = True
-                                continue
-                            elif first_same and val != -1:
-                                slides_in_this_direction = False
-                                break
-                        if slides_in_this_direction == False: break
-                    if slides_in_this_direction == False: break
-                if slides_in_this_direction == True:
-                    mat_sliding.append([ax, dir])
-        sliding_directions.append(mat_sliding)
-        number_of_sliding_directions.append(len(mat_sliding))
+
+    for n in range(noc):
+        component_directions = []
+
+        for ax in range(3):
+            for dir in range(2):
+                if _check_sliding_direction(mat, ax, dir, n):
+                    component_directions.append([ax, dir])
+
+        sliding_directions.append(component_directions)
+        number_of_sliding_directions.append(len(component_directions))
+
     return sliding_directions, number_of_sliding_directions
 
 def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
+    """Get possible sliding directions for a specific timber."""
     sliding_directions = []
-    n = level
-    for ax in range(3):  # Browse the three possible sliding axes
-        oax = [0, 1, 2]
-        oax.remove(ax)
-        for dir in range(2):  # Browse the two possible directions of the axis
-            slides_in_this_direction = True
-            for i in range(mat.shape[oax[0]]):
-                for j in range(mat.shape[oax[1]]):
-                    first_same = False
-                    for k in range(mat.shape[ax]):
-                        if dir == 0: k = mat.shape[ax]-k-1
-                        ind = [i, j]
-                        ind.insert(ax, k)
-                        val = mat[tuple(ind)]
-                        if val == n:
-                            first_same = True
-                            continue
-                        elif first_same and val != -1:
-                            slides_in_this_direction = False
-                            break
-                    if slides_in_this_direction == False: break
-                if slides_in_this_direction == False: break
-            if slides_in_this_direction == True:
+
+    for ax in range(3):
+        for dir in range(2):
+            if _check_sliding_direction(mat, ax, dir, level):
                 sliding_directions.append([ax, dir])
+
     number_of_sliding_directions = len(sliding_directions)
+
     return sliding_directions, number_of_sliding_directions
 
 def get_neighbors(mat: ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, ...]], np.ndarray]:
