@@ -1103,61 +1103,143 @@ def _get_outline_indices(outline: List[RegionVertex], pax: int, lay_num: int) ->
                 indices.append(oind)
     return indices
 
+# def get_friction_and_contact_areas(mat: ndarray, slides: List[List[int]],
+#                                   fixed_sides: List[List[FixedSide]], n: int) -> Tuple[int, List[List], int, List[List]]:
+#     friction = -1
+#     contact = -1
+#     ffaces = []
+#     cfaces = []
+#     if len(slides) > 0:
+#         friction = 0
+#         contact = 0
+#         other_fixed_sides = []
+#         for n2 in range(len(fixed_sides)):
+#             if n == n2: continue
+#             other_fixed_sides.extend(fixed_sides[n2])
+#         # Define which axes are acting in friction
+#         friction_axes = [0, 1, 2]
+#         bad_axes = []
+#         for item in slides: bad_axes.append(item[0])
+#         friction_axes = [x for x in friction_axes if x not in bad_axes]
+#         # Check neighbors in relevant axes. If neighbor is other, friction is acting!
+#         indices = np.argwhere(mat == n)
+#         for ind in indices:
+#             for ax in range(3):
+#                 for dir in range(2):
+#                     nind = ind.copy()
+#                     nind[ax] += 2 * dir - 1
+#                     cont = False
+#                     if nind[ax] < 0:
+#                         if FixedSide(ax, 0).unique(other_fixed_sides): cont = True
+#                     elif nind[ax] >= len(mat):
+#                         if FixedSide(ax, 1).unique(other_fixed_sides): cont = True
+#                     elif mat[tuple(nind)] != n: cont = True
+#                     if cont:
+#                         contact += 1
+#                         find = ind.copy()
+#                         find[ax] += dir
+#                         cfaces.append([ax, list(find)])
+#                         if ax in friction_axes:
+#                             friction += 1
+#                             ffaces.append([ax, list(find)])
+#         # Check neighbors for each fixed side of the current material
+#         for side in fixed_sides[n]:
+#             for i in range(len(mat)):
+#                 for j in range(len(mat)):
+#                     nind = [i, j]
+#                     axind = side.dir * (len(mat) - 1)
+#                     nind.insert(side.ax, axind)
+#                     if mat[tuple(nind)] != n:  # neighboring another timber
+#                         contact += 1
+#                         find = nind.copy()
+#                         find[side.ax] += side.dir
+#                         cfaces.append([side.ax, list(find)])
+#                         if side.ax in friction_axes:
+#                             friction += 1
+#                             ffaces.append([side.ax, list(find)])
+#     return friction, ffaces, contact, cfaces
+
 def get_friction_and_contact_areas(mat: ndarray, slides: List[List[int]],
                                   fixed_sides: List[List[FixedSide]], n: int) -> Tuple[int, List[List], int, List[List]]:
-    friction = -1
-    contact = -1
+    if not slides:
+        return -1, [], -1, []
+
+    friction = 0
+    contact = 0
     ffaces = []
     cfaces = []
-    if len(slides) > 0:
-        friction = 0
-        contact = 0
-        other_fixed_sides = []
-        for n2 in range(len(fixed_sides)):
-            if n == n2: continue
-            other_fixed_sides.extend(fixed_sides[n2])
-        # Define which axes are acting in friction
-        friction_axes = [0, 1, 2]
-        bad_axes = []
-        for item in slides: bad_axes.append(item[0])
-        friction_axes = [x for x in friction_axes if x not in bad_axes]
-        # Check neighbors in relevant axes. If neighbor is other, friction is acting!
-        indices = np.argwhere(mat == n)
-        for ind in indices:
-            for ax in range(3):
-                for dir in range(2):
-                    nind = ind.copy()
-                    nind[ax] += 2 * dir - 1
-                    cont = False
-                    if nind[ax] < 0:
-                        if FixedSide(ax, 0).unique(other_fixed_sides): cont = True
-                    elif nind[ax] >= len(mat):
-                        if FixedSide(ax, 1).unique(other_fixed_sides): cont = True
-                    elif mat[tuple(nind)] != n: cont = True
-                    if cont:
-                        contact += 1
-                        find = ind.copy()
-                        find[ax] += dir
-                        cfaces.append([ax, list(find)])
-                        if ax in friction_axes:
-                            friction += 1
-                            ffaces.append([ax, list(find)])
-        # Check neighbors for each fixed side of the current material
-        for side in fixed_sides[n]:
-            for i in range(len(mat)):
-                for j in range(len(mat)):
-                    nind = [i, j]
-                    axind = side.dir * (len(mat) - 1)
-                    nind.insert(side.ax, axind)
-                    if mat[tuple(nind)] != n:  # neighboring another timber
-                        contact += 1
-                        find = nind.copy()
-                        find[side.ax] += side.dir
-                        cfaces.append([side.ax, list(find)])
-                        if side.ax in friction_axes:
-                            friction += 1
-                            ffaces.append([side.ax, list(find)])
+
+    other_fixed_sides = _get_other_fixed_sides(fixed_sides, n)
+    friction_axes = _get_friction_axes(slides)
+
+    # Check neighbors for voxels
+    indices = np.argwhere(mat == n)
+    for ind in indices:
+        for ax in range(3):
+            for dir in range(2):
+                nind = ind.copy()
+                nind[ax] += 2 * dir - 1
+
+                if _is_contact_face(nind, mat, other_fixed_sides, ax, dir, n):
+                    contact += 1
+                    find = ind.copy()
+                    find[ax] += dir
+                    cfaces.append([ax, list(find)])
+
+                    if ax in friction_axes:
+                        friction += 1
+                        ffaces.append([ax, list(find)])
+
+    # Check neighbors for fixed sides
+    _check_fixed_side_contacts(mat, fixed_sides[n], friction_axes, n, contact, cfaces, friction, ffaces)
+
     return friction, ffaces, contact, cfaces
+
+def _get_other_fixed_sides(fixed_sides: List[List[FixedSide]], n: int) -> List[FixedSide]:
+    """Get fixed sides from other components."""
+    other_fixed_sides = []
+    for n2 in range(len(fixed_sides)):
+        if n == n2:
+            continue
+        other_fixed_sides.extend(fixed_sides[n2])
+    return other_fixed_sides
+
+def _get_friction_axes(slides: List[List[int]]) -> List[int]:
+    """Get axes that contribute to friction."""
+    friction_axes = [0, 1, 2]
+    bad_axes = [item[0] for item in slides]
+    return [x for x in friction_axes if x not in bad_axes]
+
+def _is_contact_face(nind: ndarray, mat: ndarray, other_fixed_sides: List[FixedSide],
+                    ax: int, dir: int, n: int) -> bool:
+    """Check if a face is a contact face."""
+    if nind[ax] < 0:
+        return FixedSide(ax, 0).unique(other_fixed_sides)
+    elif nind[ax] >= len(mat):
+        return FixedSide(ax, 1).unique(other_fixed_sides)
+    else:
+        return mat[tuple(nind)] != n
+
+def _check_fixed_side_contacts(mat: ndarray, fixed_sides: List[FixedSide], friction_axes: List[int],
+                              n: int, contact: int, cfaces: List[List], friction: int, ffaces: List[List]) -> None:
+    """Check contacts for fixed sides."""
+    dim = len(mat)
+    for side in fixed_sides:
+        for i in range(dim):
+            for j in range(dim):
+                nind = [i, j]
+                axind = side.dir * (dim - 1)
+                nind.insert(side.ax, axind)
+
+                if mat[tuple(nind)] != n:  # neighboring another timber
+                    contact += 1
+                    find = nind.copy()
+                    find[side.ax] += side.dir
+                    cfaces.append([side.ax, list(find)])
+
+                    if side.ax in friction_axes:
+                        friction += 1
+                        ffaces.append([side.ax, list(find)])
 
 # def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int = 0) -> np.ndarray:
 #     dim = len(mat)
