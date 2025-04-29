@@ -73,23 +73,51 @@ def rotate_vector_around_axis(vec: List[float] = [3, 5, 0],
     rotated_vec = np.dot(mat, vec)
     return rotated_vec
 
-def matrix_from_height_fields(hfs: List[np.ndarray], ax: int) -> np.ndarray:  ### duplicated function - also exists in Geometries
+# def matrix_from_height_fields(hfs: List[np.ndarray], ax: int) -> np.ndarray:  ### duplicated function - also exists in Geometries
+#     dim = len(hfs[0])
+#     mat = np.zeros(shape=(dim, dim, dim))
+#     for i in range(dim):
+#         for j in range(dim):
+#             for k in range(dim):
+#                 ind = [i, j]
+#                 ind3d = ind.copy()
+#                 ind3d.insert(ax, k)
+#                 ind3d = tuple(ind3d)
+#                 ind2d = tuple(ind)
+#                 h = 0
+#                 for n, hf in enumerate(hfs):
+#                     if k < hf[ind2d]: mat[ind3d] = n; break
+#                     else: mat[ind3d] = n + 1
+#     mat = np.array(mat)
+#     return mat
+
+def matrix_from_height_fields(hfs: List[np.ndarray], ax: int) -> np.ndarray:
     dim = len(hfs[0])
     mat = np.zeros(shape=(dim, dim, dim))
+
     for i in range(dim):
         for j in range(dim):
             for k in range(dim):
                 ind = [i, j]
-                ind3d = ind.copy()
-                ind3d.insert(ax, k)
-                ind3d = tuple(ind3d)
+                ind3d = _insert_at_axis(ind, ax, k)
                 ind2d = tuple(ind)
-                h = 0
-                for n, hf in enumerate(hfs):
-                    if k < hf[ind2d]: mat[ind3d] = n; break
-                    else: mat[ind3d] = n + 1
-    mat = np.array(mat)
+
+                mat[tuple(ind3d)] = _determine_material_from_heights(k, hfs, ind2d)
+
     return mat
+
+def _insert_at_axis(ind: List[int], ax: int, val: int) -> List[int]:
+    """Insert a value at the specified axis position."""
+    ind3d = ind.copy()
+    ind3d.insert(ax, val)
+    return ind3d
+
+def _determine_material_from_heights(k: int, hfs: List[np.ndarray], ind2d: Tuple[int, int]) -> int:
+    """Determine material type based on height fields."""
+    for n, hf in enumerate(hfs):
+        if k < hf[ind2d]:
+            return n
+    return len(hfs)  # If above all height fields
 
 # def get_same_height_neighbors(hfield: ndarray, inds: List[List[int]]) -> List[List[int]]:
 #     dim = len(hfield)
