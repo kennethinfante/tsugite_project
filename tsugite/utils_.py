@@ -32,13 +32,9 @@ def normalize(v: ndarray) -> np.ndarray:
     if norm == 0: return v
     else: return v / norm
 
-def unitize(v: ndarray) -> np.ndarray:
-    uv = v/linalg.norm(v)
-    return uv
-
 def angle_between_vectors1(vector_1: ndarray, vector_2: ndarray, direction: bool = False) -> float:
-    unit_vector_1 = unitize(vector_1)
-    unit_vector_2 = unitize(vector_2)
+    unit_vector_1 = normalize(vector_1)
+    unit_vector_2 = normalize(vector_2)
     v_dot_product = np.dot(unit_vector_1, unit_vector_2)
 
     if direction:
@@ -50,8 +46,8 @@ def angle_between_vectors1(vector_1: ndarray, vector_2: ndarray, direction: bool
 
 def angle_between_vectors2(vector_1: ndarray, vector_2: ndarray,
                            normal_vector: List[float] = []) -> float:
-    unit_vector_1 = unitize(vector_1)
-    unit_vector_2 = unitize(vector_2)
+    unit_vector_1 = normalize(vector_1)
+    unit_vector_2 = normalize(vector_2)
     dot_product = np.dot(unit_vector_1, unit_vector_2)
     angle = np.arccos(dot_product)
     cross = np.cross(unit_vector_1, unit_vector_2)
@@ -609,7 +605,7 @@ def _check_neighbor_crossing(neighbors: ndarray, vax: int, vaxval: int) -> bool:
 
     return True
 
-def _find_next_vertex(ord_verts: List[RegionVertex], verts: List[RegionVertex]) -> Tuple[bool, RegionVertex]:
+def _find_next_vertex(ord_verts: List[RegionVertex], verts: List[RegionVertex]):
     """Find the next vertex in an outline sequence.
 
     Args:

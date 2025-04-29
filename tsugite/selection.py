@@ -154,7 +154,7 @@ class Selection:
         comp_ax = self.pgeom.pjoint.fixed.sides[self.n][0].ax  # component axis
         comp_dir = self.pgeom.pjoint.fixed.sides[self.n][0].dir
         comp_len = 2.5 * (2 * comp_dir - 1) * self.pgeom.pjoint.component_size
-        comp_vec = comp_len * Utils.unitize(self.pgeom.pjoint.pos_vecs[comp_ax])
+        comp_vec = comp_len * Utils.normalize(self.pgeom.pjoint.pos_vecs[comp_ax])
 
         # Flatten vector to screen
         rot_x = pyrr.Matrix33.from_x_rotation(screen_xrot)
