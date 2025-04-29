@@ -148,7 +148,7 @@ def get_same_height_neighbors(hfield: ndarray, inds: List[List[int]]) -> List[Li
     for ind in inds:
         for ax in range(2):
             for dir in range(-1, 2, 2):
-                ind2 = _get_neighbor_index_2d(ind, ax, dir)
+                ind2 = _get_neighbor_index(ind, ax, dir)
 
                 if np.all(dim > ind2 >= 0) and hfield[tuple(ind2)] == val:
                     if _is_unique_index(ind2, new_inds):
@@ -158,12 +158,6 @@ def get_same_height_neighbors(hfield: ndarray, inds: List[List[int]]) -> List[Li
         new_inds = get_same_height_neighbors(hfield, new_inds)
 
     return new_inds
-
-def _get_neighbor_index_2d(ind: List[int], ax: int, dir: int) -> List[int]:
-    """Get index of neighbor in specified direction (2D)."""
-    ind2 = ind.copy()
-    ind2[ax] += dir
-    return ind2
 
 def _is_unique_index(ind: List[int], inds: List[List[int]]) -> bool:
     """Check if index is not already in the list."""
