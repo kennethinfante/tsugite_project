@@ -395,27 +395,65 @@ def _get_neighbor_value(nind: List[int], org_lay_mat: ndarray, type_val: int) ->
 
     return org_lay_mat[tuple(nind)]
 
+# def face_neighbors(mat: ndarray, ind: List[int], ax: int, n: int,
+#                    fixed_sides: List[FixedSide]) -> Tuple[int, np.ndarray]:
+#     values = []
+#     dim = len(mat)
+#     for i in range(2):
+#         val = None
+#         ind2 = ind.copy()
+#         ind2[ax] = ind2[ax]-i
+#         ind2 = np.array(ind2)
+#         if np.all(ind2 >= 0) and np.all(ind2 < dim):
+#             val = mat[tuple(ind2)]
+#         elif len(fixed_sides) > 0:
+#             for fixed_side in fixed_sides:
+#                 ind3 = np.delete(ind2, fixed_side.ax)
+#                 if np.all(ind3 >= 0) and np.all(ind3 < dim):
+#                     if ind2[fixed_side.ax] < 0 and fixed_side.dir == 0: val = n
+#                     elif ind2[fixed_side.ax] >= dim and fixed_side.dir == 1: val = n
+#         values.append(val)
+#     values = np.array(values)
+#     count = np.count_nonzero(values == n)
+#     return count, values
+
 def face_neighbors(mat: ndarray, ind: List[int], ax: int, n: int,
                    fixed_sides: List[FixedSide]) -> Tuple[int, np.ndarray]:
     values = []
     dim = len(mat)
+
     for i in range(2):
-        val = None
         ind2 = ind.copy()
-        ind2[ax] = ind2[ax]-i
-        ind2 = np.array(ind2)
-        if np.all(ind2 >= 0) and np.all(ind2 < dim):
-            val = mat[tuple(ind2)]
-        elif len(fixed_sides) > 0:
-            for fixed_side in fixed_sides:
-                ind3 = np.delete(ind2, fixed_side.ax)
-                if np.all(ind3 >= 0) and np.all(ind3 < dim):
-                    if ind2[fixed_side.ax] < 0 and fixed_side.dir == 0: val = n
-                    elif ind2[fixed_side.ax] >= dim and fixed_side.dir == 1: val = n
+        ind2[ax] = ind2[ax] - i
+
+        val = _get_face_neighbor_value(ind2, mat, fixed_sides, ax, n, dim)
         values.append(val)
+
     values = np.array(values)
     count = np.count_nonzero(values == n)
+
     return count, values
+
+def _get_face_neighbor_value(ind: List[int], mat: ndarray, fixed_sides: List[FixedSide],
+                            ax: int, n: int, dim: int) -> int:
+    """Get the value of a face neighbor, considering fixed sides."""
+    ind = np.array(ind)
+
+    if np.all(ind >= 0) and np.all(ind < dim):
+        return mat[tuple(ind)]
+
+    # Check fixed sides
+    if len(fixed_sides) > 0:
+        for fixed_side in fixed_sides:
+            ind_without_ax = np.delete(ind, fixed_side.ax)
+
+            if np.all(ind_without_ax >= 0) and np.all(ind_without_ax < dim):
+                if ind[fixed_side.ax] < 0 and fixed_side.dir == 0:
+                    return n
+                elif ind[fixed_side.ax] >= dim and fixed_side.dir == 1:
+                    return n
+
+    return None  # No valid value found
 
 def get_index(ind: List[int], add: List[int], dim: int) -> int:
     d = dim+1
