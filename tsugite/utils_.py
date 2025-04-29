@@ -508,23 +508,63 @@ def is_connected(mat: ndarray, n: int) -> bool:
     return connected_count == all_same_count
 
 
+# def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
+#     """Get possible sliding directions for each component."""
+#     sliding_directions = []
+#     number_of_sliding_directions = []
+#
+#     for n in range(noc):
+#         component_directions = []
+#
+#         for ax in range(3):
+#             for dir in range(2):
+#                 if _check_sliding_direction(mat, ax, dir, n):
+#                     component_directions.append([ax, dir])
+#
+#         sliding_directions.append(component_directions)
+#         number_of_sliding_directions.append(len(component_directions))
+#
+#     return sliding_directions, number_of_sliding_directions
+#
+# def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
+#     """Get possible sliding directions for a specific timber."""
+#     sliding_directions = []
+#
+#     for ax in range(3):
+#         for dir in range(2):
+#             if _check_sliding_direction(mat, ax, dir, level):
+#                 sliding_directions.append([ax, dir])
+#
+#     number_of_sliding_directions = len(sliding_directions)
+#
+#     return sliding_directions, number_of_sliding_directions
+
 def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
     """Get possible sliding directions for each component."""
-    sliding_directions = []
-    number_of_sliding_directions = []
+    sliding_dirs = []
+    number_of_sliding_dirs = []
 
     for n in range(noc):
-        component_directions = []
 
-        for ax in range(3):
-            for dir in range(2):
-                if _check_sliding_direction(mat, ax, dir, n):
-                    component_directions.append([ax, dir])
+        component_dirs, len_component_dirs = get_sliding_directions_of_one_timber(mat, n)
 
-        sliding_directions.append(component_directions)
-        number_of_sliding_directions.append(len(component_directions))
+        sliding_dirs.append(component_dirs)
+        number_of_sliding_dirs.append(len_component_dirs)
 
-    return sliding_directions, number_of_sliding_directions
+    return sliding_dirs, number_of_sliding_dirs
+
+def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
+    """Get possible sliding directions for a specific timber."""
+    component_dirs = []
+
+    for ax in range(3):
+        for dir in range(2):
+            if _check_sliding_direction(mat, ax, dir, level):
+                component_dirs.append([ax, dir])
+
+    len_component_dirs = len(component_dirs)
+
+    return component_dirs, len_component_dirs
 
 def _check_sliding_direction(mat: ndarray, ax: int, dir: int, n: int) -> bool:
     """Check if a component can slide in a specific direction."""
@@ -550,19 +590,6 @@ def _check_sliding_direction(mat: ndarray, ax: int, dir: int, n: int) -> bool:
                     return False
 
     return True
-
-def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
-    """Get possible sliding directions for a specific timber."""
-    sliding_directions = []
-
-    for ax in range(3):
-        for dir in range(2):
-            if _check_sliding_direction(mat, ax, dir, level):
-                sliding_directions.append([ax, dir])
-
-    number_of_sliding_directions = len(sliding_directions)
-
-    return sliding_directions, number_of_sliding_directions
 
 def get_neighbors(mat: ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, ...]], np.ndarray]:
     indices = []
