@@ -298,47 +298,102 @@ def _is_valid_index_in_matrix(ind: List[int], matrix: ndarray) -> bool:
             ind[0] < matrix.shape[0] and
             ind[1] < matrix.shape[1])
 
+# def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: ndarray,
+#                          org_lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
+#     # 0 = in region
+#     # 1 = outside region, block
+#     # 2 = outside region, free
+#     in_out = []
+#     values = []
+#     for add0 in range(-1, 1, 1):
+#         temp = []
+#         temp2 = []
+#         for add1 in range(-1, 1, 1):
+#
+#             # Define neighbor index to test
+#             nind = [ind[0]+add0, ind[1]+add1]
+#
+#             # FIND TYPE
+#             type = -1
+#             val = None
+#             # Check if this index is in the list of region-included indices
+#             for rind in reg_inds:
+#                 if rind[0] == nind[0] and rind[1] == nind[1]:
+#                     type = 0  # in region
+#                     break
+#             if type != 0:
+#                 # If there are out of bound indices they are free
+#                 if np.any(np.array(nind) < 0) or nind[0] >= lay_mat.shape[0] or nind[1] >= lay_mat.shape[1]:
+#                     type = 2  # free
+#                     val = -1
+#                 elif lay_mat[tuple(nind)] < 0:
+#                     type = 2  # free
+#                     val = -2
+#                 else: type = 1  # blocked
+#
+#             if val is None:
+#                 val = org_lay_mat[tuple(nind)]
+#
+#             temp.append(type)
+#             temp2.append(val)
+#         in_out.append(temp)
+#         values.append(temp2)
+#     return in_out, values
+
 def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: ndarray,
                          org_lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
-    # 0 = in region
-    # 1 = outside region, block
-    # 2 = outside region, free
     in_out = []
     values = []
+
     for add0 in range(-1, 1, 1):
-        temp = []
-        temp2 = []
+        in_out_row = []
+        values_row = []
+
         for add1 in range(-1, 1, 1):
+            nind = [ind[0] + add0, ind[1] + add1]
 
-            # Define neighbor index to test
-            nind = [ind[0]+add0, ind[1]+add1]
+            type_val = _determine_neighbor_type(nind, reg_inds, lay_mat)
+            value = _get_neighbor_value(nind, org_lay_mat, type_val)
 
-            # FIND TYPE
-            type = -1
-            val = None
-            # Check if this index is in the list of region-included indices
-            for rind in reg_inds:
-                if rind[0] == nind[0] and rind[1] == nind[1]:
-                    type = 0  # in region
-                    break
-            if type != 0:
-                # If there are out of bound indices they are free
-                if np.any(np.array(nind) < 0) or nind[0] >= lay_mat.shape[0] or nind[1] >= lay_mat.shape[1]:
-                    type = 2  # free
-                    val = -1
-                elif lay_mat[tuple(nind)] < 0:
-                    type = 2  # free
-                    val = -2
-                else: type = 1  # blocked
+            in_out_row.append(type_val)
+            values_row.append(value)
 
-            if val is None:
-                val = org_lay_mat[tuple(nind)]
+        in_out.append(in_out_row)
+        values.append(values_row)
 
-            temp.append(type)
-            temp2.append(val)
-        in_out.append(temp)
-        values.append(temp2)
     return in_out, values
+
+def _determine_neighbor_type(nind: List[int], reg_inds: List[List[int]], lay_mat: ndarray) -> int:
+    """Determine the type of a neighbor cell.
+    0 = in region
+    1 = outside region, block
+    2 = outside region, free
+    """
+    # Check if this index is in the list of region-included indices
+    for rind in reg_inds:
+        if rind[0] == nind[0] and rind[1] == nind[1]:
+            return 0  # in region
+
+    # If out of bounds or negative value, it's free
+    if (np.any(np.array(nind) < 0) or
+        nind[0] >= lay_mat.shape[0] or
+        nind[1] >= lay_mat.shape[1] or
+        lay_mat[tuple(nind)] < 0):
+        return 2  # free
+
+    return 1  # blocked
+
+def _get_neighbor_value(nind: List[int], org_lay_mat: ndarray, type_val: int) -> int:
+    """Get the value of a neighbor cell."""
+    if type_val == 2:  # free
+        if (np.any(np.array(nind) < 0) or
+            nind[0] >= org_lay_mat.shape[0] or
+            nind[1] >= org_lay_mat.shape[1]):
+            return -1
+        else:
+            return -2
+
+    return org_lay_mat[tuple(nind)]
 
 def face_neighbors(mat: ndarray, ind: List[int], ax: int, n: int,
                    fixed_sides: List[FixedSide]) -> Tuple[int, np.ndarray]:
