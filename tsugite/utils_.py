@@ -547,18 +547,43 @@ def get_index(ind: List[int], add: List[int], dim: int) -> int:
     index = (i+add[0])*d*d + (j+add[1])*d + k+add[2]
     return index
 
+# def get_corner_indices(ax: int, n: int, dim: int) -> List[int]:
+#     other_axes = np.array([0, 1, 2])
+#     other_axes = np.delete(other_axes, np.where(other_axes == ax))
+#     ind = np.array([0, 0, 0])
+#     ind[ax] = n*dim
+#     corner_indices = []
+#     for x in range(2):
+#         for y in range(2):
+#             add = np.array([0, 0, 0])
+#             add[other_axes[0]] = x*dim
+#             add[other_axes[1]] = y*dim
+#             corner_indices.append(get_index(ind, add, dim))
+#     return corner_indices
+
 def get_corner_indices(ax: int, n: int, dim: int) -> List[int]:
-    other_axes = np.array([0, 1, 2])
-    other_axes = np.delete(other_axes, np.where(other_axes == ax))
+    other_axes = _get_perpendicular_axes(ax)
+    base_index = _get_base_corner_index(ax, n, dim)
+
+    return _generate_all_corners(base_index, other_axes, dim)
+
+def _get_base_corner_index(ax: int, n: int, dim: int) -> np.ndarray:
+    """Get the base corner index along the specified axis."""
     ind = np.array([0, 0, 0])
-    ind[ax] = n*dim
+    ind[ax] = n * dim
+    return ind
+
+def _generate_all_corners(base_index: np.ndarray, other_axes: List[int], dim: int) -> List[int]:
+    """Generate all corner indices from the base corner."""
     corner_indices = []
+
     for x in range(2):
         for y in range(2):
             add = np.array([0, 0, 0])
-            add[other_axes[0]] = x*dim
-            add[other_axes[1]] = y*dim
-            corner_indices.append(get_index(ind, add, dim))
+            add[other_axes[0]] = x * dim
+            add[other_axes[1]] = y * dim
+            corner_indices.append(get_index(base_index, add, dim))
+
     return corner_indices
 
 def connected_arc(mv0: MillVertex, mv1: MillVertex) -> bool:
