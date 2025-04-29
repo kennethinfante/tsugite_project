@@ -1316,39 +1316,95 @@ def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int =
 
     return mat
 
+# def get_chessboard_vertics(mat: ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
+#     chess = False
+#     dim = len(mat)
+#     verts = []
+#     for i in range(dim):
+#         for j in range(dim):
+#             for k in range(dim):
+#                 ind3d = [i, j, k]
+#                 ind2d = ind3d.copy()
+#                 ind2d.pop(ax)
+#                 if ind2d[0] < 1 or ind2d[1] < 1: continue
+#                 neighbors = []
+#                 flat_neigbors = []
+#                 for x in range(-1, 1, 1):
+#                     temp = []
+#                     for y in range(-1, 1, 1):
+#                         nind = ind2d.copy()
+#                         nind[0] += x
+#                         nind[1] += y
+#                         nind.insert(ax, ind3d[ax])
+#                         val = mat[tuple(nind)]
+#                         temp.append(val)
+#                         flat_neigbors.append(val)
+#                     neighbors.append(temp)
+#                 flat_neigbors = np.array(flat_neigbors)
+#                 ## check THIS material
+#                 cnt = np.sum(flat_neigbors == n)
+#                 if cnt == 2:
+#                     # cheack diagonal
+#                     if neighbors[0][1] == neighbors[1][0] and neighbors[0][0] == neighbors[1][1]:
+#                         chess = True
+#                         verts.append(ind3d)
+#     return chess, verts
+
 def get_chessboard_vertics(mat: ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
     chess = False
     dim = len(mat)
     verts = []
+
     for i in range(dim):
         for j in range(dim):
             for k in range(dim):
                 ind3d = [i, j, k]
-                ind2d = ind3d.copy()
-                ind2d.pop(ax)
-                if ind2d[0] < 1 or ind2d[1] < 1: continue
-                neighbors = []
-                flat_neigbors = []
-                for x in range(-1, 1, 1):
-                    temp = []
-                    for y in range(-1, 1, 1):
-                        nind = ind2d.copy()
-                        nind[0] += x
-                        nind[1] += y
-                        nind.insert(ax, ind3d[ax])
-                        val = mat[tuple(nind)]
-                        temp.append(val)
-                        flat_neigbors.append(val)
-                    neighbors.append(temp)
-                flat_neigbors = np.array(flat_neigbors)
-                ## check THIS material
-                cnt = np.sum(flat_neigbors == n)
-                if cnt == 2:
-                    # cheack diagonal
-                    if neighbors[0][1] == neighbors[1][0] and neighbors[0][0] == neighbors[1][1]:
-                        chess = True
-                        verts.append(ind3d)
+                ind2d = _get_2d_index(ind3d, ax)
+
+                if ind2d[0] < 1 or ind2d[1] < 1:
+                    continue
+
+                neighbors = _get_neighbor_values(mat, ind3d, ax)
+                flat_neighbors = np.array(neighbors).flatten()
+
+                if _is_chessboard_pattern(flat_neighbors, neighbors, n):
+                    chess = True
+                    verts.append(ind3d)
+
     return chess, verts
+
+def _get_2d_index(ind3d: List[int], ax: int) -> List[int]:
+    """Extract 2D index from 3D index by removing the specified axis."""
+    ind2d = ind3d.copy()
+    ind2d.pop(ax)
+    return ind2d
+
+def _get_neighbor_values(mat: ndarray, ind3d: List[int], ax: int) -> List[List[ndarray]]:
+    """Get values of neighboring cells in a 2x2 grid."""
+    ind2d = _get_2d_index(ind3d, ax)
+    neighbors = []
+
+    for x in range(-1, 1, 1):
+        temp = []
+        for y in range(-1, 1, 1):
+            nind = ind2d.copy()
+            nind[0] += x
+            nind[1] += y
+            nind3d = nind.copy()
+            nind3d.insert(ax, ind3d[ax])
+            val = mat[tuple(nind3d)]
+            temp.append(val)
+        neighbors.append(temp)
+
+    return neighbors
+
+def _is_chessboard_pattern(flat_neighbors: List[int], neighbors, n: int) -> bool:
+    """Check if the neighbors form a chessboard pattern."""
+    cnt = np.sum(flat_neighbors == n)
+    if cnt == 2:
+        # check diagonal
+        if neighbors[0][1] == neighbors[1][0] and neighbors[0][0] == neighbors[1][1]:
+            return True
 
 def is_fab_direction_ok(mat: ndarray, ax: int, n: int) -> Tuple[bool, int]:
     fab_dir = 1
