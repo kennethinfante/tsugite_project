@@ -216,26 +216,55 @@ def get_vertex(index: int, verts: ndarray, n: int) -> np.ndarray:
     z = verts[n * index + 2]
     return np.array([x, y, z])
 
+# def get_segment_proportions(outline: List[MillVertex]) -> List[float]:
+#     olen = 0
+#     slens = []
+#     sprops = []
+#
+#     for i in range(1, len(outline)):
+#         ppt = outline[i-1].pt
+#         pt = outline[i].pt
+#         dist = linalg.norm(pt-ppt)
+#         slens.append(dist)
+#         olen += dist
+#
+#     olen2 = 0
+#     sprops.append(0.0)
+#     for slen in slens:
+#         olen2 += slen
+#         sprop = olen2/olen
+#         sprops.append(sprop)
+#
+#     return sprops
+
 def get_segment_proportions(outline: List[MillVertex]) -> List[float]:
-    olen = 0
-    slens = []
-    sprops = []
+    segment_lengths = _calculate_segment_lengths(outline)
+    total_length = sum(segment_lengths)
+
+    return _calculate_proportions(segment_lengths, total_length)
+
+def _calculate_segment_lengths(outline: List[MillVertex]) -> List[float]:
+    """Calculate the length of each segment in the outline."""
+    lengths = []
 
     for i in range(1, len(outline)):
-        ppt = outline[i-1].pt
-        pt = outline[i].pt
-        dist = linalg.norm(pt-ppt)
-        slens.append(dist)
-        olen += dist
+        prev_point = outline[i-1].pt
+        current_point = outline[i].pt
+        distance = linalg.norm(current_point - prev_point)
+        lengths.append(distance)
 
-    olen2 = 0
-    sprops.append(0.0)
-    for slen in slens:
-        olen2 += slen
-        sprop = olen2/olen
-        sprops.append(sprop)
+    return lengths
 
-    return sprops
+def _calculate_proportions(lengths: List[float], total_length: float) -> List[float]:
+    """Calculate the proportional position of each vertex along the outline."""
+    proportions = [0.0]  # Start with 0
+    cumulative_length = 0
+
+    for length in lengths:
+        cumulative_length += length
+        proportions.append(cumulative_length / total_length)
+
+    return proportions
 
 def has_minus_one_neighbor(ind: List[int], lay_mat: ndarray) -> bool:
     condition = False
