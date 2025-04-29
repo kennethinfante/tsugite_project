@@ -219,18 +219,45 @@ def set_starting_vert(verts: List[RegionVertex]) -> List[RegionVertex]:
     verts.pop(first_i + 1)
     return verts
 
+# def get_outline(type: Any, verts: List[RegionVertex], lay_num: int, n: int) -> List[MillVertex]:
+#     fdir = type.mesh.fab_directions[n]
+#     outline = []
+#     for rv in verts:
+#         ind = rv.ind.copy()
+#         ind.insert(type.sax, (type.dim - 1) * (1 - fdir) + (2 * fdir - 1) * lay_num)
+#         add = [0, 0, 0]
+#         add[type.sax] = 1 - fdir
+#         i_pt = get_index(ind, add, type.dim)
+#         pt = get_vertex(i_pt, type.jverts[n], type.vertex_no_info)
+#         outline.append(MillVertex(pt))
+#     return outline
+
 def get_outline(type: Any, verts: List[RegionVertex], lay_num: int, n: int) -> List[MillVertex]:
     fdir = type.mesh.fab_directions[n]
     outline = []
+
     for rv in verts:
-        ind = rv.ind.copy()
-        ind.insert(type.sax, (type.dim - 1) * (1 - fdir) + (2 * fdir - 1) * lay_num)
-        add = [0, 0, 0]
-        add[type.sax] = 1 - fdir
+        ind = _get_3d_vertex_index(rv.ind, type.sax, type.dim, fdir, lay_num)
+        add = _get_direction_vector(type.sax, fdir)
+
         i_pt = get_index(ind, add, type.dim)
         pt = get_vertex(i_pt, type.jverts[n], type.vertex_no_info)
+
         outline.append(MillVertex(pt))
+
     return outline
+
+def _get_3d_vertex_index(ind: List[int], sax: int, dim: int, fdir: int, lay_num: int) -> List[int]:
+    """Get the 3D index for a vertex in the outline."""
+    ind3d = ind.copy()
+    ind3d.insert(sax, (dim - 1) * (1 - fdir) + (2 * fdir - 1) * lay_num)
+    return ind3d
+
+def _get_direction_vector(sax: int, fdir: int) -> List[int]:
+    """Get the direction vector based on the sliding axis and fabrication direction."""
+    add = [0, 0, 0]
+    add[sax] = 1 - fdir
+    return add
 
 def set_vector_length(vec: ndarray, new_norm: float) -> np.ndarray:
     norm = linalg.norm(vec)
