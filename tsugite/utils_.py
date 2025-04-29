@@ -91,27 +91,59 @@ def matrix_from_height_fields(hfs: List[np.ndarray], ax: int) -> np.ndarray:  ##
     mat = np.array(mat)
     return mat
 
+# def get_same_height_neighbors(hfield: ndarray, inds: List[List[int]]) -> List[List[int]]:
+#     dim = len(hfield)
+#     val = hfield[tuple(inds[0])]
+#     new_inds = list(inds)
+#     for ind in inds:
+#         for ax in range(2):
+#             for dir in range(-1, 2, 2):
+#                 ind2 = ind.copy()
+#                 ind2[ax] += dir
+#                 if np.all(ind2 >= 0) and np.all(ind2 < dim):
+#                     val2 = hfield[tuple(ind2)]
+#                     if val2 == val:
+#                         unique = True
+#                         for ind3 in new_inds:
+#                             if ind2[0] == ind3[0] and ind2[1] == ind3[1]:
+#                                 unique = False
+#                                 break
+#                         if unique: new_inds.append(ind2)
+#     if len(new_inds) > len(inds):
+#         new_inds = get_same_height_neighbors(hfield, new_inds)
+#     return new_inds
+
 def get_same_height_neighbors(hfield: ndarray, inds: List[List[int]]) -> List[List[int]]:
     dim = len(hfield)
     val = hfield[tuple(inds[0])]
     new_inds = list(inds)
+
     for ind in inds:
         for ax in range(2):
             for dir in range(-1, 2, 2):
-                ind2 = ind.copy()
-                ind2[ax] += dir
-                if np.all(ind2 >= 0) and np.all(ind2 < dim):
-                    val2 = hfield[tuple(ind2)]
-                    if val2 == val:
-                        unique = True
-                        for ind3 in new_inds:
-                            if ind2[0] == ind3[0] and ind2[1] == ind3[1]:
-                                unique = False
-                                break
-                        if unique: new_inds.append(ind2)
+                ind2 = _get_neighbor_index_2d(ind, ax, dir)
+
+                if np.all(dim > ind2 >= 0) and hfield[tuple(ind2)] == val:
+                    if _is_unique_index(ind2, new_inds):
+                        new_inds.append(ind2)
+
     if len(new_inds) > len(inds):
         new_inds = get_same_height_neighbors(hfield, new_inds)
+
     return new_inds
+
+def _get_neighbor_index_2d(ind: List[int], ax: int, dir: int) -> List[int]:
+    """Get index of neighbor in specified direction (2D)."""
+    ind2 = ind.copy()
+    ind2[ax] += dir
+    return ind2
+
+def _is_unique_index(ind: List[int], inds: List[List[int]]) -> bool:
+    """Check if index is not already in the list."""
+    for existing_ind in inds:
+        if ind[0] == existing_ind[0] and ind[1] == existing_ind[1]:
+            return False
+    return True
 
 def get_random_height_fields(dim: int, noc: int) -> List[np.ndarray]:
     hfs = []
@@ -773,10 +805,8 @@ def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.
                 dir = 2 * dir - 1
                 ind2 = _get_neighbor_index(ind, ax, dir)
 
-                if (d > ind2[ax] >= 0):
-                    val2 = mat[tuple(ind2)]
-                    if val == val2:
-                        neighbors.append(ind2)
+                if (d > ind2[ax] >= 0) and mat[tuple(ind2)] == val:
+                    neighbors.append(ind2)
 
     if neighbors:
         return _unique_neighbors(neighbors)
