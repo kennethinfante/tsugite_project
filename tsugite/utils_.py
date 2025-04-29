@@ -743,24 +743,55 @@ def get_sublist_of_ordered_verts(verts: List[RegionVertex]) -> Tuple[List[Region
 
     return ord_verts, verts_copy, closed
 
+# def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.ndarray:
+#     d = len(mat)
+#     val = mat[tuple(indices[0])]
+#     neighbors = []
+#     for ind in indices:
+#         for ax in range(3):
+#             for dir in range(2):
+#                 dir = 2 * dir - 1
+#                 ind2 = ind.copy()
+#                 ind2[ax] = ind2[ax] + dir
+#                 if ind2[ax] >= 0 and ind2[ax] < d:
+#                     val2 = mat[tuple(ind2)]
+#                     if val == val2:
+#                         neighbors.append(ind2)
+#     if len(neighbors) > 0:
+#         neighbors = np.array(neighbors)
+#         neighbors = np.unique(neighbors, axis=0)
+#     return neighbors
+
 def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.ndarray:
     d = len(mat)
     val = mat[tuple(indices[0])]
     neighbors = []
+
     for ind in indices:
         for ax in range(3):
             for dir in range(2):
                 dir = 2 * dir - 1
-                ind2 = ind.copy()
-                ind2[ax] = ind2[ax] + dir
-                if ind2[ax] >= 0 and ind2[ax] < d:
+                ind2 = _get_neighbor_index(ind, ax, dir)
+
+                if (d > ind2[ax] >= 0):
                     val2 = mat[tuple(ind2)]
                     if val == val2:
                         neighbors.append(ind2)
-    if len(neighbors) > 0:
-        neighbors = np.array(neighbors)
-        neighbors = np.unique(neighbors, axis=0)
-    return neighbors
+
+    if neighbors:
+        return _unique_neighbors(neighbors)
+    return np.array([])
+
+def _get_neighbor_index(ind: List[int], ax: int, dir: int) -> List[int]:
+    """Get index of neighbor in specified direction."""
+    ind2 = ind.copy()
+    ind2[ax] = ind2[ax] + dir
+    return ind2
+
+def _unique_neighbors(neighbors: List[List[int]]) -> np.ndarray:
+    """Get unique neighbors."""
+    neighbors = np.array(neighbors)
+    return np.unique(neighbors, axis=0)
 
 # def is_connected_to_fixed_side(indices: ndarray, mat: ndarray,
 #                               fixed_sides: List[FixedSide]) -> bool:
