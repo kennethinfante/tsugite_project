@@ -587,12 +587,11 @@ def _generate_all_corners(base_index: np.ndarray, other_axes: List[int], dim: in
     return corner_indices
 
 def connected_arc(mv0: MillVertex, mv1: MillVertex) -> bool:
-    conn_arc = False
-    if mv0.is_arc and mv1.is_arc:
-        if mv0.arc_ctr[0] == mv1.arc_ctr[0]:
-            if mv0.arc_ctr[1] == mv1.arc_ctr[1]:
-                conn_arc = True
-    return conn_arc
+    """Check if two mill vertices form a connected arc."""
+    return (mv0.is_arc and
+            mv1.is_arc and
+            mv0.arc_ctr[0] == mv1.arc_ctr[0] and
+            mv0.arc_ctr[1] == mv1.arc_ctr[1])
 
 # def arc_points(st: List[float], en: List[float], ctr0: List[float], ctr1: List[float],
 #                ax: int, astep: float) -> List[np.ndarray]:
@@ -661,14 +660,20 @@ def _calculate_arc_steps(angle: float, astep: float, z_diff: float) -> Tuple[int
     return cnt, astep, zstep
 
 def is_connected(mat: ndarray, n: int) -> bool:
-    connected = False
-    all_same = np.count_nonzero(mat == n)  # Count number of ones in matrix
-    if all_same > 0:
-        ind = tuple(np.argwhere(mat == n)[0])  # Pick a random one
-        inds = get_all_same_connected(mat, [ind])  # Get all its neighbors (recursively)
-        connected_same = len(inds)
-        if connected_same == all_same: connected = True
-    return connected
+    """Check if all voxels with value n are connected."""
+    all_same_count = np.count_nonzero(mat == n)
+
+    if all_same_count == 0:
+        return False
+
+    # Find one voxel with value n
+    start_index = tuple(np.argwhere(mat == n)[0])
+
+    # Get all connected voxels with the same value
+    connected_indices = get_all_same_connected(mat, [start_index])
+    connected_count = len(connected_indices)
+
+    return connected_count == all_same_count
 
 # def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
 #     sliding_directions = []
