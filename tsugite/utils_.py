@@ -762,28 +762,62 @@ def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.
         neighbors = np.unique(neighbors, axis=0)
     return neighbors
 
+# def is_connected_to_fixed_side(indices: ndarray, mat: ndarray,
+#                               fixed_sides: List[FixedSide]) -> bool:
+#     connected = False
+#     val = mat[tuple(indices[0])]
+#     d = len(mat)
+#     for ind in indices:
+#         for side in fixed_sides:
+#             if ind[side.ax] == 0 and side.dir == 0:
+#                 connected = True
+#                 break
+#             elif ind[side.ax] == d - 1 and side.dir == 1:
+#                 connected = True
+#                 break
+#         if connected: break
+#     if not connected:
+#         neighbors = get_indices_of_same_neighbors(indices, mat)
+#         if len(neighbors) > 0:
+#             new_indices = np.concatenate([indices, neighbors])
+#             new_indices = np.unique(new_indices, axis=0)
+#             if len(new_indices) > len(indices):
+#                 connected = is_connected_to_fixed_side(new_indices, mat, fixed_sides)
+#     return connected
+
 def is_connected_to_fixed_side(indices: ndarray, mat: ndarray,
                               fixed_sides: List[FixedSide]) -> bool:
-    connected = False
+    if _is_directly_connected_to_fixed_side(indices, mat, fixed_sides):
+        return True
+
+    neighbors = get_indices_of_same_neighbors(indices, mat)
+
+    if len(neighbors) > 0:
+        new_indices = _combine_indices(indices, neighbors)
+        if len(new_indices) > len(indices):
+            return is_connected_to_fixed_side(new_indices, mat, fixed_sides)
+
+    return False
+
+def _is_directly_connected_to_fixed_side(indices: ndarray, mat: ndarray,
+                                        fixed_sides: List[FixedSide]) -> bool:
+    """Check if any index is directly connected to a fixed side."""
     val = mat[tuple(indices[0])]
     d = len(mat)
+
     for ind in indices:
         for side in fixed_sides:
             if ind[side.ax] == 0 and side.dir == 0:
-                connected = True
-                break
+                return True
             elif ind[side.ax] == d - 1 and side.dir == 1:
-                connected = True
-                break
-        if connected: break
-    if not connected:
-        neighbors = get_indices_of_same_neighbors(indices, mat)
-        if len(neighbors) > 0:
-            new_indices = np.concatenate([indices, neighbors])
-            new_indices = np.unique(new_indices, axis=0)
-            if len(new_indices) > len(indices):
-                connected = is_connected_to_fixed_side(new_indices, mat, fixed_sides)
-    return connected
+                return True
+
+    return False
+
+def _combine_indices(indices: ndarray, neighbors: ndarray) -> ndarray:
+    """Combine and uniquify two sets of indices."""
+    new_indices = np.concatenate([indices, neighbors])
+    return np.unique(new_indices, axis=0)
 
 def _get_region_outline(reg_inds: List[List[int]], lay_mat: ndarray,
                        fixed_neighbors: List[bool], n: int) -> List[RegionVertex]:
