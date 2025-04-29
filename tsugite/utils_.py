@@ -164,7 +164,7 @@ def get_diff_neighbors(mat2: ndarray, inds: List[List[int]], val: int) -> List[L
             for dir in range(-1, 2, 2):
                 ind2 = ind.copy()
                 ind2[ax] += dir
-                if ind2[ax] >= 0 and ind2[ax] < mat2.shape[ax]:
+                if (mat2.shape[ax] > ind2[ax] >= 0):
                     val2 = mat2[tuple(ind2)]
                     if val2 == val or val2 == -1: continue
                     unique = True
@@ -345,30 +345,71 @@ def connected_arc(mv0: MillVertex, mv1: MillVertex) -> bool:
                 conn_arc = True
     return conn_arc
 
+# def arc_points(st: List[float], en: List[float], ctr0: List[float], ctr1: List[float],
+#                ax: int, astep: float) -> List[np.ndarray]:
+#     pts = []
+#     # numpy arrays
+#     st = np.array(st)
+#     en = np.array(en)
+#     ctr0 = np.array(ctr0)
+#     ctr1 = np.array(ctr1)
+#     # calculate steps and count and produce in between points
+#     v0 = st-ctr0
+#     v1 = en-ctr1
+#     cnt = int(0.5 + angle_between_vectors2(v0, v1)/astep)
+#     if cnt > 0:
+#         astep = angle_between_vectors2(v0, v1)/cnt
+#         zstep = (en[ax]-st[ax])/cnt
+#     else:
+#         astep = 0
+#         zstep = 0
+#     ax_vec = np.cross(v0, v1)
+#     for i in range(1, cnt+1):
+#         rvec = rotate_vector_around_axis(v0, ax_vec, astep*i)
+#         zvec = [0, 0, zstep*i]
+#         pts.append(ctr0+rvec+zvec)
+#     return pts
+
 def arc_points(st: List[float], en: List[float], ctr0: List[float], ctr1: List[float],
                ax: int, astep: float) -> List[np.ndarray]:
     pts = []
-    # numpy arrays
-    st = np.array(st)
-    en = np.array(en)
-    ctr0 = np.array(ctr0)
-    ctr1 = np.array(ctr1)
-    # calculate steps and count and produce in between points
-    v0 = st-ctr0
-    v1 = en-ctr1
-    cnt = int(0.5 + angle_between_vectors2(v0, v1)/astep)
+
+    # Convert to numpy arrays
+    st, en = np.array(st), np.array(en)
+    ctr0, ctr1 = np.array(ctr0), np.array(ctr1)
+
+    # Calculate vectors and angle
+    v0, v1 = st - ctr0, en - ctr1
+    angle = angle_between_vectors2(v0, v1)
+    z_diff = en[ax] - st[ax]
+    # Calculate steps
+    step_info = _calculate_arc_steps(angle, astep, z_diff)
+    cnt, astep, zstep = step_info
+
+    # Calculate axis vector for rotation
+    ax_vec = np.cross(v0, v1)
+
+    # Generate points along the arc
+    for i in range(1, cnt + 1):
+        rvec = rotate_vector_around_axis(v0, ax_vec, astep * i)
+        zvec = [0, 0, 0]
+        zvec[ax] = zstep * i
+        pts.append(ctr0 + rvec + np.array(zvec))
+
+    return pts
+
+def _calculate_arc_steps(angle: float, astep: float, z_diff: float) -> Tuple[int, float, float]:
+    """Calculate number of steps, angle step, and z step for an arc."""
+    cnt = int(0.5 + angle / astep)
+
     if cnt > 0:
-        astep = angle_between_vectors2(v0, v1)/cnt
-        zstep = (en[ax]-st[ax])/cnt
+        astep = angle / cnt
+        zstep = z_diff / cnt
     else:
         astep = 0
         zstep = 0
-    ax_vec = np.cross(v0, v1)
-    for i in range(1, cnt+1):
-        rvec = rotate_vector_around_axis(v0, ax_vec, astep*i)
-        zvec = [0, 0, zstep*i]
-        pts.append(ctr0+rvec+zvec)
-    return pts
+
+    return cnt, astep, zstep
 
 def is_connected(mat: ndarray, n: int) -> bool:
     connected = False
