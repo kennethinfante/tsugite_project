@@ -205,19 +205,50 @@ def get_diff_neighbors(mat2: ndarray, inds: List[List[int]], val: int) -> List[L
         new_inds = get_diff_neighbors(mat2, new_inds, val)
     return new_inds
 
+# def set_starting_vert(verts: List[RegionVertex]) -> List[RegionVertex]:
+#     first_i = None
+#     second_i = None
+#     for i, rv in enumerate(verts):
+#         if rv.block_count > 0:
+#             if rv.free_count > 0: first_i = i
+#             else: second_i = i
+#     if first_i is None:
+#         first_i = second_i
+#     if first_i is None: first_i = 0
+#     verts.insert(0, verts[first_i])
+#     verts.pop(first_i + 1)
+#     return verts
+
 def set_starting_vert(verts: List[RegionVertex]) -> List[RegionVertex]:
-    first_i = None
-    second_i = None
-    for i, rv in enumerate(verts):
-        if rv.block_count > 0:
-            if rv.free_count > 0: first_i = i
-            else: second_i = i
-    if first_i is None:
-        first_i = second_i
-    if first_i is None: first_i = 0
+    first_i = _find_best_starting_vertex(verts)
+
+    # Move the selected vertex to the front
     verts.insert(0, verts[first_i])
     verts.pop(first_i + 1)
+
     return verts
+
+def _find_best_starting_vertex(verts: List[RegionVertex]) -> int:
+    """Find the best vertex to start with based on block and free counts."""
+    first_i = None
+    second_i = None
+
+    for i, rv in enumerate(verts):
+        if rv.block_count > 0:
+            if rv.free_count > 0:
+                first_i = i
+            else:
+                second_i = i
+
+    # Prioritize vertices with both block and free counts
+    if first_i is None:
+        first_i = second_i
+
+    # Default to first vertex if no suitable vertex found
+    if first_i is None:
+        first_i = 0
+
+    return first_i
 
 # def get_outline(type: Any, verts: List[RegionVertex], lay_num: int, n: int) -> List[MillVertex]:
 #     fdir = type.mesh.fab_directions[n]
