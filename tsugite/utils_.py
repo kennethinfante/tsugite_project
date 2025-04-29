@@ -797,7 +797,7 @@ def get_sublist_of_ordered_verts(verts: List[RegionVertex]) -> Tuple[List[Region
 
 def is_connected_to_fixed_side(indices: ndarray, mat: ndarray,
                               fixed_sides: List[FixedSide]) -> bool:
-    if _is_directly_connected_to_fixed_side(indices, mat, fixed_sides):
+    if _is_connected_to_fixed_side_3d(indices, mat, fixed_sides):
         return True
 
     neighbors = get_indices_of_same_neighbors(indices, mat)
@@ -809,20 +809,6 @@ def is_connected_to_fixed_side(indices: ndarray, mat: ndarray,
 
     return False
 
-def _is_directly_connected_to_fixed_side(indices: ndarray, mat: ndarray,
-                                        fixed_sides: List[FixedSide]) -> bool:
-    """Check if any index is directly connected to a fixed side."""
-    val = mat[tuple(indices[0])]
-    d = len(mat)
-
-    for ind in indices:
-        for side in fixed_sides:
-            if ind[side.ax] == 0 and side.dir == 0:
-                return True
-            elif ind[side.ax] == d - 1 and side.dir == 1:
-                return True
-
-    return False
 
 def get_indices_of_same_neighbors(indices: List[List[int]], mat: ndarray) -> np.ndarray:
     d = len(mat)
@@ -924,7 +910,6 @@ def _get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
 
 def _is_connected_to_fixed_side_2d(inds: List[List[int]], fixed_sides: List[FixedSide],
                                   ax: int, dim: int) -> bool:
-    connected = False
     for side in fixed_sides:
         fax2d = [0, 0, 0]
         fax2d[side.ax] = 1
@@ -932,10 +917,30 @@ def _is_connected_to_fixed_side_2d(inds: List[List[int]], fixed_sides: List[Fixe
         fax2d = fax2d.index(1)
         for ind in inds:
             if ind[fax2d] == side.dir * (dim - 1):
-                connected = True
-                break
-        if connected: break
-    return connected
+                return True
+    return False
+
+def _is_connected_to_fixed_side_3d(indices: ndarray, mat: ndarray,
+                                   fixed_sides: List[FixedSide]) -> bool:
+    """Check if any index is directly connected to a fixed side.
+    Both methods share the same core logic:
+    1. Iterate through a collection of indices
+    2. For each index, check if it's adjacent to any fixed side
+    3. Return true if any index is connected to a fixed side
+    The main difference is that the 2D version needs to map the 3D fixed sides to their 2D equivalents by
+    removing the axis that was sliced, while the 3D version can directly check against the fixed sides.
+    """
+    val = mat[tuple(indices[0])]
+    d = len(mat)
+
+    for ind in indices:
+        for side in fixed_sides:
+            if ind[side.ax] == 0 and side.dir == 0:
+                return True
+            elif ind[side.ax] == d - 1 and side.dir == 1:
+                return True
+
+    return False
 
 def _get_same_neighbors_2d(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
     new_inds = list(inds)
