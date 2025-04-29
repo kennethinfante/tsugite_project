@@ -862,6 +862,109 @@ def _layer_mat(mat3d: ndarray, ax: int, dim: int, lay_num: int) -> np.ndarray:
             mat2d[i][j] = int(mat3d[tuple(ind)])
     return mat2d
 
+# def get_breakable_voxels(mat: ndarray, fixed_sides: List[List[FixedSide]],
+#                         sax: int, n: int) -> Tuple[bool, List[List[int]], List[List[int]]]:
+#     breakable = False
+#     outline_indices = []
+#     voxel_indices = []
+#     dim = len(mat)
+#     gax = fixed_sides[0].ax  # grain axis
+#     if gax != sax:  # if grain direction does not equal to the sliding direction
+#
+#         paxes = [0, 1, 2]
+#         paxes.pop(gax)  # perpendicular to grain axis
+#
+#         for pax in paxes:
+#
+#             potentially_fragile_reg_inds = []
+#
+#             for lay_num in range(dim):
+#                 temp = []
+#
+#                 lay_mat = _layer_mat(mat, pax, dim, lay_num)
+#
+#                 for reg_num in range(dim * dim):  # region number
+#
+#                     # Get indices of a region
+#                     inds = np.argwhere((lay_mat != -1) & (lay_mat == n))
+#                     if len(inds) == 0: break
+#
+#                     reg_inds = _get_same_neighbors_2d(lay_mat, [inds[0]], n)
+#
+#                     # Check if any item in this region is connected to a fixed side
+#                     fixed = _is_connected_to_fixed_side_2d(reg_inds, fixed_sides, pax, dim)
+#
+#                     if not fixed: temp.append(reg_inds)
+#
+#                     # Overwrite detected regin in original matrix
+#                     for reg_ind in reg_inds: lay_mat[tuple(reg_ind)] = -1
+#
+#                 potentially_fragile_reg_inds.append(temp)
+#
+#             for lay_num in range(dim):
+#
+#                 lay_mat = _layer_mat(mat, pax, dim, lay_num)
+#
+#                 for reg_inds in potentially_fragile_reg_inds[lay_num]:
+#
+#                     # Is any voxel of this region connected to fixed materials in any axial direction?
+#                     fixed_neighbors = [False, False]
+#
+#                     for reg_ind in reg_inds:
+#
+#                         # get 3d index
+#                         ind3d = reg_ind.copy()
+#                         ind3d = list(ind3d)
+#                         ind3d.insert(pax, lay_num)
+#                         for dir in range(-1, 2, 2):  # -1/1
+#
+#                             # check neigbor in direction
+#                             ind3d_dir = ind3d.copy()
+#                             ind3d_dir[pax] += dir
+#                             if ind3d_dir[pax] >= 0 and ind3d_dir[pax] < dim:
+#                                 # Is there any material at all?
+#                                 val = mat[tuple(ind3d_dir)]
+#                                 if val == n:  # There is material
+#                                     # Is this material in the list of potentially fragile or not?
+#                                     attached_to_fragile = False
+#                                     ind2d_dir = ind3d_dir.copy()
+#                                     ind2d_dir.pop(pax)
+#                                     for dir_reg_inds in potentially_fragile_reg_inds[lay_num + dir]:
+#                                         for dir_ind in dir_reg_inds:
+#                                             if dir_ind[0] == ind2d_dir[0] and dir_ind[1] == ind2d_dir[1]:
+#                                                 attached_to_fragile = True
+#                                                 break
+#                                     # need to check more steps later...####################################!!!!!!!!!!!!!!!
+#                                     if not attached_to_fragile:
+#                                         fixed_neighbors[int((dir + 1) / 2)] = True
+#
+#                     if fixed_neighbors[0] == False or fixed_neighbors[1] == False:
+#                         breakable = True
+#
+#                         # Append to list of breakable voxel indices
+#                         for ind in reg_inds:
+#                             ind3d = list(ind.copy())
+#                             ind3d.insert(pax, lay_num)
+#                             voxel_indices.append(ind3d)
+#
+#                         # Get region outline
+#                         outline = _get_region_outline(reg_inds, lay_mat, fixed_neighbors, n)
+#
+#                         # Order region outline
+#                         outline, _ = get_ordered_outline(outline)
+#                         outline.append(outline[0])
+#
+#                         for dir in range(0, 2):
+#                             # if not fixed_neighbors[dir]: continue
+#                             for i in range(len(outline) - 1):
+#                                 for j in range(2):
+#                                     oind = outline[i + j].ind.copy()
+#                                     oind.insert(pax, lay_num)
+#                                     oind[pax] += dir
+#                                     outline_indices.append(oind)
+#
+#     return breakable, outline_indices, voxel_indices
+
 def get_breakable_voxels(mat: ndarray, fixed_sides: List[List[FixedSide]],
                         sax: int, n: int) -> Tuple[bool, List[List[int]], List[List[int]]]:
     breakable = False
@@ -869,101 +972,136 @@ def get_breakable_voxels(mat: ndarray, fixed_sides: List[List[FixedSide]],
     voxel_indices = []
     dim = len(mat)
     gax = fixed_sides[0].ax  # grain axis
-    if gax != sax:  # if grain direction does not equal to the sliding direction
 
-        paxes = [0, 1, 2]
-        paxes.pop(gax)  # perpendicular to grain axis
+    if gax != sax:  # if grain direction does not equal to the sliding direction
+        paxes = _get_perpendicular_axes(gax)
 
         for pax in paxes:
-
-            potentially_fragile_reg_inds = []
-
-            for lay_num in range(dim):
-                temp = []
-
-                lay_mat = _layer_mat(mat, pax, dim, lay_num)
-
-                for reg_num in range(dim * dim):  # region number
-
-                    # Get indices of a region
-                    inds = np.argwhere((lay_mat != -1) & (lay_mat == n))
-                    if len(inds) == 0: break
-
-                    reg_inds = _get_same_neighbors_2d(lay_mat, [inds[0]], n)
-
-                    # Check if any item in this region is connected to a fixed side
-                    fixed = _is_connected_to_fixed_side_2d(reg_inds, fixed_sides, pax, dim)
-
-                    if not fixed: temp.append(reg_inds)
-
-                    # Overwrite detected regin in original matrix
-                    for reg_ind in reg_inds: lay_mat[tuple(reg_ind)] = -1
-
-                potentially_fragile_reg_inds.append(temp)
+            potentially_fragile_reg_inds = _find_potentially_fragile_regions(mat, fixed_sides, pax, dim, n)
 
             for lay_num in range(dim):
-
                 lay_mat = _layer_mat(mat, pax, dim, lay_num)
 
                 for reg_inds in potentially_fragile_reg_inds[lay_num]:
-
-                    # Is any voxel of this region connected to fixed materials in any axial direction?
-                    fixed_neighbors = [False, False]
-
-                    for reg_ind in reg_inds:
-
-                        # get 3d index
-                        ind3d = reg_ind.copy()
-                        ind3d = list(ind3d)
-                        ind3d.insert(pax, lay_num)
-                        for dir in range(-1, 2, 2):  # -1/1
-
-                            # check neigbor in direction
-                            ind3d_dir = ind3d.copy()
-                            ind3d_dir[pax] += dir
-                            if ind3d_dir[pax] >= 0 and ind3d_dir[pax] < dim:
-                                # Is there any material at all?
-                                val = mat[tuple(ind3d_dir)]
-                                if val == n:  # There is material
-                                    # Is this material in the list of potentially fragile or not?
-                                    attached_to_fragile = False
-                                    ind2d_dir = ind3d_dir.copy()
-                                    ind2d_dir.pop(pax)
-                                    for dir_reg_inds in potentially_fragile_reg_inds[lay_num + dir]:
-                                        for dir_ind in dir_reg_inds:
-                                            if dir_ind[0] == ind2d_dir[0] and dir_ind[1] == ind2d_dir[1]:
-                                                attached_to_fragile = True
-                                                break
-                                    # need to check more steps later...####################################!!!!!!!!!!!!!!!
-                                    if not attached_to_fragile:
-                                        fixed_neighbors[int((dir + 1) / 2)] = True
+                    fixed_neighbors = _check_fixed_neighbors(mat, reg_inds, potentially_fragile_reg_inds,
+                                                           lay_num, pax, dim, n)
 
                     if fixed_neighbors[0] == False or fixed_neighbors[1] == False:
                         breakable = True
 
-                        # Append to list of breakable voxel indices
-                        for ind in reg_inds:
-                            ind3d = list(ind.copy())
-                            ind3d.insert(pax, lay_num)
-                            voxel_indices.append(ind3d)
+                        # Add voxel indices
+                        voxel_indices.extend(_get_3d_indices(reg_inds, pax, lay_num))
 
-                        # Get region outline
+                        # Get and order region outline
                         outline = _get_region_outline(reg_inds, lay_mat, fixed_neighbors, n)
-
-                        # Order region outline
                         outline, _ = get_ordered_outline(outline)
                         outline.append(outline[0])
 
-                        for dir in range(0, 2):
-                            # if not fixed_neighbors[dir]: continue
-                            for i in range(len(outline) - 1):
-                                for j in range(2):
-                                    oind = outline[i + j].ind.copy()
-                                    oind.insert(pax, lay_num)
-                                    oind[pax] += dir
-                                    outline_indices.append(oind)
+                        # Add outline indices
+                        outline_indices.extend(_get_outline_indices(outline, pax, lay_num))
 
     return breakable, outline_indices, voxel_indices
+
+def _get_perpendicular_axes(axis: int) -> List[int]:
+    """Get axes perpendicular to the given axis."""
+    paxes = [0, 1, 2]
+    paxes.remove(axis)
+    return paxes
+
+def _find_potentially_fragile_regions(mat: ndarray, fixed_sides: List[List[FixedSide]], pax: int, dim: int, n: int) -> List[List[List[List[int]]]]:
+    """Find potentially fragile regions in each layer."""
+    potentially_fragile_reg_inds = []
+
+    for lay_num in range(dim):
+        temp = []
+        lay_mat = _layer_mat(mat, pax, dim, lay_num)
+
+        for reg_num in range(dim * dim):  # region number
+            # Get indices of a region
+            inds = np.argwhere((lay_mat != -1) & (lay_mat == n))
+            if len(inds) == 0:
+                break
+
+            reg_inds = _get_same_neighbors_2d(lay_mat, [inds[0]], n)
+
+            # Check if any item in this region is connected to a fixed side
+            fixed = _is_connected_to_fixed_side_2d(reg_inds, fixed_sides, pax, dim)
+
+            if not fixed:
+                temp.append(reg_inds)
+
+            # Overwrite detected region in original matrix
+            for reg_ind in reg_inds:
+                lay_mat[tuple(reg_ind)] = -1
+
+        potentially_fragile_reg_inds.append(temp)
+
+    return potentially_fragile_reg_inds
+
+def _check_fixed_neighbors(mat: ndarray, reg_inds: List[List[int]],
+                          potentially_fragile_reg_inds: List[List[List[List[int]]]],
+                          lay_num: int, pax: int, dim: int, n: int) -> List[bool]:
+    """Check if region has fixed neighbors in both directions."""
+    fixed_neighbors = [False, False]
+
+    for reg_ind in reg_inds:
+        # get 3d index
+        ind3d = list(reg_ind.copy())
+        ind3d.insert(pax, lay_num)
+
+        for dir in range(-1, 2, 2):  # -1/1
+            # check neighbor in direction
+            ind3d_dir = ind3d.copy()
+            ind3d_dir[pax] += dir
+
+            if 0 <= ind3d_dir[pax] < dim:
+                # Is there any material at all?
+                val = mat[tuple(ind3d_dir)]
+
+                if val == n:  # There is material
+                    # Is this material in the list of potentially fragile or not?
+                    if not _is_in_fragile_region(ind3d_dir, potentially_fragile_reg_inds,
+                                               lay_num + dir, pax):
+                        fixed_neighbors[int((dir + 1) / 2)] = True
+
+    return fixed_neighbors
+
+def _is_in_fragile_region(ind3d: List[int], potentially_fragile_reg_inds: List[List[List[List[int]]]],
+                         layer: int, pax: int) -> bool:
+    """Check if a 3D index is in a potentially fragile region."""
+    if layer < 0 or layer >= len(potentially_fragile_reg_inds):
+        return False
+
+    ind2d = ind3d.copy()
+    ind2d.pop(pax)
+
+    for dir_reg_inds in potentially_fragile_reg_inds[layer]:
+        for dir_ind in dir_reg_inds:
+            if dir_ind[0] == ind2d[0] and dir_ind[1] == ind2d[1]:
+                return True
+
+    return False
+
+def _get_3d_indices(reg_inds: List[List[int]], pax: int, lay_num: int) -> List[List[int]]:
+    """Convert 2D region indices to 3D voxel indices."""
+    indices = []
+    for ind in reg_inds:
+        ind3d = list(ind.copy())
+        ind3d.insert(pax, lay_num)
+        indices.append(ind3d)
+    return indices
+
+def _get_outline_indices(outline: List[RegionVertex], pax: int, lay_num: int) -> List[List[int]]:
+    """Get 3D indices for outline vertices."""
+    indices = []
+    for dir in range(0, 2):
+        for i in range(len(outline) - 1):
+            for j in range(2):
+                oind = outline[i + j].ind.copy()
+                oind.insert(pax, lay_num)
+                oind[pax] += dir
+                indices.append(oind)
+    return indices
 
 def get_friction_and_contact_areas(mat: ndarray, slides: List[List[int]],
                                   fixed_sides: List[List[FixedSide]], n: int) -> Tuple[int, List[List], int, List[List]]:
