@@ -125,7 +125,7 @@ class Selection:
             comp_ax, comp_dir, comp_vec = self._get_component_vector(screen_xrot, screen_yrot)
 
             # Calculate angle between mouse vector and component vector
-            ang = Utils.angle_between_vectors1(mouse_vec, comp_vec, direction=True)
+            ang = Utils.angle_between_vectors(mouse_vec, comp_vec, signed=True)
             absang = abs(ang) % 180
 
             # Determine if we're rotating or moving

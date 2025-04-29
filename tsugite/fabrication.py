@@ -263,7 +263,7 @@ class Fabrication:
         zax = np.array([0, 0, 1])
         aax = [0, 0, 0]
         aax[int(self.align_ax/2)] = 2*(self.align_ax%2)-1
-        rot_ang = Utils.angle_between_vectors2(aax, comp_vec, normal_vector=zax)
+        rot_ang = Utils.angle_between_vectors(aax, comp_vec, normal_vector=zax)
         if fdir == 0:
             rot_ang = -rot_ang
 
@@ -351,7 +351,7 @@ class Fabrication:
             xvec = np.cross(vec1, zvec)
             vec2 = pmv.pt - mv.arc_ctr
             vec2 = vec2 / np.linalg.norm(vec2)
-            diff_ang = Utils.angle_between_vectors2(xvec, vec2)
+            diff_ang = Utils.angle_between_vectors(xvec, vec2)
             clockwise = diff_ang > 0.5 * math.pi
 
             return {

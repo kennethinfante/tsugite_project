@@ -508,8 +508,8 @@ class Joint:
             ppt = outline[-1].pt
             v1 = pts[0] - ppt
             v2 = pts[1] - ppt
-            ang1 = Utils.angle_between_vectors1(v1, off_vec_b)  # should be 0 if order is already good
-            ang2 = Utils.angle_between_vectors1(v2, off_vec_b)  # should be more than 0
+            ang1 = Utils.angle_between_vectors(v1, off_vec_b)  # should be 0 if order is already good
+            ang2 = Utils.angle_between_vectors(v2, off_vec_b)  # should be more than 0
             if ang1 > ang2:
                 pts.reverse()
         return pts

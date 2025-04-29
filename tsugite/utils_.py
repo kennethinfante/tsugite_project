@@ -32,27 +32,69 @@ def normalize(v: ndarray) -> np.ndarray:
     if norm == 0: return v
     else: return v / norm
 
-def angle_between_vectors1(vector_1: ndarray, vector_2: ndarray, direction: bool = False) -> float:
-    unit_vector_1 = normalize(vector_1)
-    unit_vector_2 = normalize(vector_2)
-    v_dot_product = np.dot(unit_vector_1, unit_vector_2)
+def angle_between_vectors(vector_1: ndarray, vector_2: ndarray,
+                          normal_vector: List[float] = None,
+                          return_degrees: bool = False,
+                          signed: bool = False) -> float:
+    """Calculate the angle between two vectors.
 
-    if direction:
-        angle = np.arctan2(linalg.det([unit_vector_1, unit_vector_2]), v_dot_product)
-        return math.degrees(angle)
-    else:
-        angle = np.arccos(v_dot_product)
-        return angle
+    Args:
+        vector_1: First vector
+        vector_2: Second vector
+        normal_vector: Optional reference vector for determining sign direction
+        return_degrees: If True, returns angle in degrees, otherwise in radians
+        signed: If True, returns signed angle (direction matters)
 
-def angle_between_vectors2(vector_1: ndarray, vector_2: ndarray,
-                           normal_vector: List[float] = []) -> float:
+    Returns:
+        Angle between vectors in radians (or degrees if return_degrees is True)
+    """
     unit_vector_1 = normalize(vector_1)
     unit_vector_2 = normalize(vector_2)
     dot_product = np.dot(unit_vector_1, unit_vector_2)
-    angle = np.arccos(dot_product)
-    cross = np.cross(unit_vector_1, unit_vector_2)
-    if len(normal_vector) > 0 and np.dot(normal_vector, cross) < 0: angle = -angle
+
+    # Clamp dot product to avoid numerical errors
+    dot_product = max(min(dot_product, 1.0), -1.0)
+
+    if signed:
+        # Calculate signed angle using arctan2
+        angle = np.arctan2(linalg.det([unit_vector_1, unit_vector_2]), dot_product)
+    else:
+        # Calculate unsigned angle using arccos
+        angle = np.arccos(dot_product)
+
+        # Apply sign based on normal vector if provided
+        if normal_vector is not None:
+            cross = np.cross(unit_vector_1, unit_vector_2)
+            if np.dot(normal_vector, cross) < 0:
+                angle = -angle
+
+    # Convert to degrees if requested
+    if return_degrees:
+        angle = math.degrees(angle)
+
     return angle
+
+# def angle_between_vectors1(vector_1: ndarray, vector_2: ndarray, direction: bool = False) -> float:
+#     unit_vector_1 = normalize(vector_1)
+#     unit_vector_2 = normalize(vector_2)
+#     v_dot_product = np.dot(unit_vector_1, unit_vector_2)
+#
+#     if direction:
+#         angle = np.arctan2(linalg.det([unit_vector_1, unit_vector_2]), v_dot_product)
+#         return math.degrees(angle)
+#     else:
+#         angle = np.arccos(v_dot_product)
+#         return angle
+#
+# def angle_between_vectors2(vector_1: ndarray, vector_2: ndarray,
+#                            normal_vector: List[float] = []) -> float:
+#     unit_vector_1 = normalize(vector_1)
+#     unit_vector_2 = normalize(vector_2)
+#     dot_product = np.dot(unit_vector_1, unit_vector_2)
+#     angle = np.arccos(dot_product)
+#     cross = np.cross(unit_vector_1, unit_vector_2)
+#     if len(normal_vector) > 0 and np.dot(normal_vector, cross) < 0: angle = -angle
+#     return angle
 
 def rotate_vector_around_axis(vec: List[float] = [3, 5, 0],
                               axis: List[float] = [4, 4, 1],
@@ -424,7 +466,7 @@ def arc_points(st: List[float], en: List[float], ctr0: List[float], ctr1: List[f
 
     # Calculate vectors and angle
     v0, v1 = st - ctr0, en - ctr1
-    angle = angle_between_vectors2(v0, v1)
+    angle = angle_between_vectors(v0, v1)
     z_diff = en[ax] - st[ax]
     # Calculate steps
     step_info = _calculate_arc_steps(angle, astep, z_diff)
