@@ -266,21 +266,37 @@ def _calculate_proportions(lengths: List[float], total_length: float) -> List[fl
 
     return proportions
 
+# def has_minus_one_neighbor(ind: List[int], lay_mat: ndarray) -> bool:
+#     condition = False
+#     for add0 in range(-1, 1, 1):
+#         temp = []
+#         temp2 = []
+#         for add1 in range(-1, 1, 1):
+#             # Define neighbor index to test
+#             nind = [ind[0]+add0, ind[1]+add1]
+#             # If test index is within bounds
+#             if np.all(np.array(nind) >= 0) and nind[0] < lay_mat.shape[0] and nind[1] < lay_mat.shape[1]:
+#                 # If the value is -1
+#                 if lay_mat[tuple(nind)] == -1:
+#                     condition = True
+#                     break
+#     return condition
+
 def has_minus_one_neighbor(ind: List[int], lay_mat: ndarray) -> bool:
-    condition = False
     for add0 in range(-1, 1, 1):
-        temp = []
-        temp2 = []
         for add1 in range(-1, 1, 1):
-            # Define neighbor index to test
-            nind = [ind[0]+add0, ind[1]+add1]
-            # If test index is within bounds
-            if np.all(np.array(nind) >= 0) and nind[0] < lay_mat.shape[0] and nind[1] < lay_mat.shape[1]:
-                # If the value is -1
-                if lay_mat[tuple(nind)] == -1:
-                    condition = True
-                    break
-    return condition
+            nind = [ind[0] + add0, ind[1] + add1]
+
+            if _is_valid_index_in_matrix(nind, lay_mat) and lay_mat[tuple(nind)] == -1:
+                return True
+
+    return False
+
+def _is_valid_index_in_matrix(ind: List[int], matrix: ndarray) -> bool:
+    """Check if index is within matrix bounds."""
+    return (np.all(np.array(ind) >= 0) and
+            ind[0] < matrix.shape[0] and
+            ind[1] < matrix.shape[1])
 
 def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: ndarray,
                          org_lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
