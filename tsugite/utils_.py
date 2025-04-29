@@ -578,6 +578,37 @@ def _unique_indices(indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
     indices = np.unique(indices, axis=0)
     return [tuple(ind) for ind in indices]
 
+def _check_neighbor_crossing(neighbors: ndarray, vax: int, vaxval: int) -> bool:
+    """Check if a vertex can be crossed based on its neighbors.
+
+    Args:
+        neighbors: 2x2 array of neighbor values
+        vax: Vertex axis (0 or 1)
+        vaxval: Vertex axis value (0 or 1)
+
+    Returns:
+        True if crossing is valid, False otherwise
+    """
+    # Define neighbor indices to check
+    nind0 = [0, 0]  # First neighbor to check
+    nind0[vax] = vaxval
+    nind1 = [1, 1]  # Second neighbor to check
+    nind1[vax] = vaxval
+
+    # Get neighbor values
+    ne0 = neighbors[nind0[0]][nind0[1]]
+    ne1 = neighbors[nind1[0]][nind1[1]]
+
+    # Must have at least one block
+    if ne0 != 1 and ne1 != 1:
+        return False
+
+    # Cannot cross blocked material
+    if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)):
+        return False
+
+    return True
+
 def _find_next_vertex(ord_verts: List[RegionVertex], verts: List[RegionVertex]) -> Tuple[bool, RegionVertex]:
     """Find the next vertex in an outline sequence.
 
@@ -607,44 +638,15 @@ def _find_next_vertex(ord_verts: List[RegionVertex], verts: List[RegionVertex]) 
                 if len(ord_verts) > 1 and rv.ind == ord_verts[-2].ind:
                     continue
 
+                # Convert direction (-1,1) to index (0,1)
+                vaxval = int(0.5 * (vdir + 1))
+
                 # Check crossing conditions from the last vertex's perspective
-                p_neig = last_vertex.neighbors  # p_neig = previous neighbor values
-                vaxval = int(0.5 * (vdir + 1))  # Convert direction (-1,1) to index (0,1)
-
-                # Define neighbor indices to check
-                nind0 = [0, 0]  # First neighbor to check
-                nind0[vax] = vaxval
-                nind1 = [1, 1]  # Second neighbor to check
-                nind1[vax] = vaxval
-
-                # Get neighbor values
-                ne0 = p_neig[nind0[0]][nind0[1]]
-                ne1 = p_neig[nind1[0]][nind1[1]]
-
-                # Must have at least one block
-                if ne0 != 1 and ne1 != 1:
-                    continue
-
-                # Cannot cross blocked material
-                if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)):
+                if not _check_neighbor_crossing(last_vertex.neighbors, vax, vaxval):
                     continue
 
                 # Check crossing conditions from the candidate vertex's perspective
-                nind0 = [0, 0]
-                nind0[vax] = 1 - vaxval  # Opposite side
-                nind1 = [1, 1]
-                nind1[vax] = 1 - vaxval  # Opposite side
-
-                # Get neighbor values
-                ne0 = rv.neighbors[nind0[0]][nind0[1]]
-                ne1 = rv.neighbors[nind1[0]][nind1[1]]
-
-                # Must have at least one block
-                if ne0 != 1 and ne1 != 1:
-                    continue
-
-                # Cannot cross blocked material
-                if int(0.5 * (ne0 + 1)) == int(0.5 * (ne1 + 1)):
+                if not _check_neighbor_crossing(rv.neighbors, vax, 1 - vaxval):  # Opposite side
                     continue
 
                 # If you made it here, you found the next vertex!
