@@ -109,7 +109,7 @@ class Evaluation:
 
         # Check chessboard pattern for each component
         for n in range(joint_.noc):
-            check, verts = Utils.get_chessboard_vertics(voxel_matrix, joint_.sax, joint_.noc, n)
+            check, verts = Utils.get_chessboard_vertices(voxel_matrix, joint_.sax, joint_.noc, n)
             self.checker.append(check)
             self.checker_vertices.append(verts)
 
@@ -355,7 +355,7 @@ class EvaluationOne:
         return self.other_connected_and_bridged
 
     def _check_checkerboard(self, voxel_matrix, sax, noc, level):
-        check, verts = Utils.get_chessboard_vertics(voxel_matrix, sax, noc, level)
+        check, verts = Utils.get_chessboard_vertices(voxel_matrix, sax, noc, level)
         if check:
             self.nocheck = False
         return self.nocheck

@@ -479,20 +479,51 @@ def get_neighbors(mat: ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, .
                 values.append(int(mat[ind0]))
     return indices, np.array(values)
 
+# def get_all_same_connected(mat: ndarray, indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
+#     start_n = len(indices)
+#     val = int(mat[indices[0]])
+#     all_same_neighbors = []
+#     for ind in indices:
+#         n_indices, n_values = get_neighbors(mat, ind)
+#         for n_ind, n_val in zip(n_indices, n_values):
+#             if n_val == val: all_same_neighbors.append(n_ind)
+#     indices.extend(all_same_neighbors)
+#     if len(indices) > 0:
+#         indices = np.unique(indices, axis=0)
+#         indices = [tuple(ind) for ind in indices]
+#         if len(indices) > start_n: indices = get_all_same_connected(mat, indices)
+#     return indices
+
 def get_all_same_connected(mat: ndarray, indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
     start_n = len(indices)
     val = int(mat[indices[0]])
+
+    all_same_neighbors = _find_same_value_neighbors(mat, indices, val)
+    indices.extend(all_same_neighbors)
+
+    if len(indices) > 0:
+        indices = _unique_indices(indices)
+        if len(indices) > start_n:
+            indices = get_all_same_connected(mat, indices)
+
+    return indices
+
+def _find_same_value_neighbors(mat: ndarray, indices: List[Tuple[int, ...]], val: int) -> List[Tuple[int, ...]]:
+    """Find neighbors with the same value."""
     all_same_neighbors = []
+
     for ind in indices:
         n_indices, n_values = get_neighbors(mat, ind)
         for n_ind, n_val in zip(n_indices, n_values):
-            if n_val == val: all_same_neighbors.append(n_ind)
-    indices.extend(all_same_neighbors)
-    if len(indices) > 0:
-        indices = np.unique(indices, axis=0)
-        indices = [tuple(ind) for ind in indices]
-        if len(indices) > start_n: indices = get_all_same_connected(mat, indices)
-    return indices
+            if n_val == val:
+                all_same_neighbors.append(n_ind)
+
+    return all_same_neighbors
+
+def _unique_indices(indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
+    """Get unique indices from a list."""
+    indices = np.unique(indices, axis=0)
+    return [tuple(ind) for ind in indices]
 
 # def get_ordered_outline(verts: List[RegionVertex]) -> List[RegionVertex]:
 #     ord_verts = []
@@ -1350,7 +1381,7 @@ def add_fixed_sides(mat: ndarray, fixed_sides: List[List[FixedSide]], add: int =
 #                         verts.append(ind3d)
 #     return chess, verts
 
-def get_chessboard_vertics(mat: ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
+def get_chessboard_vertices(mat: ndarray, ax: int, noc: int, n: int) -> Tuple[bool, List[List[int]]]:
     chess = False
     dim = len(mat)
     verts = []
