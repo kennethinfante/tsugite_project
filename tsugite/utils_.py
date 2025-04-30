@@ -408,8 +408,6 @@ def get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
 
 def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: ndarray,
                          org_lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
-    """Previously has n parameter, but it is not used."""
-    print("lay_mat equal to org_lay_mat", lay_mat == org_lay_mat)
 
     in_out = []
     values = []
@@ -699,6 +697,78 @@ def get_neighbors(mat: ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, .
                 values.append(int(mat[ind0]))
     return indices, np.array(values)
 
+# def _get_same_neighbors_2d(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
+#     new_inds = list(inds)
+#     for ind in inds:
+#         for ax in range(2):
+#             for dir in range(-1, 2, 2):
+#                 ind2 = ind.copy()
+#                 ind2[ax] += dir
+#                 if ind2[ax] >= 0 and ind2[ax] < mat2.shape[ax]:
+#                     val2 = mat2[tuple(ind2)]
+#                     if val2 != val: continue
+#                     unique = True
+#                     for ind3 in new_inds:
+#                         if ind2[0] == ind3[0] and ind2[1] == ind3[1]:
+#                             unique = False
+#                             break
+#                     if unique: new_inds.append(ind2)
+#     if len(new_inds) > len(inds):
+#         new_inds = _get_same_neighbors_2d(mat2, new_inds, val)
+#     return new_inds
+
+def get_same_neighbors_2d(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
+    """Find all connected voxels with the same value in a 2D matrix.
+
+    Args:
+        mat2: 2D matrix to search in
+        inds: Initial indices to start the search from
+        val: Value to search for
+
+    Returns:
+        List of all connected indices with the same value
+    """
+    start_n = len(inds)
+
+    # Find all neighbors with the same value
+    all_same_neighbors = _find_same_value_neighbors_2d(mat2, inds, val)
+    inds.extend(all_same_neighbors)
+
+    # Remove duplicates
+    inds = _unique_indices_list(inds)
+
+    # If we found new indices, recursively search for more
+    if len(inds) > start_n:
+        inds = get_same_neighbors_2d(mat2, inds, val)
+
+    return inds
+
+def _find_same_value_neighbors_2d(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
+    """Find neighbors with the same value in a 2D matrix."""
+    all_same_neighbors = []
+
+    for ind in inds:
+        for ax in range(2):
+            for dir in range(-1, 2, 2):  # -1, 1
+                ind2 = ind.copy()
+                ind2[ax] += dir
+
+                # Check if neighbor is within bounds
+                if 0 <= ind2[ax] < mat2.shape[ax]:
+                    val2 = mat2[tuple(ind2)]
+
+                    # Check if neighbor has the same value
+                    if val2 == val:
+                        all_same_neighbors.append(ind2)
+
+    return all_same_neighbors
+
+def _unique_indices_list(indices: List[List[int]]) -> List[List[int]]:
+    """Get unique indices from a list of 2D indices."""
+    if not indices:
+        return []
+    indices = np.unique(np.array(indices), axis=0)
+    return [list(ind) for ind in indices]
 
 def get_all_same_connected(mat: ndarray, indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
     start_n = len(indices)
@@ -995,26 +1065,6 @@ def _is_connected_to_fixed_side_3d(indices: ndarray, mat: ndarray,
 
     return False
 
-def _get_same_neighbors_2d(mat2: ndarray, inds: List[List[int]], val: int) -> List[List[int]]:
-    new_inds = list(inds)
-    for ind in inds:
-        for ax in range(2):
-            for dir in range(-1, 2, 2):
-                ind2 = ind.copy()
-                ind2[ax] += dir
-                if ind2[ax] >= 0 and ind2[ax] < mat2.shape[ax]:
-                    val2 = mat2[tuple(ind2)]
-                    if val2 != val: continue
-                    unique = True
-                    for ind3 in new_inds:
-                        if ind2[0] == ind3[0] and ind2[1] == ind3[1]:
-                            unique = False
-                            break
-                    if unique: new_inds.append(ind2)
-    if len(new_inds) > len(inds):
-        new_inds = _get_same_neighbors_2d(mat2, new_inds, val)
-    return new_inds
-
 def _layer_mat(mat3d: ndarray, ax: int, dim: int, lay_num: int) -> np.ndarray:
     mat2d = np.ndarray(shape=(dim, dim), dtype=int)
     for i in range(dim):
@@ -1082,7 +1132,7 @@ def _find_potentially_fragile_regions(mat: ndarray, fixed_sides: List[List[Fixed
             if len(inds) == 0:
                 break
 
-            reg_inds = _get_same_neighbors_2d(lay_mat, [inds[0]], n)
+            reg_inds = get_same_neighbors_2d(lay_mat, [inds[0]], n)
 
             # Check if any item in this region is connected to a fixed side
             fixed = _is_connected_to_fixed_side_2d(reg_inds, fixed_sides, pax, dim)
