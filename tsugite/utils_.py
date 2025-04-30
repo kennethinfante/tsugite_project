@@ -420,7 +420,7 @@ def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: nda
             nind = [ind[0] + add0, ind[1] + add1]
 
             type_val = _determine_neighbor_type(nind, reg_inds, lay_mat)
-            # pass the org_lay_mat
+            # pass the original layer matrix to get the value
             value = _get_neighbor_value(nind, org_lay_mat, type_val)
 
             in_out_row.append(type_val)
@@ -634,16 +634,16 @@ def is_connected(mat: ndarray, n: int) -> bool:
 def get_sliding_directions(mat: ndarray, noc: int) -> Tuple[List[List[List[int]]], List[int]]:
     """Get possible sliding directions for each component."""
     sliding_dirs = []
-    number_of_sliding_dirs = []
+    list_of_sliding_dirs_len = []
 
     for n in range(noc):
 
-        component_dirs, len_component_dirs = get_sliding_directions_of_one_timber(mat, n)
+        component_dirs, component_dirs_len = get_sliding_directions_of_one_timber(mat, n)
 
         sliding_dirs.append(component_dirs)
-        number_of_sliding_dirs.append(len_component_dirs)
+        list_of_sliding_dirs_len.append(component_dirs_len)
 
-    return sliding_dirs, number_of_sliding_dirs
+    return sliding_dirs, list_of_sliding_dirs_len
 
 def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List[List[int]], int]:
     """Get possible sliding directions for a specific timber."""
@@ -654,9 +654,9 @@ def get_sliding_directions_of_one_timber(mat: ndarray, level: int) -> Tuple[List
             if _check_sliding_direction(mat, ax, dir, level):
                 component_dirs.append([ax, dir])
 
-    len_component_dirs = len(component_dirs)
+    component_dirs_len = len(component_dirs)
 
-    return component_dirs, len_component_dirs
+    return component_dirs, component_dirs_len
 
 def _check_sliding_direction(mat: ndarray, ax: int, dir: int, n: int) -> bool:
     """Check if a component can slide in a specific direction."""
