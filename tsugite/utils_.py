@@ -684,6 +684,21 @@ def _check_sliding_direction(mat: ndarray, ax: int, dir: int, n: int) -> bool:
     return True
 
 def get_neighbors(mat: ndarray, ind: Tuple[int, ...]) -> Tuple[List[Tuple[int, ...]], np.ndarray]:
+    """
+    The key differences between `get_neighbors_2d` and `get_neighbors` are:
+
+    1. `get_neighbors_2d` is specifically designed for 2D matrices and returns a 2x2 grid of neighbor types (in/out of region) and values
+    2. `get_neighbors` is more general and works with matrices of any dimension, returning a flat list of neighbor indices and values
+
+    Both functions serve the purpose of finding neighbors around a given index, but they're structured differently to serve different use cases:
+
+    - `get_neighbors_2d` is used for region outline detection and classification of neighbors as "in region", "outside region, block", or
+        "outside region, free"
+    - `get_neighbors` is used for general connectivity analysis and returns all valid neighbors in any dimension
+
+    There's also another similar function called `get_neighbors_in_out` which is a refactored version of `get_neighbors_2d` that uses helper
+    functions to make the code more modular
+    """
     indices = []
     values = []
     for m in range(len(ind)):   # For each direction (x,y)
@@ -771,6 +786,13 @@ def _unique_indices_list(indices: List[List[int]]) -> List[List[int]]:
     return [list(ind) for ind in indices]
 
 def get_all_same_connected(mat: ndarray, indices: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
+    """
+    1. `get_same_neighbors_2d` - Finds connected voxels with the same value in a 2D matrix
+    2. `get_all_same_connected` - Finds connected voxels with the same value in a 3D matrix
+
+    The main difference is that `get_all_same_connected` uses helper functions to make the code more modular,
+    while `get_same_neighbors_2d` has all the logic in one function.
+    """
     start_n = len(indices)
     val = int(mat[indices[0]])
 
