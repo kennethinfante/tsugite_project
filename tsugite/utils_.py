@@ -356,7 +356,7 @@ def _is_valid_index_in_matrix(ind: List[int], matrix: ndarray) -> bool:
 #         values.append(temp2)
 #     return in_out, values
 
-def _get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
+def get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
                      lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
     """Get 2D neighbors of a vertex and classify them.
 
@@ -384,8 +384,8 @@ def _get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
         for add1 in range(-1, 1, 1):
             nind = [ind[0] + add0, ind[1] + add1]
 
-            type_val = _determine_neighbor_type_2d(nind, reg_inds, lay_mat)
-            value = _get_neighbor_value_2d(nind, lay_mat, type_val)
+            type_val = _determine_neighbor_type(nind, reg_inds, lay_mat)
+            value = _get_neighbor_value(nind, lay_mat, type_val)
 
             in_out_row.append(type_val)
             values_row.append(value)
@@ -395,40 +395,22 @@ def _get_neighbors_2d(ind: List[int], reg_inds: List[List[int]],
 
     return in_out, values
 
-def _determine_neighbor_type_2d(nind: List[int], reg_inds: List[List[int]], lay_mat: ndarray) -> int:
-    """Determine the type of a neighbor cell.
-    0 = in region
-    1 = outside region, block
-    2 = outside region, free
-    """
-    # Check if this index is in the list of region-included indices
-    for rind in reg_inds:
-        if rind[0] == nind[0] and rind[1] == nind[1]:
-            return 0  # in region
-
-    # If out of bounds or negative value, it's free
-    if (np.any(np.array(nind) < 0) or
-        nind[0] >= lay_mat.shape[0] or
-        nind[1] >= lay_mat.shape[1] or
-        lay_mat[tuple(nind)] < 0):
-        return 2  # free
-
-    return 1  # blocked
-
-def _get_neighbor_value_2d(nind: List[int], lay_mat: ndarray, type_val: int):
-    """Get the value of a neighbor cell."""
-    # If out of bounds, return -1
-    if (np.any(np.array(nind) < 0) or
-        nind[0] >= lay_mat.shape[0] or
-        nind[1] >= lay_mat.shape[1]):
-        return -1
-
-    # Otherwise, return the value from the matrix
-    return lay_mat[tuple(nind)]
+# def _get_neighbor_value_2d(nind: List[int], lay_mat: ndarray, type_val: int):
+#     """Get the value of a neighbor cell."""
+#     # If out of bounds, return -1
+#     if (np.any(np.array(nind) < 0) or
+#         nind[0] >= lay_mat.shape[0] or
+#         nind[1] >= lay_mat.shape[1]):
+#         return -1
+#
+#     # Otherwise, return the value from the matrix
+#     return lay_mat[tuple(nind)]
 
 def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: ndarray,
-                         org_lay_mat: ndarray) -> Tuple[List[List[int]], List[List[int]]]:
+                         org_lay_mat: ndarray, n: int) -> Tuple[List[List[int]], List[List[int]]]:
     """Previously has n parameter, but it is not used."""
+    print("lay_mat equal to org_lay_mat", lay_mat == org_lay_mat)
+
     in_out = []
     values = []
 
@@ -440,6 +422,7 @@ def get_neighbors_in_out(ind: List[int], reg_inds: List[List[int]], lay_mat: nda
             nind = [ind[0] + add0, ind[1] + add1]
 
             type_val = _determine_neighbor_type(nind, reg_inds, lay_mat)
+            # pass the org_lay_mat
             value = _get_neighbor_value(nind, org_lay_mat, type_val)
 
             in_out_row.append(type_val)
@@ -962,7 +945,7 @@ def _get_region_outline(reg_inds: List[List[int]], lay_mat: ndarray,
     for i in range(lay_mat.shape[0] + 1):
         for j in range(lay_mat.shape[1] + 1):
             ind = [i, j]
-            neigbors, neighbor_values = _get_neighbors_2d(ind, reg_inds, lay_mat, n)
+            neigbors, neighbor_values = get_neighbors_2d(ind, reg_inds, lay_mat, n)
             neigbors = np.array(neigbors)
             if np.any(neigbors.flatten() == 0) and not np.all(neigbors.flatten() == 0): # some but not all region neighbors
                 dia1 = neigbors[0][1] == neigbors[1][0]
